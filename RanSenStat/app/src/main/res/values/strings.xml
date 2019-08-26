@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RanSenStat</string>
+    <string name="text_randomSentence">Random Sentence</string>
+    <string name="button_generateSentence">Generate Sentence</string>
+    <string name="button_stopGenerate">Stop Generating</string>
+    <string name="action_set_workloads"> Set Workloads</string>
+    <string name="action_set_masterIP">Set MasterIP</string>
+    <string name="action_set_clusterId">Set ClusterId</string>
+    <string name="action_set_genSpeed">Set GenSpeed</string>
+    <string name="action_submit_topology">Submit Topology</string>
+    <string name="action_set_parallelism"> Set Parallelism </string>
+    <string name="action_set_groupingMethod"> Set Grouping Method </string>
+</resources>

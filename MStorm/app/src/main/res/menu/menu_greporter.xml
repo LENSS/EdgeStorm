@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" tools:context=".MStorm">
+    <item
+        android:id="@+id/action_start_computing_service"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        android:title="@string/action_start_computing"/>
+    <item
+        android:id="@+id/action_stop_computing_service"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        android:title="@string/action_stop_computing"/>
+</menu>

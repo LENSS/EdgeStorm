@@ -1,0 +1,30 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.lenss.cmy.ransenstat.RanSenStatActivity">
+    <item
+        android:id="@+id/action_set_genSpeed"
+        android:orderInCategory="100"
+        android:title="@string/action_set_genSpeed"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_set_workloads"
+        android:orderInCategory="100"
+        android:title="@string/action_set_workloads"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_set_parallelism"
+        android:orderInCategory="100"
+        android:title="@string/action_set_parallelism"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_set_groupingMethod"
+        android:orderInCategory="100"
+        android:title="@string/action_set_groupingMethod"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_submit_topology"
+        android:orderInCategory="100"
+        android:title="@string/action_submit_topology"
+        app:showAsAction="never" />
+</menu>
