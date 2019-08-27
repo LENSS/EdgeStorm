@@ -11,7 +11,6 @@ import java.io.IOException;
 public class ZookeeperClient implements Watcher, Runnable, DataMonitor.DataMonitorListener {
     private ZooKeeper zk;
     private DataMonitor dm;
-    private final int SESSION_TIMEOUT = 5000; // ms
 
     public ZookeeperClient(Supervisor supervisor, String hostPort) throws KeeperException, IOException {
         zk = new ZooKeeper(hostPort, MStormWorker.SESSION_TIMEOUT, this);
@@ -55,6 +54,16 @@ public class ZookeeperClient implements Watcher, Runnable, DataMonitor.DataMonit
 
     public void exists(byte[] data) {
 
+    }
+    
+    public void stopZookeeperClient(){
+        try {
+            zk.close();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        dm.dead = true;
+        closing(1);
     }
 
 }

@@ -1,10 +1,11 @@
 package com.lenss.mstorm.communication.internodes;
 
-import android.util.Pair;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.topology.Topology;
+import com.lenss.mstorm.utils.MyPair;
 import com.lenss.mstorm.zookeeper.Assignment;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,15 +24,15 @@ public class MessageQueues {
     //// DISTINCT DATA QUEUES FOR TASKS
     // data queues
     public static Map<Integer,BlockingQueue<InternodePacket>> incomingQueues = new HashMap<Integer,BlockingQueue<InternodePacket>>();
-    public static Map<Integer,BlockingQueue<Pair<String, InternodePacket>>> outgoingQueues = new HashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>>();
+    public static Map<Integer,BlockingQueue<MyPair<String, InternodePacket>>> outgoingQueues = new HashMap<Integer,BlockingQueue<MyPair<String, InternodePacket>>>();
     // result queues
-    public static ConcurrentHashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>> resultQueues = new ConcurrentHashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>>();
+    public static ConcurrentHashMap<Integer,BlockingQueue<MyPair<String, InternodePacket>>> resultQueues = new ConcurrentHashMap<Integer,BlockingQueue<MyPair<String, InternodePacket>>>();
 
     // add queues for tasks
     public static void addQueuesForTask(Integer taskID){
         // add queues for data
         BlockingQueue<InternodePacket> incomingQueue = new LinkedBlockingDeque<InternodePacket>();
-        BlockingQueue<Pair<String, InternodePacket>> outgoingQueue = new LinkedBlockingDeque<Pair<String, InternodePacket>>();
+        BlockingQueue<MyPair<String, InternodePacket>> outgoingQueue = new LinkedBlockingDeque<MyPair<String, InternodePacket>>();
         incomingQueues.put(taskID,incomingQueue);
         outgoingQueues.put(taskID,outgoingQueue);
 
@@ -50,7 +51,7 @@ public class MessageQueues {
 
     // add result queues for last component tasks
     public static void addResultQueuesForTask(Integer taskID){
-        BlockingQueue<Pair<String, InternodePacket>> resultQueue = new LinkedBlockingDeque<Pair<String, InternodePacket>>();
+        BlockingQueue<MyPair<String, InternodePacket>> resultQueue = new LinkedBlockingDeque<MyPair<String, InternodePacket>>();
         resultQueues.put(taskID,resultQueue);
     }
 
@@ -100,13 +101,13 @@ public class MessageQueues {
     // API for user: Add tuple to the outgoing queue for tx
     public static void emit(InternodePacket data, int taskid, String Component) throws InterruptedException {
         if (outgoingQueues.get(taskid)!=null){
-            Pair<String, InternodePacket> outData = new Pair<String, InternodePacket>(Component, data);
+            MyPair<String, InternodePacket> outData = new MyPair<String, InternodePacket>(Component, data);
             outgoingQueues.get(taskid).put(outData);
         }
     }
 
     // Retrieve tuple from outgoing queue to tx
-    public static Pair<String, InternodePacket> retrieveOutgoingQueue(int taskid){
+    public static MyPair<String, InternodePacket> retrieveOutgoingQueue(int taskid){
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
@@ -120,19 +121,19 @@ public class MessageQueues {
     }
 
     // Add tuple back to the outgoing queue to wait for the tx channel
-    public static void reQueue(int taskid, Pair<String, InternodePacket> pair) throws InterruptedException {
+    public static void reQueue(int taskid, MyPair<String, InternodePacket> pair) throws InterruptedException {
         if (outgoingQueues.get(taskid)!=null)
-            ((LinkedBlockingDeque<Pair<String, InternodePacket>>) outgoingQueues.get(taskid)).putFirst(pair);
+            ((LinkedBlockingDeque<MyPair<String, InternodePacket>>) outgoingQueues.get(taskid)).putFirst(pair);
     }
 
     // Add processing results to result queue to send to the source
-    public static void emitToResultQueue(int taskid, Pair<String, InternodePacket> pair) throws InterruptedException {
+    public static void emitToResultQueue(int taskid, MyPair<String, InternodePacket> pair) throws InterruptedException {
         if (resultQueues.get(taskid)!=null)
-            ((LinkedBlockingDeque<Pair<String, InternodePacket>>) resultQueues.get(taskid)).putFirst(pair);
+            ((LinkedBlockingDeque<MyPair<String, InternodePacket>>) resultQueues.get(taskid)).putFirst(pair);
     }
 
     // API for user: Retrieve processing results from result queue to sent back to the user app
-    public static Pair<String, InternodePacket> retrieveResultQueue(int taskid){
+    public static MyPair<String, InternodePacket> retrieveResultQueue(int taskid){
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
@@ -203,3 +204,4 @@ public class MessageQueues {
         System.out.println("All queues removed ... ");
     }
 }
+

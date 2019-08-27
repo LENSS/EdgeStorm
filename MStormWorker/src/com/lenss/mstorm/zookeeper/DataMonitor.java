@@ -22,9 +22,11 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
     private static final String ASSIGN_ADD_PATTERM = CLUSTER_DIR+"/\\d+"+ASSIGN_DIR;
     private static final String ASSIGN_CHANGE_PATTERM = CLUSTER_DIR+"/\\d+"+ASSIGN_DIR+"/\\d+";
 
-    private final String TAG="DataMonitor";
-    Logger logger = Logger.getLogger(TAG);
-
+    
+    private static final String TAG="DataMonitor";
+    private static Logger logger = Logger.getLogger(TAG);
+    
+    
     private ZooKeeper zk;
     private Watcher chainedWatcher;
     boolean dead = false;
@@ -195,17 +197,31 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
     }
 
     public void register(String cluster_id)  {
-        zk.create(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.localAddress,
+        zk.create(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate,
                     new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL,this,null);
         zk.getChildren(CLUSTER_DIR + "/" + cluster_id + ASSIGN_DIR, true, this, null);
     }
 
     public void unregister(String cluster_id){
         try {
-            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.localAddress,-1);
+            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate,-1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (KeeperException e) {
+            e.printStackTrace();
+        }
+        
+        // the last node delete all assignments
+        try {
+            List<String> remainingNodes = zk.getChildren(CLUSTER_DIR + "/" + cluster_id + NODES_DIR, false);
+            if(remainingNodes.size() == 0){
+                List<String> remainingAssignments = zk.getChildren(CLUSTER_DIR + "/" + cluster_id + ASSIGN_DIR, false);
+                for(String assign:remainingAssignments)
+                    zk.delete(CLUSTER_DIR + "/" + cluster_id + ASSIGN_DIR + "/" + assign,-1);
+            }
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

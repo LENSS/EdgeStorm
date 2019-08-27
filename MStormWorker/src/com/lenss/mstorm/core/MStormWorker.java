@@ -1,15 +1,24 @@
 package com.lenss.mstorm.core;
 
-import com.lenss.mstorm.communication.masternode.MasterNodeClient;
+import org.apache.zookeeper.Shell.ExitCodeException;
+import org.eclipse.jetty.util.statistic.SampleStatistic;
+
+import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
-import com.sun.org.apache.xml.internal.resolver.helpers.PublicId;
 
 
-public class MStormWorker{
-    public static final int SESSION_TIMEOUT = 5000;
-    public static String MASTER_NODE = "192.168.0.5";
-    public static String ZK_ADDRESS = "192.168.0.5";
-    public static String localAddress = "192.168.0.5";
+public class MStormWorker{     
+    public static final int SESSION_TIMEOUT = 10000;
+    public static String ZK_ADDRESS_IP;
+    
+    public static String MASTER_NODE_GUID;
+    public static String MASTER_NODE_IP;
+    public static final int MASTER_PORT = 12016;
+    
+    public static String GUID;
+    public static String localAddress;
+    
+    public static String isPublicOrPrivate;
     
     public static Supervisor mSupervisor;
 	
@@ -27,13 +36,32 @@ public class MStormWorker{
 			System.exit(2);
 		}
 		MStormWorker mStormWorker = MStormWorker.getInstance();
-		mStormWorker.setup(args[0]);
+		mStormWorker.setup();
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+	        public void run() {
+	            exit();
+	        }
+	    }, "MStormWorker shutdown"));
 	}
 	
-	public void setup(String masterNodeIP) {
-		MASTER_NODE = masterNodeIP;
-		ZK_ADDRESS = MASTER_NODE;
-		//localAddress = Helper.getIPv4Address(true);
+	public static void exit() {
+		if(mSupervisor!=null)
+			mSupervisor.onDestroy();
+	}
+	
+	public void setup() {
+		GUID = GNSServiceHelper.getOwnGUID();
+		isPublicOrPrivate = "1";
+		localAddress = Helper.getIPAddress(true);
+		
+		MASTER_NODE_IP = GNSServiceHelper.getMasterNodeIPInUse();
+		if (MASTER_NODE_IP == null){
+            System.out.println("MStorm Master Unregistered OR EdgeKeeper unreachable!\nPlease check them and restart this APP.");
+        }
+		ZK_ADDRESS_IP = MASTER_NODE_IP;
+		
+		MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
 		
 		mSupervisor = new Supervisor();
 		mSupervisor.onStartCommand();

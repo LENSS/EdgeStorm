@@ -12,3 +12,4 @@ public abstract class Distributor extends BTask {
 	public void postExecute() { }
 
 }
+

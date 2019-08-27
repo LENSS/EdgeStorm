@@ -1,6 +1,7 @@
 package com.lenss.mstorm.communication.internodes;
 
 import com.lenss.mstorm.core.Supervisor;
+import com.lenss.mstorm.utils.Serialization;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
@@ -8,16 +9,23 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.buffer.ChannelBuffers;
 
+import java.io.Serializable;
+import java.nio.charset.Charset;
+
 public class CHEncoder extends SimpleChannelHandler {
-	private int data_send=0;
+	private final int INT_LENGTH = 4;
 
 	@Override
 	public void writeRequested(ChannelHandlerContext ctx, MessageEvent event) throws Exception {
-			byte[] gops = (byte[]) event.getMessage();
-			data_send+=gops.length;
-			//Supervisor.mHandler.handleMessage(Supervisor.Message_GOP_SEND, new Integer(data_send).toString());
-			ChannelBuffer cb = ChannelBuffers.buffer(gops.length);
-			cb.writeBytes(gops);
-			Channels.write(ctx, event.getFuture(), cb);
+		InternodePacket pkt = (InternodePacket) event.getMessage();
+		String serPkt = Serialization.Serialize(pkt);
+		byte[] dataPkt = serPkt.getBytes(Charset.forName("UTF-8"));
+		ChannelBuffer cb = ChannelBuffers.buffer(dataPkt.length+INT_LENGTH);
+		// write the length of frame into channelBuffer
+		cb.writeInt(dataPkt.length);
+		// write the frame into channelBuffer
+		cb.writeBytes(dataPkt);
+		Channels.write(ctx, event.getFuture(), cb);
+		Supervisor.mHandler.handleMessage(Supervisor.Message_GOP_SEND, String.valueOf(dataPkt.length));
 	}
 }

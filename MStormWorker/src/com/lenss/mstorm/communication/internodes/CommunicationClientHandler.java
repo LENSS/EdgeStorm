@@ -1,97 +1,109 @@
 package com.lenss.mstorm.communication.internodes;
 
-import com.lenss.mstorm.utils.Helper;
-import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.status.StatusOfDownStreamTasks;
+import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.core.Supervisor;
-import com.lenss.mstorm.utils.MyPair;
-import com.lenss.mstorm.zookeeper.Assignment;
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+
+import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 
 
 public class CommunicationClientHandler extends SimpleChannelHandler {
 	private final String TAG="CommunicationClientHandler";
 	Logger logger = Logger.getLogger(TAG);
+	CommunicationClient communicationClient;
 
+	public CommunicationClientHandler(CommunicationClient communicationClient) {
+        this.communicationClient = communicationClient;
+	}
 
-	/** Session is connected! */
 	@Override
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
 		super.channelConnected(ctx, e);
-		String msg = "Distribute Stream to "+ctx.getChannel().getRemoteAddress().toString();
-		Supervisor.mHandler.handleMessage(Supervisor.Message_LOG, msg);
-		logger.info( "Connect to " + ctx.getChannel().getRemoteAddress().toString() + " successfully!");
+		Channel ch = ctx.getChannel();
+		ChannelManager.addChannelToRemote(ch);
+		if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId())){
+			String channelConnectedMSG = "P-client " + ((InetSocketAddress)ch.getLocalAddress()).getAddress().getHostAddress()
+									   + " connects to P-server " + ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
+			Supervisor.mHandler.handleMessage(Supervisor.Message_LOG,channelConnectedMSG);
+			logger.info(channelConnectedMSG);
+		}
+	}
 
-		// Add this connected channel to (Component, List<Channels>)
-		Assignment assignment = ComputingNode.getAssignment();
-		if (assignment != null) {
-			int port = ((InetSocketAddress) ctx.getChannel().getLocalAddress()).getPort();
-			HashMap<Integer, MyPair<Integer, Integer>> port2TaskPair = assignment.getPort2TaskPair();
-			int remoteTaskID= port2TaskPair.get(port).right;
-			String component = assignment.getTask2Component().get(remoteTaskID);
-			synchronized (this) {
-				ChannelManager.addComponent2SendChannels(component, ctx.getChannel());
+	@Override
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+		super.messageReceived(ctx, e);
+		InternodePacket pkt=(InternodePacket) e.getMessage();
+		if(pkt!=null) {
+			if(pkt.type == InternodePacket.TYPE_DATA){
+				int taskID = pkt.toTask;
+				MessageQueues.collect(taskID, pkt);
+			} else if (pkt.type == InternodePacket.TYPE_REPORT) {
+				int taskID = pkt.fromTask;
+				StatusOfDownStreamTasks.collectReport(taskID, pkt);
+			} else if(pkt.type == InternodePacket.TYPE_ACK) {
+				//Todo
+			} else {
+				logger.info("Incorrect packet type!");
 			}
 		}
 	}
 
-	/** Client receive reports from downstream tasks */
-	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		super.messageReceived(ctx, e);
-		byte[] reportData=(byte[]) e.getMessage();
-		Channel ch = ctx.getChannel();
-
-		// Adjust execution time at downstream servers according to report from downstream
-		Assignment assignment = ComputingNode.getAssignment();
-		if(assignment!=null){
-			int port = ((InetSocketAddress) ch.getLocalAddress()).getPort();
-			HashMap<Integer,MyPair<Integer,Integer>> port2TaskPair = assignment.getPort2TaskPair();
-			int remoteTaskID = port2TaskPair.get(port).right;
-			String component = assignment.getTask2Component().get(remoteTaskID);
-			double[] data = Helper.byteArraytoDoubleArray(reportData);
-			//System.out.println(data);
-			double throughPut = data[0];
-			double avgDelay = data[1];
-			double waitingQueueLength = data[2];
-			// using throughPut or avgDelay or others depends on how the feedback based stream grouping is implemented
-			ChannelManager.updateComponentServerExeTime(component, ch, avgDelay);  //ms
-			ChannelManager.updateComponentServerThroughput(component, ch, throughPut); //tuple/s
-			ChannelManager.updateComponentServerWaitingQueue(component, ch, waitingQueueLength);
-			ChannelManager.updateComponentServerLastReportUpdateTime(component, ch, System.nanoTime());
-		}
-	}
-	
-	/** An exception is occurred!
-      * Here we need to consider reconnect to the server
-	  */
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 		super.exceptionCaught(ctx, e);
-		if(ctx.getChannel() != null && ctx.getChannel().isOpen()) {
-			ctx.getChannel().close();
-		} else {
+		Channel ch = ctx.getChannel();
 
+		// a connected channel gets disconnected
+		if(ch!=null && ch.getRemoteAddress()!=null) {
+			String channelDisconnectedMSG = "P-client " + ((InetSocketAddress)ch.getLocalAddress()).getAddress().getHostAddress()
+					+ " disconnects to P-server " + ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
+			Supervisor.mHandler.handleMessage(Supervisor.Message_LOG,channelDisconnectedMSG);
+			logger.info(channelDisconnectedMSG);
 		}
-		//mComputingNode.reconnect(e.getChannel().getLocalAddress(),e.getChannel().getRemoteAddress());
+
+		logger.info("NEW EXCEPTION IN CLIENT HANDLER *****************" + e.getCause());
+
+		// try reconnecting
+		String reconnectingMSG = "Try reconnecting to P-server ... ";
+		Supervisor.mHandler.handleMessage(Supervisor.Message_LOG,reconnectingMSG);
+		logger.info(reconnectingMSG);
+
+		String remoteIP;
+		if(e.getCause().getClass().getName().equals("java.io.IOException")) {  // Software caused connection abort or Connection reset by peer
+			remoteIP = ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
+			String remoteGUID = ChannelManager.channel2RemoteGUID.get(ch.getId());
+			String newRemoteIP = GNSServiceHelper.getIPInUseByGUID(remoteGUID);
+			if(newRemoteIP!=null && !newRemoteIP.equals(remoteIP))
+				remoteIP = newRemoteIP;
+			if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId())) // remove the record of the channel
+				ChannelManager.removeChannelToRemote(ch);
+			ch.close(); // close the channel
+			communicationClient.connectByIP(remoteIP);
+		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException")){	// ConnectException: network is unreachable
+			String errorMsg = e.getCause().getMessage();
+			int startIndex = errorMsg.indexOf("/")+1;
+			int endIndex = errorMsg.lastIndexOf(":");
+			remoteIP = errorMsg.substring(startIndex, endIndex);
+			Thread.sleep(communicationClient.TIMEOUT);
+			if(!ch.isConnected()) {	// After TIMEOUT, ch is still not connected, close the channel and start a new one
+				ch.close();
+				communicationClient.connectByIP(remoteIP);
+			}
+		}
 	}
 
-	/** The channel is going to closed. **/
 	@Override
 	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
 		super.channelClosed(ctx, e);
-		if(ctx.getChannel().getRemoteAddress()!=null) {
-			logger.info(ctx.getChannel().getRemoteAddress().toString() + " connection closed!");
-			String msg = ctx.getChannel().getRemoteAddress().toString() + " connection closed!";
-			Supervisor.mHandler.handleMessage(Supervisor.Message_LOG, msg);
-		}
 	}
 }
-

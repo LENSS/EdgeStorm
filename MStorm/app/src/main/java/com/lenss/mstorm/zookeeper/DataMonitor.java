@@ -242,7 +242,7 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
 
     public void unregister(String cluster_id){
         try {
-            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStorm.GUID,-1);
+            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStorm.GUID + ":" + MStorm.isPublicOrPrivate,-1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (KeeperException e) {

@@ -22,7 +22,6 @@ public class ZookeeperClient implements Watcher, Runnable, DataMonitor.DataMonit
         assignmentProcessor = ap;
     }
 
-
     public void listenOnTaskAssignment(String cluster_id){
         dm.listenOnTaskAssignment(cluster_id);
     }

@@ -84,8 +84,9 @@ public class MStorm extends ActionBarActivity {
     public static String MASTER_NODE_IP;
     public static final int MASTER_PORT = 12016;
 
-    // Own GUID
+    // Own Address
     public static String GUID;
+    private static String localAddress;
 
     // Public or Private
     public static String isPublicOrPrivate;
@@ -95,9 +96,6 @@ public class MStorm extends ActionBarActivity {
 
     // context
     private static Context context = null;
-
-    // Local address of submitter
-    private static String localAddress;
 
     //Supervisor Service
     private Supervisor mSupervisor;
@@ -159,16 +157,15 @@ public class MStorm extends ActionBarActivity {
         //localAddress = Helper.getIPAddress();
 
         /// Get Master Node IP address
-
         MASTER_NODE_IP = GNSServiceHelper.getMasterNodeIPInUse();
-        MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
         if (MASTER_NODE_IP == null){
             mLog.setText("MStorm Master Unregistered OR EdgeKeeper unreachable!\nPlease check them and restart this APP.");
             onStop();
         }
-
         /// Zookeeper is assumed to be co-located with MStorm master
         ZK_ADDRESS_IP = MASTER_NODE_IP;
+
+        MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
 
         // Configure the logger to store logs in file
         try {

@@ -1,9 +1,7 @@
 package com.lenss.mstorm.communication.masternode;
 
-import com.lenss.mstorm.communication.internodes.ChannelManager;
 import com.lenss.mstorm.core.MStorm;
 import com.lenss.mstorm.core.Supervisor;
-
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -11,9 +9,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
-
 import java.net.InetSocketAddress;
-
 
 public class MasterNodeClientHandler extends SimpleChannelHandler {
 	private final String TAG="MasterNodeClientHandler";

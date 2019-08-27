@@ -1,9 +1,6 @@
 package com.lenss.mstorm.communication.internodes;
-
-
-import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.utils.GNSServiceHelper;
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
@@ -16,9 +13,9 @@ import java.util.concurrent.Executors;
  *  and have different clients with different ports */
 
 public class CommunicationClient  {
-    private  ClientBootstrap mClientBootstrap;
-    private  NioClientSocketChannelFactory factory;
-
+    private ClientBootstrap mClientBootstrap;
+    private NioClientSocketChannelFactory factory;
+    public final int TIMEOUT = 5000;
     public void setup() {
         factory = new NioClientSocketChannelFactory(
                 Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
@@ -27,27 +24,32 @@ public class CommunicationClient  {
             public ChannelPipeline getPipeline() throws Exception {
                 return Channels.pipeline(
                         new CHDecoder(),
-                        new CommunicationClientHandler(),
+                        new CommunicationClientHandler(CommunicationClient.this),
                         new CHEncoder()
                 );
             }
         });
         mClientBootstrap.setOption("tcpNoDelay", true);
         mClientBootstrap.setOption("keepAlive", true);
-        mClientBootstrap.setOption("connectTimeoutMillis", 30000);
+        mClientBootstrap.setOption("keepAlive", 10000);
+        mClientBootstrap.setOption("connectTimeoutMillis", TIMEOUT);
     }
 
-    public  void connect(InetSocketAddress remoteAddress,InetSocketAddress localAddress) {
-        mClientBootstrap.connect(remoteAddress, localAddress);
+    public ChannelFuture connectByGUID(String remoteGUID){
+        String remoteIPInUse = GNSServiceHelper.getIPInUseByGUID(remoteGUID);
+        ChannelFuture cf = connectByIP(remoteIPInUse);
+        return cf;
     }
 
-    public  void connect(InetSocketAddress remoteAddress) {
-        mClientBootstrap.connect(remoteAddress);
+    public ChannelFuture connectByIP(String remoteIP){
+        ChannelFuture cf = mClientBootstrap.connect(new InetSocketAddress(remoteIP, CommunicationServer.SERVER_PORT));
+        return cf;
     }
 
-    public  void release() {
+    public void release() {
         if(factory!=null)
             factory.releaseExternalResources();
     }
 
 }
+

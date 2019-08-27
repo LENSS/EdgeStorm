@@ -1,17 +1,23 @@
 package com.lenss.mstorm.communication.internodes;
 
-import com.lenss.mstorm.utils.Helper;
 import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.status.StatusOfDownStreamTasks;
+import com.lenss.mstorm.topology.Topology;
+import com.lenss.mstorm.utils.GNSServiceHelper;
+import com.lenss.mstorm.utils.Helper;
 import com.lenss.mstorm.utils.MyPair;
+import com.lenss.mstorm.zookeeper.Assignment;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
-
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,369 +32,293 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 
 public class ChannelManager {
+//    private static Map<String, ChannelGroup> component2SendChannels = new ConcurrentHashMap<String, ChannelGroup>();
+//    private static Map<String, CopyOnWriteArrayList<Integer>> component2SendChannelIds = new ConcurrentHashMap<String, CopyOnWriteArrayList<Integer>>();
+//    private static Map<Integer, ChannelGroup> task2RecvChannels = new ConcurrentHashMap<Integer, ChannelGroup>();
+//    private static Map<Integer, CopyOnWriteArrayList<Integer>> task2RecvChannelIds = new ConcurrentHashMap<Integer, CopyOnWriteArrayList<Integer>>();
+//
+//    private static Map<String, CopyOnWriteArrayList<Pair<Channel,Double>>> component2ServerExecutionTimes = new ConcurrentHashMap<String, CopyOnWriteArrayList<Pair<Channel,Double>>>();
+//    private static Map<String, CopyOnWriteArrayList<Pair<Channel,Double>>> component2ServerThroughputs = new ConcurrentHashMap<String, CopyOnWriteArrayList<Pair<Channel,Double>>>();
+//    private static Map<String, CopyOnWriteArrayList<Pair<Channel,Double>>> component2ServerWaitingQueues = new ConcurrentHashMap<String, CopyOnWriteArrayList<Pair<Channel,Double>>>();
+//    private static Map<String, CopyOnWriteArrayList<Pair<Channel,Long>>> component2ServerLastReportUpdateTimes = new ConcurrentHashMap<String, CopyOnWriteArrayList<Pair<Channel,Long>>>();
+//
 
-    private static Map<String, ChannelGroup> component2SendChannels = new ConcurrentHashMap<String, ChannelGroup>();
-    private static Map<String, CopyOnWriteArrayList<Integer>> component2SendChannelIds = new ConcurrentHashMap<String, CopyOnWriteArrayList<Integer>>();
-    private static Map<Integer, ChannelGroup> task2RecvChannels = new ConcurrentHashMap<Integer, ChannelGroup>();
-    private static Map<Integer, CopyOnWriteArrayList<Integer>> task2RecvChannelIds = new ConcurrentHashMap<Integer, CopyOnWriteArrayList<Integer>>();
-    private static Map<String, CopyOnWriteArrayList<MyPair<Channel,Double>>> component2ServerExecutionTimes = new ConcurrentHashMap<String, CopyOnWriteArrayList<MyPair<Channel,Double>>>();
-    private static Map<String, CopyOnWriteArrayList<MyPair<Channel,Double>>> component2ServerThroughputs = new ConcurrentHashMap<String, CopyOnWriteArrayList<MyPair<Channel,Double>>>();
-    private static Map<String, CopyOnWriteArrayList<MyPair<Channel,Double>>> component2ServerWaitingQueues = new ConcurrentHashMap<String, CopyOnWriteArrayList<MyPair<Channel,Double>>>();
-    private static Map<String, CopyOnWriteArrayList<MyPair<Channel,Long>>> component2ServerLastReportUpdateTimes = new ConcurrentHashMap<String, CopyOnWriteArrayList<MyPair<Channel,Long>>>();
+//
+//    /** get the channel to the server has the smallest expected waiting time: (L+1-(t-t0)*throughput)*RespT **/
+//    private static Channel getSendChannelOnFeedBackExptWaitingTimeMin(String component){
+//        // no component yet
+//        if(!component2ServerExecutionTimes.keySet().contains(component) ||
+//                !component2ServerThroughputs.keySet().contains(component) ||
+//                !component2ServerWaitingQueues.keySet().contains(component) ||
+//                !component2ServerLastReportUpdateTimes.keySet().contains(component)){
+//            return getRandomSendChannel(component);
+//        }
+//        // begin balance scheduling after every server has feedback
+//        if (component2ServerExecutionTimes.get(component).size()<component2SendChannels.get(component).size() ||
+//                component2ServerThroughputs.get(component).size()<component2ServerThroughputs.get(component).size() ||
+//                component2ServerWaitingQueues.get(component).size()<component2ServerWaitingQueues.get(component).size() ||
+//                component2ServerLastReportUpdateTimes.get(component).size()<component2ServerLastReportUpdateTimes.get(component).size()) {
+//            return getRandomSendChannel(component);
+//        }
+//        else{
+//            // record the channel with the shortest expected waiting time
+//            Long currentTime = SystemClock.elapsedRealtimeNanos();
+//
+//            int index = 0;
+//            double shortestWaitingTime = Double.MAX_VALUE;
+//
+//            for (int i = 0; i < component2ServerExecutionTimes.get(component).size(); i++) {
+//                double exeTimei = component2ServerExecutionTimes.get(component).get(i).second;   //ms
+//                //double throughputi = component2ServerThroughputs.get(component).get(i).second;   // throughput + exetime method
+//                double waitingQueueLengthi = component2ServerWaitingQueues.get(component).get(i).second;
+//                double lastReportTime = component2ServerLastReportUpdateTimes.get(component).get(i).second;
+//
+//                double elapsedTimei = (currentTime - lastReportTime)/1000000.0;   // ms
+//                //double waitingTimei = ((waitingQueueLengthi/throughputi-elapsedTimei)>0) ? ((waitingQueueLengthi+1.0)/throughputi-elapsedTimei)+exeTimei : 1.0/throughputi+exeTimei; // throughput + exetime method
+//                double waitingTimei = ((waitingQueueLengthi*exeTimei-elapsedTimei)>0) ? (waitingQueueLengthi*exeTimei-elapsedTimei+exeTimei) : exeTimei;  // exetime method
+//
+//
+//                if (waitingTimei<shortestWaitingTime){
+//                    shortestWaitingTime = waitingTimei;
+//                    index = i;
+//                }
+//
+//                // update time
+//                Pair<Channel,Long> oldReportTime = component2ServerLastReportUpdateTimes.get(component).get(i);
+//                Pair<Channel,Long> newReportTime = new Pair<Channel,Long>(oldReportTime.first, currentTime);
+//                component2ServerLastReportUpdateTimes.get(component).set(i,newReportTime);
+//
+//                // update queue
+//                Pair<Channel,Double> oldWaitingQueue = component2ServerWaitingQueues.get(component).get(i);
+//                //double newQueueLength = ((waitingQueueLengthi-elapsedTimei*throughputi)>0) ? (waitingQueueLengthi-elapsedTimei*throughputi) : 0.0; // throughput + exetime method
+//                double newQueueLength = ((waitingQueueLengthi - elapsedTimei/exeTimei)>0) ? (waitingQueueLengthi - elapsedTimei/exeTimei) : 0.0;   // exetime method
+//                Pair<Channel,Double> newWaitingQueue = new Pair<Channel,Double>(oldWaitingQueue.first, newQueueLength);
+//                component2ServerWaitingQueues.get(component).set(i,newWaitingQueue);
+//            }
+//
+//            Pair<Channel,Double> oldWaitingQueue = component2ServerWaitingQueues.get(component).get(index);
+//            Pair<Channel,Double> newWaitingQueue = new Pair<Channel,Double>(oldWaitingQueue.first,oldWaitingQueue.second+1.0);
+//            component2ServerWaitingQueues.get(component).set(index,newWaitingQueue);
+//
+//            Channel ch = component2ServerExecutionTimes.get(component).get(index).first;
+//            return ch;
+//        }
+//    }
 
-    public static void releaseChannels(){
-        Iterator<Map.Entry<String, ChannelGroup>> it1 = component2SendChannels.entrySet().iterator();
+    private static final String TAG="ChannelManager";
+    private static Logger logger = Logger.getLogger(TAG);
+
+    public static Map<Integer, Channel> availRemoteTask2Channel = new ConcurrentHashMap<>();
+    public static Map<String, CopyOnWriteArrayList<Integer>> comp2AvailRemoteTasks = new ConcurrentHashMap<>();
+    public static Map<Integer, String> channel2RemoteGUID = new ConcurrentHashMap<>();
+
+    public static void addChannelToRemote(Channel ch){
+        String remoteIP = ((InetSocketAddress) ch.getRemoteAddress()).getAddress().getHostAddress();
+        String remoteGUID = null;
+        while(remoteGUID == null){
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            remoteGUID = GNSServiceHelper.getGUIDByIP(remoteIP);
+            logger.info("Trying to get GUID from GNS ...");
+        }
+        channel2RemoteGUID.put(ch.getId(), remoteGUID);
+        Assignment assignment = ComputingNode.getAssignment();
+        if (assignment != null) {
+            HashMap<String, ArrayList<Integer>> node2tasks = assignment.getNode2Tasks();
+            HashMap<Integer, String> task2Comp = assignment.getTask2Component();
+            ArrayList<Integer> remoteTasks = node2tasks.get(remoteGUID);
+            for (Integer remoteTask : remoteTasks) {
+                availRemoteTask2Channel.put(remoteTask, ch);
+                String comp = task2Comp.get(remoteTask);
+                if (comp2AvailRemoteTasks.containsKey(comp)) {
+                    comp2AvailRemoteTasks.get(comp).add(remoteTask);
+                } else {
+                    CopyOnWriteArrayList<Integer> availTasks = new CopyOnWriteArrayList<>();
+                    availTasks.add(remoteTask);
+                    comp2AvailRemoteTasks.put(comp, availTasks);
+                }
+            }
+        }
+    }
+
+    public static void removeChannelToRemote(Channel ch){
+        String remoteGUID = channel2RemoteGUID.get(ch.getId());
+        Assignment assignment = ComputingNode.getAssignment();
+        if(assignment!=null){
+            HashMap<String, ArrayList<Integer>> node2tasks = assignment.getNode2Tasks();
+            HashMap<Integer, String> task2Comp = assignment.getTask2Component();
+            List<Integer> remoteTasks = node2tasks.get(remoteGUID);
+            for(Integer remoteTask: remoteTasks){
+                availRemoteTask2Channel.remove(remoteTask);
+                String comp = task2Comp.get(remoteTask);
+                if(comp2AvailRemoteTasks.containsKey(comp)){
+                    comp2AvailRemoteTasks.get(comp).remove(remoteTask);
+                }
+                StatusOfDownStreamTasks.removeReport(remoteTask);
+            }
+        }
+        channel2RemoteGUID.remove(ch.getId());
+    }
+
+    public static void releaseChannelsToRemote(){
+        Iterator<Map.Entry<Integer,Channel>> it1 = availRemoteTask2Channel.entrySet().iterator();
         while(it1.hasNext()){
-            Map.Entry<String, ChannelGroup> entry1 = it1.next();
+            Map.Entry<Integer,Channel> entry1 = it1.next();
             entry1.getValue().disconnect();
             entry1.getValue().close();
         }
-        Iterator<Map.Entry<Integer, ChannelGroup>> it2 = task2RecvChannels.entrySet().iterator();
-        while(it2.hasNext()){
-            Map.Entry<Integer, ChannelGroup> entry2 = it2.next();
-            entry2.getValue().disconnect();
-            entry2.getValue().close();
-        }
-
-        component2SendChannels.clear();
-        component2SendChannelIds.clear();
-        task2RecvChannels.clear();
-        task2RecvChannelIds.clear();
-
-        component2ServerExecutionTimes.clear();
-        component2ServerThroughputs.clear();
-        component2ServerWaitingQueues.clear();
-        component2ServerLastReportUpdateTimes.clear();
-
-        System.out.println("The channel has been released successfully ... ");
+        availRemoteTask2Channel.clear();
+        comp2AvailRemoteTasks.clear();
+        channel2RemoteGUID.clear();
+        StatusOfDownStreamTasks.removeAllStatus();
     }
 
-    private static void write(byte[] data, Channel ch){
-        if (ch.isWritable()){
-            ch.write(data);
-        }
-    }
-
-    /** record where the client send computation task to and receive report from **/
-    public static synchronized void addComponent2SendChannels(String component, Channel ch){
-        if (component2SendChannels.keySet().contains(component)) {
-            component2SendChannels.get(component).add(ch);
-        } else{
-            ChannelGroup sendChannels= new DefaultChannelGroup(component);
-            sendChannels.add(ch);
-            component2SendChannels.put(component,sendChannels);
-        }
-
-        if(component2SendChannelIds.keySet().contains(component)) {
-            component2SendChannelIds.get(component).add(ch.getId());
-        } else{
-            CopyOnWriteArrayList<Integer> sendChannelIds = new CopyOnWriteArrayList<Integer>();
-            sendChannelIds.add(ch.getId());
-            component2SendChannelIds.put(component, sendChannelIds);
+    public static int sendToRandomDownstreamTask(String component, InternodePacket pkt){
+        List<Integer> availTasks = comp2AvailRemoteTasks.get(component);
+        if(availTasks.size()==0){
+            return -1;
+        } else {
+            int index = Helper.randInt(0, availTasks.size());
+            int taskID = availTasks.get(index);
+            Channel ch = availRemoteTask2Channel.get(taskID);
+            if (ch != null && ch.isWritable()) {
+                pkt.toTask = taskID;
+                ch.write(pkt);
+                return taskID;
+            } else {
+                return -1;
+            }
         }
     }
 
-    /** record where the server receive computation from and send report to **/
-    public static void addTask2RecvChannels(int taskID, Channel ch){
-        if (task2RecvChannels.keySet().contains(taskID))
-            task2RecvChannels.get(taskID).add(ch);
-        else{
-            ChannelGroup recvChannels= new DefaultChannelGroup(Integer.toString(taskID));
-            recvChannels.add(ch);
-            task2RecvChannels.put(taskID,recvChannels);
-        }
+    public static int sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt){
+        int taskID = -1;
+        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
 
-        if(task2RecvChannelIds.keySet().contains(taskID)) {
-            task2RecvChannelIds.get(taskID).add(ch.getId());
-        } else{
-            CopyOnWriteArrayList<Integer> recvChannelIds = new CopyOnWriteArrayList<Integer>();
-            recvChannelIds.add(ch.getId());
-            task2RecvChannelIds.put(taskID,recvChannelIds);
+        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
+            taskID = sendToRandomDownstreamTask(component, pkt);
+            return taskID;
+        } else {
+            double minSojournTIme = Double.MAX_VALUE;
+            for(int availableTaskID: availableTasks){
+                double sojounTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
+                if(sojounTime < minSojournTIme){
+                    minSojournTIme = sojounTime;
+                    taskID = availableTaskID;
+                }
+            }
+            Channel ch = availRemoteTask2Channel.get(taskID);
+            if (ch!=null && ch.isWritable()) {
+                pkt.toTask = taskID;
+                ch.write(pkt);
+                return taskID;
+            } else {
+                return -1;
+            }
         }
     }
 
-    /** broadcast computation task to servers that the client is currently connected to **/
-    public static int broadcastToServers(String component, byte[] gop) {
-        ChannelGroup sendChannels = component2SendChannels.get(component);
-        if(sendChannels.size()!=0) {
-            sendChannels.write(gop);
+    /********************************************************************************************
+     *|--sojourn1/sojourn1--|--sojourn1/sojourn2--|-------- ... ---------|--sojourn1/sojournN--|*
+     *          0                     1                     ...                   N-1           *
+     *******************************************************************************************/
+    public static int sendToDownstreamTaskMinSojournTimeProb(String component, InternodePacket pkt){
+        int taskID = -1;
+        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
+
+        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
+            taskID = sendToRandomDownstreamTask(component, pkt);
+            return taskID;
+        } else {
+            // unify the sojourn time based on sojourn1 and added to a probability slot
+            ArrayList<MyPair<Integer,Double>> sojournTimeBasedProbSlots = new ArrayList<>();
+            double sojourn1 = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTasks.get(0));
+            double maxBound = 0.0;
+            for(int availableTaskID: availableTasks){
+                double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
+                double unifiedSojournTime = sojourn1/sojournTime;
+                sojournTimeBasedProbSlots.add(new MyPair<>(availableTaskID,unifiedSojournTime));
+                maxBound += unifiedSojournTime;
+            }
+            // find the specific channel based probability
+            double randomDouble = Helper.randDouble(0,maxBound);
+            int selectedIndex = 0;
+            for (int i = 0; i < sojournTimeBasedProbSlots.size(); i++) {
+                double slotTime = sojournTimeBasedProbSlots.get(i).right;
+                if (randomDouble < slotTime) {
+                    selectedIndex = i;
+                    break;
+                } else {
+                    randomDouble -= slotTime;
+                }
+            }
+            taskID = sojournTimeBasedProbSlots.get(selectedIndex).left;
+            Channel ch = availRemoteTask2Channel.get(taskID);
+            if (ch!=null && ch.isWritable()) {
+                pkt.toTask = taskID;
+                ch.write(pkt);
+                return taskID;
+            } else {
+                return -1;
+            }
+        }
+    }
+
+    public static int sendToDownstreamTaskMinSojournTimeFineGrained(String component, InternodePacket pkt) {
+        int taskID = -1;
+        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
+
+        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
+            taskID = sendToRandomDownstreamTask(component, pkt);
+            return taskID;
+        } else {
+            //todo
+            return taskID;
+        }
+    }
+
+    public static int broadcastToUpstreamTasks(int taskID, InternodePacket pkt) {
+        Assignment assignment = ComputingNode.getAssignment();
+        String comp = assignment.getTask2Component().get(taskID);
+        Topology topology = ComputingNode.getTopology();
+        ArrayList<String> upstreamComps = topology.getUpStreamComponents(comp);
+        ChannelGroup broadcastChannels = new DefaultChannelGroup(comp);
+        for(String upstreamComp: upstreamComps) {
+            List<Integer> upstreamTasks = comp2AvailRemoteTasks.get(upstreamComp);
+            for(int upstreamTask: upstreamTasks){
+                Channel ch = availRemoteTask2Channel.get(upstreamTask);
+                if(ch!=null)
+                    broadcastChannels.add(ch);
+            }
+        }
+        if(broadcastChannels.size()!=0){
+            broadcastChannels.write(pkt);
             return 0;
         }
         else
             return -1;
     }
 
-    /** broadcast report to the clients that the server currently connected to **/
-    public static int broadcastToClients(int taskID, byte[] report) {
-        ChannelGroup recvChannels = task2RecvChannels.get(taskID);
-        if(recvChannels!=null && recvChannels.size()!=0){
-            recvChannels.write(report);
+    public static int broadcastToDownstreamTasks(int taskID, InternodePacket pkt) {
+        Assignment assignment = ComputingNode.getAssignment();
+        String comp = assignment.getTask2Component().get(taskID);
+        ChannelGroup broadcastChannels = new DefaultChannelGroup(comp);
+        List<Integer> downstreamTasks = comp2AvailRemoteTasks.get(comp);
+        for(int downstreamTask: downstreamTasks){
+            Channel ch = availRemoteTask2Channel.get(downstreamTask);
+            broadcastChannels.add(ch);
+        }
+        if(broadcastChannels.size()!=0) {
+            broadcastChannels.write(pkt);
             return 0;
         }
         else
             return -1;
-    }
-
-    /** send computation task to random server **/
-    public static int sendToRandomComponentServer(String component, byte[] gop){
-        Channel ch = getRandomSendChannel(component);
-        if (ch!=null) {
-            HashMap<Integer, MyPair<Integer, Integer>> port2TaskPair = ComputingNode.getAssignment().getPort2TaskPair();
-            int port = ((InetSocketAddress) ch.getLocalAddress()).getPort();
-            int remoteTaskID = port2TaskPair.get(port).right;
-            write(gop, ch);
-            return remoteTaskID;
-        }
-        else {
-            return -1;
-        }
-    }
-
-    /** get the channel to a random server **/
-    private static Channel getRandomSendChannel (String component){
-        ChannelGroup sendChannels = component2SendChannels.get(component);
-        CopyOnWriteArrayList<Integer> sendChannelIds = component2SendChannelIds.get(component);
-        if (!sendChannelIds.isEmpty()) {
-            int randIndex = Helper.randInt(0, sendChannelIds.size() - 1);
-            int chId = sendChannelIds.get(randIndex);
-            return sendChannels.find(chId);
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    /** send computation task to server based on feedback execution time **/
-    public static int sendToComponentServerOnFeedBackExeTime(String component, byte[] gop) {
-        Channel ch = getSendChannelOnFeedBackExptWaitingTimeMin(component);
-        //Channel ch = getSendChannelOnFeedBackExeTimeMin(component);
-        //Channel ch = getSendChannelOnFeedBackExeTimeProb(component);
-        if (ch != null){
-            HashMap<Integer, MyPair<Integer, Integer>> port2TaskPair = ComputingNode.getAssignment().getPort2TaskPair();
-            int port = ((InetSocketAddress) ch.getLocalAddress()).getPort();
-            int remoteTaskID = port2TaskPair.get(port).right;
-            write(gop, ch);
-            return remoteTaskID;
-        }
-        else{
-            return -1;
-        }
-    }
-
-    /*************************************************************************************************************
-     *  |-----1-----|--exeTime1/exeTime2--|----exeTime1/exeTime3-|-----....-------|----exeTime1/exeTimeN------|   *
-     *  0           1                     2   RandomIndex        3                N                               *
-     *************************************************************************************************************/
-    private static Channel getSendChannelOnFeedBackExeTimeProb(String component) {
-        ArrayList<MyPair<Channel,Double>> exeTimeBasedProbSlots = new ArrayList<MyPair<Channel,Double>>();
-        // no component yet
-        if(!component2ServerExecutionTimes.keySet().contains(component)){
-            return getRandomSendChannel(component);
-        }
-
-        // begin balance scheduling after every server has feedback
-        if (component2ServerExecutionTimes.get(component).size()<component2SendChannels.get(component).size())
-            return getRandomSendChannel(component);
-        else {
-            // generate the first slot
-            Channel ch = component2ServerExecutionTimes.get(component).get(0).left;
-            double baseTime = component2ServerExecutionTimes.get(component).get(0).right;
-            double unifiedTime = 1;
-            exeTimeBasedProbSlots.add(new MyPair(ch, unifiedTime));
-            // generate the following slots
-            for (int i = 1; i < component2ServerExecutionTimes.get(component).size(); i++) {
-                ch = component2ServerExecutionTimes.get(component).get(i).left;
-                unifiedTime = baseTime/component2ServerExecutionTimes.get(component).get(i).right + exeTimeBasedProbSlots.get(i - 1).right;
-                exeTimeBasedProbSlots.add(new MyPair(ch, unifiedTime));
-            }
-        }
-
-        // choose channel according to the slot which a randomDouble falls into
-        double maxBound = exeTimeBasedProbSlots.get(exeTimeBasedProbSlots.size()-1).right;
-        double randomDouble = Helper.randDouble(0,maxBound);
-        int randomIndex = 0;
-        for (int i = 0; i < exeTimeBasedProbSlots.size();i++)
-        {
-            if (randomDouble<exeTimeBasedProbSlots.get(i).right)
-            {
-                randomIndex = i;
-                break;
-            }
-        }
-        Channel selectedChannel = exeTimeBasedProbSlots.get(randomIndex).left;
-
-        return selectedChannel;
-    }
-
-    /** get the channel to the server executes tasks fastest **/
-    private static Channel getSendChannelOnFeedBackExeTimeMin(String component) {
-        // no component yet
-        if(!component2ServerExecutionTimes.keySet().contains(component)){
-            return getRandomSendChannel(component);
-        }
-
-        // begin balance scheduling after every server has feedback
-        if (component2ServerExecutionTimes.get(component).size()<component2SendChannels.get(component).size())
-            return getRandomSendChannel(component);
-        else {
-            // record the channel with the shortest processing time
-            Channel ch = component2ServerExecutionTimes.get(component).get(0).left;
-            double shortTime = component2ServerExecutionTimes.get(component).get(0).right;
-            for (int i = 1; i < component2ServerExecutionTimes.get(component).size(); i++) {
-                Channel chi = component2ServerExecutionTimes.get(component).get(i).left;
-                double timei = component2ServerExecutionTimes.get(component).get(i).right;
-                if (timei<shortTime){
-                    shortTime = timei;
-                    ch = chi;
-                }
-            }
-            return ch;
-        }
-    }
-
-    /** get the channel to the server has the smallest expected waiting time: (L+1-(t-t0)*throughput)*RespT **/
-    private static Channel getSendChannelOnFeedBackExptWaitingTimeMin(String component){
-        // no component yet
-        if(!component2ServerExecutionTimes.keySet().contains(component) ||
-              !component2ServerThroughputs.keySet().contains(component) ||
-              !component2ServerWaitingQueues.keySet().contains(component) ||
-              !component2ServerLastReportUpdateTimes.keySet().contains(component)){
-            return getRandomSendChannel(component);
-        }
-        // begin balance scheduling after every server has feedback
-        if (component2ServerExecutionTimes.get(component).size()<component2SendChannels.get(component).size() ||
-                component2ServerThroughputs.get(component).size()<component2ServerThroughputs.get(component).size() ||
-                component2ServerWaitingQueues.get(component).size()<component2ServerWaitingQueues.get(component).size() ||
-                component2ServerLastReportUpdateTimes.get(component).size()<component2ServerLastReportUpdateTimes.get(component).size()) {
-            return getRandomSendChannel(component);
-        }
-        else{
-            // record the channel with the shortest expected waiting time
-            Long currentTime = System.nanoTime();
-
-            int index = 0;
-            double shortestWaitingTime = Double.MAX_VALUE;
-
-            for (int i = 0; i < component2ServerExecutionTimes.get(component).size(); i++) {
-                double exeTimei = component2ServerExecutionTimes.get(component).get(i).right;   //ms
-                //double throughputi = component2ServerThroughputs.get(component).get(i).right;   // throughput + exetime method
-                double waitingQueueLengthi = component2ServerWaitingQueues.get(component).get(i).right;
-                double lastReportTime = component2ServerLastReportUpdateTimes.get(component).get(i).right;
-
-                double elapsedTimei = (currentTime - lastReportTime)/1000000.0;   // ms
-                //double waitingTimei = ((waitingQueueLengthi/throughputi-elapsedTimei)>0) ? ((waitingQueueLengthi+1.0)/throughputi-elapsedTimei)+exeTimei : 1.0/throughputi+exeTimei; // throughput + exetime method
-                double waitingTimei = ((waitingQueueLengthi*exeTimei-elapsedTimei)>0) ? (waitingQueueLengthi*exeTimei-elapsedTimei+exeTimei) : exeTimei;  // exetime method
-
-
-                if (waitingTimei<shortestWaitingTime){
-                    shortestWaitingTime = waitingTimei;
-                    index = i;
-                }
-
-                // update time
-                MyPair<Channel,Long> oldReportTime = component2ServerLastReportUpdateTimes.get(component).get(i);
-                MyPair<Channel,Long> newReportTime = new MyPair<Channel,Long>(oldReportTime.left, currentTime);
-                component2ServerLastReportUpdateTimes.get(component).set(i,newReportTime);
-
-                // update queue
-                MyPair<Channel,Double> oldWaitingQueue = component2ServerWaitingQueues.get(component).get(i);
-                //double newQueueLength = ((waitingQueueLengthi-elapsedTimei*throughputi)>0) ? (waitingQueueLengthi-elapsedTimei*throughputi) : 0.0; // throughput + exetime method
-                double newQueueLength = ((waitingQueueLengthi - elapsedTimei/exeTimei)>0) ? (waitingQueueLengthi - elapsedTimei/exeTimei) : 0.0;   // exetime method
-                MyPair<Channel,Double> newWaitingQueue = new MyPair<Channel,Double>(oldWaitingQueue.left, newQueueLength);
-                component2ServerWaitingQueues.get(component).set(i,newWaitingQueue);
-            }
-
-            MyPair<Channel,Double> oldWaitingQueue = component2ServerWaitingQueues.get(component).get(index);
-            MyPair<Channel,Double> newWaitingQueue = new MyPair<Channel,Double>(oldWaitingQueue.left,oldWaitingQueue.right+1.0);
-            component2ServerWaitingQueues.get(component).set(index,newWaitingQueue);
-
-            Channel ch = component2ServerExecutionTimes.get(component).get(index).left;
-            return ch;
-        }
-    }
-
-    /** update the execution time of servers according to the feedback reports **/
-    public static void updateComponentServerExeTime(String component, Channel ch, double time) {
-        MyPair<Channel, Double> newExeTime = new MyPair(ch, time);
-        if(component2ServerExecutionTimes.keySet().contains(component)) {
-            int index;
-            for (index = 0; index<component2ServerExecutionTimes.get(component).size(); index++){
-                if (ch.equals(component2ServerExecutionTimes.get(component).get(index).left))
-                    break;
-            }
-            if (index == component2ServerExecutionTimes.get(component).size()) {      // add execution time for certain address
-                component2ServerExecutionTimes.get(component).add(newExeTime);
-            } else {       // update execution time for certain address
-                component2ServerExecutionTimes.get(component).set(index,newExeTime);
-            }
-        } else{
-            CopyOnWriteArrayList<MyPair<Channel,Double>> ServerExeTimes = new CopyOnWriteArrayList<MyPair<Channel,Double>>();
-            ServerExeTimes.add(newExeTime);
-            component2ServerExecutionTimes.put(component, ServerExeTimes);
-        }
-    }
-
-    /** update the throughput of servers according to the feedback reports **/
-    public static void updateComponentServerThroughput(String component, Channel ch, double throughput){
-        MyPair<Channel, Double> newThroughput = new MyPair(ch, throughput);
-        if(component2ServerThroughputs.keySet().contains(component)) {
-            int index;
-            for (index = 0; index<component2ServerThroughputs.get(component).size(); index++){
-                if (ch.equals(component2ServerThroughputs.get(component).get(index).left))
-                    break;
-            }
-            if (index == component2ServerThroughputs.get(component).size()) { // add
-                component2ServerThroughputs.get(component).add(newThroughput);
-            } else { // update
-                component2ServerThroughputs.get(component).set(index,newThroughput);
-            }
-        } else{
-            CopyOnWriteArrayList<MyPair<Channel,Double>> ServerThroughputs = new CopyOnWriteArrayList<MyPair<Channel,Double>>();
-            ServerThroughputs.add(newThroughput);
-            component2ServerThroughputs.put(component, ServerThroughputs);
-        }
-    }
-
-    /** update the expect waiting queue of servers according to the feedback reports **/
-    public static void updateComponentServerWaitingQueue(String component, Channel ch, double queueLength) {
-        MyPair<Channel, Double> newWaitingQueue = new MyPair(ch, queueLength);
-        if(component2ServerWaitingQueues.keySet().contains(component)) {
-            int index;
-            for (index = 0; index<component2ServerWaitingQueues.get(component).size(); index++){
-                if (ch.equals(component2ServerWaitingQueues.get(component).get(index).left))
-                    break;
-            }
-            if (index == component2ServerWaitingQueues.get(component).size()) {
-                component2ServerWaitingQueues.get(component).add(newWaitingQueue);
-            } else {
-                component2ServerWaitingQueues.get(component).set(index,newWaitingQueue);
-            }
-        } else{
-            CopyOnWriteArrayList<MyPair<Channel,Double>> ServerWaitingQueues = new CopyOnWriteArrayList<MyPair<Channel,Double>>();
-            ServerWaitingQueues.add(newWaitingQueue);
-            component2ServerWaitingQueues.put(component, ServerWaitingQueues);
-        }
-    }
-
-    /** update the last report updating time of servers **/
-    public static void updateComponentServerLastReportUpdateTime(String component, Channel ch, Long lastUpdateTime){
-        MyPair<Channel, Long> newLastUpdateTime = new MyPair(ch, lastUpdateTime);
-        if(component2ServerLastReportUpdateTimes.keySet().contains(component)) {
-            int index;
-            for (index = 0; index<component2ServerLastReportUpdateTimes.get(component).size(); index++){
-                if (ch.equals(component2ServerLastReportUpdateTimes.get(component).get(index).left))
-                    break;
-            }
-            if (index == component2ServerLastReportUpdateTimes.get(component).size()) {
-                component2ServerLastReportUpdateTimes.get(component).add(newLastUpdateTime);
-            } else {
-                component2ServerLastReportUpdateTimes.get(component).set(index, newLastUpdateTime);
-            }
-        } else{
-            CopyOnWriteArrayList<MyPair<Channel,Long>> ServerLastUpdateTimes= new CopyOnWriteArrayList<MyPair<Channel,Long>>();
-            ServerLastUpdateTimes.add(newLastUpdateTime);
-            component2ServerLastReportUpdateTimes.put(component, ServerLastUpdateTimes);
-        }
     }
 }

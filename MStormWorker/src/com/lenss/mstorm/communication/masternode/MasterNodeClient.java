@@ -6,6 +6,10 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+
+import com.lenss.mstorm.core.MStormWorker;
+import com.lenss.mstorm.utils.GNSServiceHelper;
+
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
@@ -14,8 +18,16 @@ public class MasterNodeClient {
     private ClientBootstrap mClientBootstrap;
     private NioClientSocketChannelFactory factory;
     private static Channel mChannel=null;
+    private String mMasterNodeGUID;
+    private InetSocketAddress mMasterNodeAddress;
+    private Reply reply=null;
 
-
+    
+    public MasterNodeClient(String GUID) {
+        mMasterNodeGUID = GUID;
+        mMasterNodeAddress = new InetSocketAddress(GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID), MStormWorker.MASTER_PORT);
+    }
+    
     public void setup() {
             factory = new NioClientSocketChannelFactory(
                     Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
@@ -25,19 +37,18 @@ public class MasterNodeClient {
                 public ChannelPipeline getPipeline() throws Exception {
                     return Channels.pipeline(
                             new MCHDecoder(),
-                            new MasterNodeClientHandler(),
+                            new MasterNodeClientHandler(MasterNodeClient.this),
                             new MCHEncoder()
                     );
                 }
             });
             mClientBootstrap.setOption("tcpNoDelay", true);
             mClientBootstrap.setOption("keepAlive", true);
-            mClientBootstrap.setOption("sendBufferSize",8096);
-            mClientBootstrap.setOption("receiveBufferSize",8096);
-            mClientBootstrap.setOption("connectTimeoutMillis", 30000);
+            mClientBootstrap.setOption("keepAlive", 10000);
+            mClientBootstrap.setOption("connectTimeoutMillis", 10000);
     }
 
-    public static void setChannel(Channel connectedCH) {
+    public void setChannel(Channel connectedCH) {
         mChannel=connectedCH;
     }
 
@@ -53,14 +64,14 @@ public class MasterNodeClient {
         }
     }
     
-    public  void connect(InetSocketAddress remoteAddress,InetSocketAddress localAddress) {    
-        mClientBootstrap.connect(remoteAddress, localAddress);
+    public void connect() {     
+    	String newMasterNodeIP = GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID);
+    	if(newMasterNodeIP!=null && !newMasterNodeIP.equals(mMasterNodeAddress.getAddress().getHostAddress())){
+            mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStormWorker.MASTER_PORT);
+        }
+        mClientBootstrap.connect(mMasterNodeAddress);
     }
-
-    public  void connect(InetSocketAddress remoteAddress) {     
-        mClientBootstrap.connect(remoteAddress);
-    }
-
+    
     public void sendRequest(Request req) {
         if(mChannel!=null) {
             mChannel.write(req);
@@ -70,5 +81,14 @@ public class MasterNodeClient {
     public  void release()
     {
         if(factory!=null) factory.releaseExternalResources();
+        if(mChannel!=null) mChannel.close();
+    }
+    
+    public void setReply(Reply reply){
+        this.reply = reply;
+    }
+
+    public Reply getReply(){
+        return reply;
     }
 }

@@ -224,11 +224,11 @@ public class ComputingNode extends Service {
         }
 
         // execute tasks assigned to this node
-        HashMap<String, String> component2serInstance = topology.getSerInstances();
         String fileName = assignment.getApk();
         File dexOutputDir = this.getApplicationContext().getFilesDir();
         DexClassLoader dcLoader = new DexClassLoader(MStorm.apkFileDirectory + fileName, dexOutputDir.getAbsolutePath(), null, this.getClassLoader());
         if (localTasks!=null) {
+            HashMap<String, String> component2serInstance = topology.getSerInstances();
             HashMap<Integer, String> task2Component = assignment.getTask2Component();
             for (int i = 0; i < localTasks.size(); i++) {
                 int taskID = localTasks.get(i);
