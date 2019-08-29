@@ -31,10 +31,10 @@ public class MStormWorker{
 	} 
 	
 	public static void main(String[] args) {
-		if (args.length < 1) {
-			System.err.println("USAGE: MasterNode_IP(Zookeeper_IP)");
-			System.exit(2);
-		}
+//		if (args.length < 1) {
+//			System.err.println("USAGE: MasterNode_IP(Zookeeper_IP)");
+//			System.exit(2);
+//		}
 		MStormWorker mStormWorker = MStormWorker.getInstance();
 		mStormWorker.setup();
 		
