@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import org.bytedeco.javacpp.avformat.AVInputFormat.Create_device_capabilities_AVFormatContext_AVDeviceCapabilitiesQuery;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.face.detection.DetectedFace;
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector;
@@ -17,9 +19,14 @@ import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.topology.Processor;
 
-public class MyFaceDetector extends Processor {
-	  
-	private HaarCascadeDetector openImajFaceDet = null;	
+import gov.sandia.cognition.math.ClosedFormDifferentiableEvaluator;
+
+public class MyFaceDetector extends Processor {  
+	private final int OFD = 1;
+	private HaarCascadeDetector openImajFaceDet = null;
+	
+	private final int CFD = 2;
+	private 
 	
 	@Override
 	public void prepare() {
@@ -53,6 +60,8 @@ public class MyFaceDetector extends Processor {
 	            if(PicProcessController == PROCESS_FREQ) {
 	            	long startTime = System.currentTimeMillis();
 	            	faces = openImajFaceDet.detectFaces(ImageUtilities.createFImage(img));
+	            	long endTime = System.currentTimeMillis();
+                    System.out.println(("Openimaj face detection costs: " + String.valueOf((endTime - startTime) / 1000f) + " sec"));
 	            	if(faces!=null)
 	            		face_detected = faces.size();
                     for (int j = 0; j < face_detected; ++j) {
@@ -71,8 +80,6 @@ public class MyFaceDetector extends Processor {
                             bmfaces.add(bmface);
                         }
                     }
-                    long endTime = System.currentTimeMillis();
-                    System.out.println(("Openimaj face detection costs: " + String.valueOf((endTime - startTime) / 1000f) + " sec"));
                     PicProcessController = 0;
 	            }
 	            
