@@ -39,4 +39,5 @@ dependencies {
     implementation 'com.google.android.gms:play-services-vision:8.1.0'
     implementation project(':dlib')
     implementation (name: 'mobile-ffmpeg-min-3.1', ext: 'aar')
+    implementation'log4j:log4j:1.2.16'
 }

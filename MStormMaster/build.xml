@@ -11,7 +11,7 @@
     <property name="dir.workspace" value="${dir.buildfile}/../../../../.."/>
     <property name="dir.jarfile" value="deployable"/>
     <target name="jar">
-        <jar destfile="${dir.jarfile}/MStorm.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="${dir.jarfile}/MStormMaster.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="masternode.MasterNode"/>
                 <attribute name="Class-Path" value="."/>
@@ -44,13 +44,13 @@
     </target>
 	
 	<target name="tar" depends="jar">
-			<delete file="${dir.jarfile}/MStorm.tar.gz"/>
-			<tar destfile="${dir.jarfile}/MStorm.tar.gz" compression="gzip">
+			<delete file="${dir.jarfile}/MStormMaster.tar.gz"/>
+			<tar destfile="${dir.jarfile}/MStormMaster.tar.gz" compression="gzip">
 				<tarfileset dir="${dir.jarfile}" mode="775">
 					<include name="*.properties"/>
 					<include name="*.sh"/>
 				</tarfileset>
-				<tarfileset file="${dir.jarfile}/MStorm.jar"/>
+				<tarfileset file="${dir.jarfile}/MStormMaster.jar"/>
 				<tarfileset dir="${dir.jarfile}" mode="775">
 					<include name="zookeeper-3.4.6/"/>
 				</tarfileset>

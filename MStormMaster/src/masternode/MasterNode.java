@@ -4,15 +4,19 @@ import java.io.File;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.HashSet;
+
 import nimbusscheduler.NimbusScheduler;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.zookeeper.KeeperException;
+
+import cluster.Cluster;
 import zookeeper.ZookeeperClient;
 import communication.CommunicationServer;
 import edu.tamu.cse.lenss.gnsService.client.*;
 
 public class MasterNode {
-	public ZookeeperClient mZkClient;
+	public static ZookeeperClient mZkClient;
 	public CommunicationServer mServer;
 	public NimbusScheduler mNimbusScheduler;
 	public GnsServiceClient gnsClient;
@@ -26,6 +30,8 @@ public class MasterNode {
 	}
 	
 	public void setup(String portNum){
+		gnsClient = new GnsServiceClient();
+		
 		// establish a zooKeeper client
 		try {
 			mZkClient = new ZookeeperClient(portNum);
@@ -44,7 +50,6 @@ public class MasterNode {
 		mNimbusScheduler= new NimbusScheduler();
 		
 		// register as a service to GNS server
-		gnsClient = new GnsServiceClient();
 		if(gnsClient.addService("MStorm", "master")) {
 			System.out.println("MStorm master successfully register to GNS server ... ");
 		} else {
@@ -68,8 +73,26 @@ public class MasterNode {
 			e2.printStackTrace();
 		}
 		
-		
 		MasterNode masterNode = MasterNode.getInstance();
 		masterNode.setup(args[0]);
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+	        public void run() {
+	        	exit();
+	        }
+	    }, "MStormMaster shutdown"));	
+	}
+	
+	public static void exit() {
+		// unregister clusters managed by this master in zookeeper
+		for(Cluster cluster: Cluster.clusters.values()) {
+			if(mZkClient!=null){
+				try {
+					mZkClient.deleteCluster(cluster);
+				} catch (KeeperException | InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }

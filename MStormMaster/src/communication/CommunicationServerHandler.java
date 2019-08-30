@@ -72,7 +72,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			Reply reply = new Reply();
 			try {
 				Cluster cluster = Cluster.getCluster();
-				MasterNode.getInstance().mZkClient.joinCluster(cluster);
+				MasterNode.getInstance().mZkClient.createCluster(cluster);
 				reply.setType(Reply.CLUSTER_ID);
 				int clusterId = cluster.getClusterId();
 				reply.setContent(Integer.toString(clusterId));

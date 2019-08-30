@@ -18,7 +18,7 @@ import zookeeper.Assignment;
 
 public class Cluster {
 	//// FOR ALL CLUSTERS
-	private static HashMap<Integer,Cluster> clusters = new HashMap<Integer, Cluster>();
+	public static HashMap<Integer,Cluster> clusters = new HashMap<Integer, Cluster>();
 	private static int MAX_CLUSTERS_ID =100;
 	private static int MAX_NODES_PER_CLUSTER = 500;
 	private static int lastClusterId = 0;			// Latest cluster ID assigned

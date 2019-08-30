@@ -239,7 +239,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
 		return  getClusterDir(id) +ASSIGN_ZNODE;
 	}
 	
-	public void joinCluster(Cluster cluster) throws KeeperException, InterruptedException {
+	public void createCluster(Cluster cluster) throws KeeperException, InterruptedException {
 		int clusterId=cluster.getClusterId();
 		if(cluster.getNodeNum() == 0){	// new cluster
 			zk.create(getClusterDir(clusterId), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,  CreateMode.PERSISTENT);
@@ -247,5 +247,12 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
 			zk.create(getNodesDir(clusterId), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 		}
 		zk.getChildren(getNodesDir(clusterId), true, this, null);
+	}
+	
+	public void deleteCluster(Cluster cluster) throws KeeperException, InterruptedException {
+		int clusterId=cluster.getClusterId();
+		zk.delete(getNodesDir(clusterId), -1);
+		zk.delete(getAssgDir(clusterId), -1);
+		zk.delete(getClusterDir(clusterId), -1);
 	}
 }

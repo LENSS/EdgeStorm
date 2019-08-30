@@ -37,8 +37,12 @@ public class ZookeeperClient  implements Watcher, Runnable, DataMonitor.DataMoni
         dm.process(event);
     }
     
-    public void joinCluster(Cluster cluster) throws KeeperException, InterruptedException{
-    	dm.joinCluster(cluster);
+    public void createCluster(Cluster cluster) throws KeeperException, InterruptedException{
+    	dm.createCluster(cluster);
+    }
+    
+    public void deleteCluster(Cluster cluster) throws KeeperException, InterruptedException{
+    	dm.deleteCluster(cluster);
     }
         
     public void closing(int rc) {

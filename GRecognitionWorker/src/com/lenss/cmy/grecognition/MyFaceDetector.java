@@ -13,6 +13,7 @@ import org.bytedeco.javacpp.avformat.AVInputFormat.Create_device_capabilities_AV
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.face.detection.DetectedFace;
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector;
+import org.openimaj.image.processing.face.detection.HaarCascadeDetector.BuiltInCascade;
 import org.openimaj.math.geometry.shape.Rectangle;
 
 import com.lenss.mstorm.communication.internodes.InternodePacket;
@@ -22,15 +23,11 @@ import com.lenss.mstorm.topology.Processor;
 import gov.sandia.cognition.math.ClosedFormDifferentiableEvaluator;
 
 public class MyFaceDetector extends Processor {  
-	private final int OFD = 1;
 	private HaarCascadeDetector openImajFaceDet = null;
-	
-	private final int CFD = 2;
-	private 
 	
 	@Override
 	public void prepare() {
-		openImajFaceDet = new HaarCascadeDetector();
+		openImajFaceDet = new HaarCascadeDetector(BuiltInCascade.frontalface_alt.classFile());
 	}
 	
 	@Override
