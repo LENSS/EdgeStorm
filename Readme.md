@@ -1,15 +1,20 @@
 MStorm: MStorm client running on Android phones.
 
-MStormMaster: MStorm server running on the server.
+MStromWorker: MStorm client running on desktop.
 
-MStromWorker: MStorm client running on the server.
+MStormMaster: MStorm server running on desktop.
 
-GRecognition: A video face recognition App running on MStorm.
+GRecognition: A video face recognition App of MStorm running on Android phones.
+
+Dlib: face models for GRecognition.
 
 GRecognitionWorker: Sever version of GRecognition.
 
-RanSenStat: A demo App for MStorm.
+D4j: face models for GRecognitionWorker.
+
+RanSenStat: A demo App of MStorm running on Android phones.
 
 RanSenStatWorker: Server version of RanSenStat.
 
-MSDockerManager: A docker container manager for MStorm.
+MSDockerManager: A docker container manager for MStormWorker/MStormMaster/GRecognitionWorker/RanSenStatWorker.
+ 
