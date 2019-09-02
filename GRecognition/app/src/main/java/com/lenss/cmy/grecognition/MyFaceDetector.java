@@ -8,7 +8,6 @@ import android.util.SparseArray;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
-import com.google.gson.annotations.Expose;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.core.MStorm;
@@ -21,7 +20,6 @@ import org.apache.log4j.Logger;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class MyFaceDetector extends Processor {
     private final String TAG="MyFaceDetector";

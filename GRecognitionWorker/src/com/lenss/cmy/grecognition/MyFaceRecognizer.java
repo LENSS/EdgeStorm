@@ -1,20 +1,72 @@
 package com.lenss.cmy.grecognition;
 
+import static org.junit.Assume.assumeNoException;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-
+import java.io.ObjectInputStream;
+import java.util.ArrayList;
+import java.util.List;
 import javax.imageio.ImageIO;
-
-import org.openimaj.image.processing.face.recognition.EigenFaceRecogniser;
-
+import org.datavec.image.loader.NativeImageLoader;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.transferlearning.TransferLearningHelper;
+import org.deeplearning4j.zoo.PretrainedType;
+import org.deeplearning4j.zoo.ZooModel;
+import org.deeplearning4j.zoo.model.VGG16;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
+import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
+import org.nd4j.linalg.factory.Nd4j;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.topology.Processor;
+import Models.PersonModel;
 
 public class MyFaceRecognizer extends Processor {
-    
-	private EigenFaceRecogniser mFaceRec;
+	private TransferLearningHelper transferLearningHelper ;
+	private NativeImageLoader nativeImageLoader;
+	private DataNormalization scaler;
+	private List<PersonModel> trainList;
+	
+	public List<PersonModel> readTrainedFacesFromDisk(){
+	    List<PersonModel> faceList = null;
+	    File modelFile = new File("faceModel");
+	    if(modelFile.exists()) {
+	       try{
+	         FileInputStream fis = new FileInputStream("faceModel");
+	         ObjectInputStream ois = new ObjectInputStream(fis);
+	         faceList = (List<PersonModel>) ois.readObject();
+	         ois.close();
+	       } catch(IOException | ClassNotFoundException e){
+	         e.printStackTrace();
+	       }
+	    } else {
+	       faceList = new ArrayList<>();
+	    }
+	    return faceList;
+	}
+	
+	@Override
+	public void prepare() {
+	    System.out.println("Loading DL4J and FaceRecognizer");    
+	    ZooModel objZooModel = new VGG16();
+	    ComputationGraph objComputationGraph = null;
+	    try {
+	    	objComputationGraph = (ComputationGraph)objZooModel.initPretrained(PretrainedType.VGGFACE);
+	    } catch (IOException e) {			
+			e.printStackTrace();
+	    }
+		transferLearningHelper = new TransferLearningHelper(objComputationGraph,"pool4");
+		nativeImageLoader = new NativeImageLoader(224, 224, 3);
+		scaler = new VGG16ImagePreProcessor();
+		trainList = readTrainedFacesFromDisk(); 
+	    System.out.println("Loaded DL4J and FaceRecognizer");
+	}
     
 	@Override
 	public void execute() {
@@ -23,16 +75,48 @@ public class MyFaceRecognizer extends Processor {
             if(pktRecv != null){
                 byte[] frame = pktRecv.complexContent;
 	            System.out.println("FACE RECOGNIZER RECEIVES A FRAME, "+ getTaskID());
-	            
-	            // read byte frame into image
-	            BufferedImage img = null;       
+	            // read byte frame into image and recognize
 	            try {
-					img = ImageIO.read(new ByteArrayInputStream(frame));
+	            	// get feature of 
+	            	BufferedImage img = ImageIO.read(new ByteArrayInputStream(frame));
+					INDArray imageMatrix = nativeImageLoader.asMatrix(img);
+					scaler.transform(imageMatrix);
+					DataSet objDataSet = new DataSet(imageMatrix, Nd4j.create(new float[]{0,0}));
+				    DataSet objFeaturized = transferLearningHelper.featurize(objDataSet);
+				    INDArray featuresArray = objFeaturized.getFeatures();				 
+				    int reshapeDimension=1;
+				    for (int dimension : featuresArray.shape()) {
+				    	reshapeDimension *= dimension;
+				    }
+				    featuresArray = featuresArray.reshape(1,reshapeDimension);
+				    
+				    double minimalDistance = Double.MAX_VALUE;
+				    String recognizedFace = "";
+				    for(PersonModel personModel : trainList)
+				    {
+				      INDArray personArray = Nd4j.create(personModel.get_faceFeatureArray());
+				      double distance = featuresArray.distance2(personArray);
+				      if (distance<minimalDistance){
+				        minimalDistance = distance;
+				        recognizedFace = personModel.get_personName();
+				      }
+				    }
+				    
+				    InternodePacket pktSend = new InternodePacket();
+                    pktSend.type = InternodePacket.TYPE_DATA;
+                    pktSend.fromTask = getTaskID();
+                    pktSend.simpleContent.put("name",recognizedFace);
+                    pktSend.complexContent = frame;
+                    String component = MyFaceSaver.class.getName();
+                    try {
+                        MessageQueues.emit(pktSend, getTaskID(), component);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
             }
         }
 	}
-	
 }
