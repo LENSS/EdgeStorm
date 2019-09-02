@@ -6,11 +6,11 @@ MStormMaster: MStorm server running on desktop.
 
 GRecognition: A video face recognition App of MStorm running on Android phones.
 
-Dlib: face models for GRecognition.
+Dlib: Face models for GRecognition.
 
 GRecognitionWorker: Sever version of GRecognition.
 
-D4j: face models for GRecognitionWorker.
+D4j: Face models for GRecognitionWorker.
 
 RanSenStat: A demo App of MStorm running on Android phones.
 
