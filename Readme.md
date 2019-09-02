@@ -12,6 +12,8 @@ GRecognitionWorker: Sever version of GRecognition.
 
 D4j: Face models for GRecognitionWorker.
 
+FaceRecogJavaDesktop: Java application for training face models for GRecognitionWorker.
+
 RanSenStat: A demo App of MStorm running on Android phones.
 
 RanSenStatWorker: Server version of RanSenStat.
