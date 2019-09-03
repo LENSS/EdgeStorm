@@ -113,18 +113,7 @@ public class ChannelManager {
     public static Map<String, CopyOnWriteArrayList<Integer>> comp2AvailRemoteTasks = new ConcurrentHashMap<>();
     public static Map<Integer, String> channel2RemoteGUID = new ConcurrentHashMap<>();
 
-    public static void addChannelToRemote(Channel ch){
-        String remoteIP = ((InetSocketAddress) ch.getRemoteAddress()).getAddress().getHostAddress();
-        String remoteGUID = null;
-        while(remoteGUID == null){
-            try {
-                Thread.sleep(1000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            remoteGUID = GNSServiceHelper.getGUIDByIP(remoteIP);
-            logger.info("Trying to get GUID from GNS ...");
-        }
+    public static void addChannelToRemote(Channel ch, String remoteGUID){
         channel2RemoteGUID.put(ch.getId(), remoteGUID);
         Assignment assignment = ComputingNode.getAssignment();
         if (assignment != null) {

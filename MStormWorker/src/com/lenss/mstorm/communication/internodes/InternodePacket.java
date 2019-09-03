@@ -11,6 +11,7 @@ import java.util.HashMap;
  */
 
 public class InternodePacket implements Serializable {
+	public static final int TYPE_INIT = 0;
     public static final int TYPE_DATA = 1;
     public static final int TYPE_REPORT = 2;
     public static final int TYPE_ACK = 3;
