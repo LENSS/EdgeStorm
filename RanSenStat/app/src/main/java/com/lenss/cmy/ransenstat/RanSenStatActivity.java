@@ -63,31 +63,30 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import tools.Utils;
 
 public class RanSenStatActivity extends AppCompatActivity {
-    public final int KEYWORDS_NUM_SOCKET_PORT = 7654;
     public static String localAddress;
 
-    public static final String MStormDir = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/";
-    public static final String apkFileDirectory = MStormDir + "APK/";
-    public static final String apkFileName = "RanSenStat.apk";
-    private static final String E2E_RESPONSE_TIME_ADDRESS = apkFileDirectory + "E2EResponseTime";
+    public  final String MStormDir = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/";
+    public  final String apkFileDirectory = MStormDir + "APK/";
+    public  final String apkFileName = "RanSenStat.apk";
+    private final String E2E_RESPONSE_TIME_ADDRESS = apkFileDirectory + "E2EResponseTime";
 
-    private static final String LOCAL_ADDRESS = "com.android.cmy.ransenstat";
-    private static final String LOCAL_RESULT_ADDRESS = "com.android.cmy.ransenstat.result";
+    private final String LOCAL_ADDRESS = "com.android.cmy.ransenstat";
+    private final String LOCAL_RESULT_ADDRESS = "com.android.cmy.ransenstat.result";
 
 
-    public static String TOPIC = "apple";
-    public static String KEYWORDS = "day";
+    public String TOPIC = "apple";
+    public String KEYWORDS = "day";
 
     // stream input method and speed
-    public static final int CONSINPUT = 1;
-    public static final int UNIRANDINPUT = 2;
-    public static final int GAUSSIANINPUT = 3;
-    public static final int EXPINPUT = 4;
+    public final int CONSINPUT = 1;
+    public final int UNIRANDINPUT = 2;
+    public final int GAUSSIANINPUT = 3;
+    public final int EXPINPUT = 4;
 
-    public static int inputMethod = CONSINPUT;
-    public static double avgIAT = 0.1;
-    public static double minIAT = 0.1;
-    public static double maxIAT = 0.1;
+    public int inputMethod = CONSINPUT;
+    public double avgIAT = 0.1;
+    public double minIAT = 0.1;
+    public double maxIAT = 0.1;
 
     // workload of each component
     public static int senDistributorWorkload = 1;
@@ -113,9 +112,9 @@ public class RanSenStatActivity extends AppCompatActivity {
     public static int keywordStatScheduleReq = Topology.Schedule_Any;
     public static int senSinkScheduleReq = Topology.Schedule_Local;
 
-    public static List<String> keywordList = null;
-    public static final int NEW_SENTENCE = 0;
-    public static final int STAT_RESULT = 1;
+    public List<String> keywordList = null;
+    public final int NEW_SENTENCE = 0;
+    public final int STAT_RESULT = 1;
 
     private StormSubmitter submitter;
     private boolean mGeneratingEnabled = false;
@@ -162,11 +161,11 @@ public class RanSenStatActivity extends AppCompatActivity {
         /// For container
         //localAddress = Utils.getIPAddress();
 
+//        new Thread(new ResultServer()).start();
+//        new Thread(new StreamServer()).start();
+
         new Thread(new ResultLocalServer()).start();
-
         new Thread(new StreamLocalServer()).start();
-
-
     }
 
     @Override
@@ -420,6 +419,7 @@ public class RanSenStatActivity extends AppCompatActivity {
                 mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
                 InternodePacket pkt = new InternodePacket();
                 pkt.ID = System.nanoTime();
+                pkt.type = InternodePacket.TYPE_DATA;
                 pkt.simpleContent.put("sentence", sentence);
                 sentenceQueue.add(pkt);
                 Utils.highPrecisionSleep(millSleepTime,nanoSleepTime);
@@ -585,7 +585,6 @@ public class RanSenStatActivity extends AppCompatActivity {
             }
 
             while (connected) {
-
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
@@ -689,6 +688,181 @@ public class RanSenStatActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
+            while (connected) {
+                InternodePacket pkt = sentenceQueue.poll();
+                if (pkt != null) {
+                    try {
+                        String strPkt = Serialization.Serialize(pkt);
+                        byte[] pktByte = strPkt.getBytes("UTF-8");
+                        os.write(pktByte);
+                        os.flush();
+                    } catch (IOException e) {
+                        connected = false;
+                        e.printStackTrace();
+                        System.out.println("The thread sending tuple to [local client socket] stops ... ");
+                    }
+                }
+            }
+        }
+    }
+
+    //////////////////////////////////////
+    class ResultServer implements Runnable {          // Thread waiting for connection request to report results
+        private ServerSocket serverSocket;
+        private Socket clientSocket;
+
+        public void run() {
+            System.out.println("[Result Server] has been set up ...");
+            try {
+                serverSocket = new ServerSocket(7654);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    clientSocket = serverSocket.accept();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println(clientSocket.isConnected());
+                new Thread(new ResultUpdateThread(clientSocket, mHandler)).start();
+                System.out.println("A [new result update] thread ... ");
+            }
+        }
+    }
+
+    class ResultUpdateThread implements Runnable {
+        Socket client;
+        private DataInputStream input;
+        private Handler mHandler;
+        private boolean connected;
+        FileWriter fw;
+
+        public ResultUpdateThread(Socket client, Handler mHandler) {
+            this.client = client;
+            this.mHandler = mHandler;
+            connected = true;
+        }
+
+        @Override
+        public void run() {
+            try {
+                this.input = new DataInputStream(client.getInputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while (connected) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                int count = 0;
+                try {
+                    count = input.available();
+                } catch (IOException e){
+                    connected = false;
+                    e.printStackTrace();
+                }
+                if (count > 0) {
+                    byte[] pktByte = new byte[count];
+                    try {
+                        input.read(pktByte);
+                    } catch (IOException e) {
+                        connected = false;
+                        e.printStackTrace();
+                    }
+
+                    String strPkt = null;
+                    try {
+                        strPkt = new String(pktByte, "UTF-8");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    InternodePacket pkt = (InternodePacket) Serialization.Deserialize(strPkt, InternodePacket.class);
+
+                    System.out.println("RanSenStatActivity-ResultUpdateThread");
+
+                    totalPackets++;
+                    String statResult = "#processedPkt:" + totalPackets;
+                    mHandler.obtainMessage(STAT_RESULT, statResult).sendToTarget();
+
+                    try {
+                        fw = new FileWriter(E2E_RESPONSE_TIME_ADDRESS + Thread.currentThread().getId(), true);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Long startTime = pkt.ID;
+                    double responseTime = (SystemClock.elapsedRealtimeNanos() - startTime) / 1000000.0;  // ms
+                    String report = "StartTime:\t" + String.format("%.0f", startTime / 1000000000.0) + "\t"
+                            + "E2EResponseTime:\t" + String.format("%.1f", responseTime) + "\n";
+
+                    try {
+                        fw.write(report);
+                        fw.close();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    class StreamServer implements Runnable{
+        private ServerSocket serverSocket;
+        private Socket clientSocket;
+
+        public void run(){
+            System.out.println("[Stream Server] has been set up ...");
+
+            try {
+                serverSocket = new ServerSocket(8999);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while(!Thread.currentThread().isInterrupted()){
+                try{
+                    clientSocket = serverSocket.accept();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+
+                System.out.println(clientSocket.isConnected());
+                new Thread(new StreamThread(clientSocket)).start();
+
+                System.out.println("A new [stream thread] starts ... ");
+            }
+        }
+    }
+
+    class StreamThread implements Runnable {
+        private DataOutputStream os;
+        private Socket clientSocket;
+        private boolean connected;
+
+        public StreamThread(Socket clientSkt){
+            clientSocket = clientSkt;
+            connected = true;
+        }
+
+        public void run() {
+            try {
+                os = new DataOutputStream(clientSocket.getOutputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             while (!Thread.currentThread().isInterrupted() && connected) {
                 InternodePacket pkt = sentenceQueue.poll();
                 if (pkt != null) {
@@ -696,9 +870,11 @@ public class RanSenStatActivity extends AppCompatActivity {
                         String strPkt = Serialization.Serialize(pkt);
                         byte[] pktByte = strPkt.getBytes("UTF-8");
                         os.write(pktByte);
+                        os.flush();
                     } catch (IOException e) {
                         connected = false;
-                        System.out.println("The thread sending tuple to [local client socket] stops ... ");
+                        e.printStackTrace();
+                        System.out.println("The thread sending tuple to [remote client socket] stops ... ");
                     }
                 }
             }

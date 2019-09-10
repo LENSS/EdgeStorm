@@ -3,6 +3,7 @@ package com.lenss.mstorm.core;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -54,20 +55,19 @@ public class ComputingNode extends Service {
     public static final String EXEREC_ADDRESSES=MStorm.MStormDir+"ExeRecord";
 
     //// MESSAGE TYPES
-    public static final int NEW_TASKS = 0;
-    public static final int SHUTDOWN_TASK = 1;
-    public static final int SHUTDOWN_COMPUTING_NODE = 2;
+    public final int NEW_TASKS = 0;
+    public final int SHUTDOWN_TASK = 1;
+    public final int SHUTDOWN_COMPUTING_NODE = 2;
 
     //// EXECUTORS
     private ExecutorManager mExecutorManager;
     private LinkedBlockingDeque<Runnable> mExecutorQueue;
-    private static final int NUMBER_OF_CORE_EXECUTORS =8;
-    private static final int NUMBER_OF_MAX_EXECUTORS = 16;
-    private static final int KEEP_ALIVE_TIME = 60;
-    private static final TimeUnit KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS;
+    private final int NUMBER_OF_CORE_EXECUTORS=8;
+    private final int NUMBER_OF_MAX_EXECUTORS=16;
+    private final int KEEP_ALIVE_TIME = 60;
+    private final TimeUnit KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS;
 
-    // pause or continue stream processing;, 0 continue, 1 pause
-    private static int pauseOrContinue = 0;
+    private static boolean pauseOrContinue = false;
 
     private StatusReporter statusReporter;
     private Thread reporterThread;
@@ -138,7 +138,7 @@ public class ComputingNode extends Service {
         // record the processID of computing node
         processID = Process.myPid();
 
-        pauseOrContinue = 0; // allow pulling more tuple for stream processing
+        pauseOrContinue = false; // allow pulling more tuple for stream processing
 
         // create a status reporter
         statusReporter = StatusReporter.getInstance();
@@ -230,11 +230,11 @@ public class ComputingNode extends Service {
         if (localTasks!=null) {
             HashMap<String, String> component2serInstance = topology.getSerInstances();
             HashMap<Integer, String> task2Component = assignment.getTask2Component();
+            String sourceAddr  = assignment.getSourceAddr();  // GUID addr
+            String sourceIP  = GNSServiceHelper.getIPInUseByGUID(sourceAddr);
             for (int i = 0; i < localTasks.size(); i++) {
                 int taskID = localTasks.get(i);
                 String component = task2Component.get(taskID);
-                String sourceAddr  = assignment.getSourceAddr();  // GUID addr
-                String sourceIP  = GNSServiceHelper.getIPInUseByGUID(sourceAddr);
                 String instance = component2serInstance.get(component);
                 try {
                     Class<?> mClass = dcLoader.loadClass(component);
@@ -242,7 +242,7 @@ public class ComputingNode extends Service {
                     mTask.setTaskID(taskID);
                     mTask.setComponent(component);
                     mTask.setSourceIP(sourceIP);
-                    System.out.println("###############" + component + "###############" + sourceIP + "\n");
+                    System.out.println("###############" + component + "###############" + "\n");
                     Executor taskExecutor = new Executor(mTask);
                     mExecutorManager.submitTask(taskID,taskExecutor);
                 } catch (ClassNotFoundException e) {
@@ -411,9 +411,9 @@ public class ComputingNode extends Service {
         return processID;
     }
 
-    public static int getPauseOrContinue(){return pauseOrContinue;}
+    public static boolean getPauseOrContinue(){return pauseOrContinue;}
 
-    public static void setPauseOrContinue(int p){pauseOrContinue = p;}
+    public static void setPauseOrContinue(boolean p){pauseOrContinue = p;}
 
     // get assignment
     public static Assignment getAssignment() {
@@ -423,4 +423,5 @@ public class ComputingNode extends Service {
     public static Topology getTopology(){
         return topology;
     }
+
 }

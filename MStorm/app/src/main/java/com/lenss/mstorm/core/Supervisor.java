@@ -68,7 +68,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
                 .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), R.mipmap.ic_large))
                 .setContentTitle("Supervisor Is Running")
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentText("Supervisor Node Is Running")
+                .setContentText("Supervisor Is Running")
                 .setWhen(System.currentTimeMillis());
         Notification notification = builder.build();
         notification.defaults = Notification.DEFAULT_SOUND;
@@ -176,7 +176,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
             }
         } else { // the computing service is running, stop the old and start the new
             if (newAssignment.getPreAssignedNodes().contains(MStorm.GUID)) {
-                ComputingNode.setPauseOrContinue(1) ;  // pause more tuples into MStorm
+                ComputingNode.setPauseOrContinue(true) ;  // pause more tuples into MStorm
 
               // If there is a component heavily congested, this will not work
                 int noMoreTuplesFlag = 0;

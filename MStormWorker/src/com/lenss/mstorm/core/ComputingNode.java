@@ -41,23 +41,23 @@ import com.lenss.mstorm.zookeeper.Assignment;
 import com.sun.xml.internal.ws.resources.ManagementMessages;
 
 public class ComputingNode implements Runnable {
-    /// LOGGER
-    private final String TAG="ComputingNode";
-    Logger logger = Logger.getLogger(TAG);
-    
+	/// LOGGER
+	private final String TAG="ComputingNode";
+	Logger logger = Logger.getLogger(TAG);
+
 	private static String jarDirectory= System.getProperty("user.home") + File.separator + "EdgeStorm" + File.separator;
 	//private static String jarDirectory= "/";
 	//// EXECUTORS
 	private ExecutorManager mExecutorManager;
 	private LinkedBlockingDeque<Runnable> mExecutorQueue;
-	private static final int NUMBER_OF_CORE_EXECUTORS = 4;
-	private static final int NUMBER_OF_MAX_EXECUTORS = 8;
-	private static final int KEEP_ALIVE_TIME = 60;
-	private static final TimeUnit KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS;
+	private final int NUMBER_OF_CORE_EXECUTORS = 8;
+	private final int NUMBER_OF_MAX_EXECUTORS = 16;
+	private final int KEEP_ALIVE_TIME = 60;
+	private final TimeUnit KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS;
 
 	// pause or continue stream processing;, 0 continue, 1 pause
 	private static int pauseOrContinue = 0;
-	
+
 	private StatusReporter statusReporter;
 	private Thread reporterThread;
 	private Dispatcher dispatcher;
@@ -72,7 +72,7 @@ public class ComputingNode implements Runnable {
 	private CommunicationServer mServer;
 	private CommunicationClient mClient;
 	private volatile int allConnected=0;
-	
+
 	public ComputingNode(Assignment assign) {
 		assignment = assign;
 		topology = new Gson().fromJson(assignment.getSerTopology(), Topology.class);
@@ -104,7 +104,7 @@ public class ComputingNode implements Runnable {
 		}
 		mServer = new CommunicationServer();
 		mServer.setup();
-		
+
 		if (mClient != null) {
 			mClient.release();
 		}
@@ -122,20 +122,20 @@ public class ComputingNode implements Runnable {
 		connectTasks();
 
 		while(allConnected==0){     // wait until all workers are connected
-            try {
-                Thread.sleep(5);
-                logger.info("Waiting workers to connect with each other ... ");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+			try {
+				Thread.sleep(5);
+				logger.info("Waiting workers to connect with each other ... ");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 
-        if(allConnected==-1){
-            logger.error("Some connections between workers failed ... ");
-            Supervisor.mHandler.handleMessage(Supervisor.Message_LOG, "Workers cannot establish connections, please turn off and try again ...");
-        } else{
-            logger.info("All connections among workers succeed ... ");
-        }
+		if(allConnected==-1){
+			logger.error("Some connections between workers failed ... ");
+			Supervisor.mHandler.handleMessage(Supervisor.Message_LOG, "Workers cannot establish connections, please turn off and try again ...");
+		} else{
+			logger.info("All connections among workers succeed ... ");
+		}
 
 		// execute tasks assigned to this node
 		String jarFileName = assignment.getApk().split("\\.")[0] + ".jar";
@@ -155,11 +155,11 @@ public class ComputingNode implements Runnable {
 			if (localTasks != null) {
 				HashMap<String, String> component2serInstance = topology.getSerInstances();
 				HashMap<Integer, String> task2Component = assignment.getTask2Component();
+				String sourceAddr  = assignment.getSourceAddr();  // GUID addr
+				String sourceIP  = GNSServiceHelper.getIPInUseByGUID(sourceAddr);
 				for (int i = 0; i < localTasks.size(); i++) {
 					int taskID = localTasks.get(i);
 					String component = task2Component.get(taskID);
-	                String sourceAddr  = assignment.getSourceAddr();  // GUID addr
-	                String sourceIP  = GNSServiceHelper.getIPInUseByGUID(sourceAddr);
 					String instance = component2serInstance.get(component);
 					try {
 						Class<?> mClass = ucLoader.loadClass(component);
@@ -194,47 +194,47 @@ public class ComputingNode implements Runnable {
 	}
 
 	public void connectTasks() {
-        List<String> assignNodes = assignment.getAssginedNodes();
-        int numOfNodes = assignNodes.size();
-        String localAddr = MStormWorker.GUID;
-        int indexOfLocalNode;
-        if ((indexOfLocalNode = assignNodes.indexOf(localAddr)) != -1){
-            int[][] node2NodeConnection = assignment.getNode2NodeConnection();
-            for (int i = 0; i < numOfNodes; i++) {
-                if (node2NodeConnection[indexOfLocalNode][i] == 1) {
-                    String remoteGUID = assignNodes.get(i);
-                    ChannelFuture cf = mClient.connectByGUID(remoteGUID);
-                    cf.awaitUninterruptibly();
-                    Channel currentChannel = cf.getChannel();
-                    if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
-                        String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
-                        logger.debug(msg);
-                    } else {
-                        if (currentChannel != null) {
-                            currentChannel.close();
-                        }
-                        allConnected = -1;
-                    }
-                }
-            }
-        }
-        allConnected = 1;
+		List<String> assignNodes = assignment.getAssginedNodes();
+		int numOfNodes = assignNodes.size();
+		String localAddr = MStormWorker.GUID;
+		int indexOfLocalNode;
+		if ((indexOfLocalNode = assignNodes.indexOf(localAddr)) != -1){
+			int[][] node2NodeConnection = assignment.getNode2NodeConnection();
+			for (int i = 0; i < numOfNodes; i++) {
+				if (node2NodeConnection[indexOfLocalNode][i] == 1) {
+					String remoteGUID = assignNodes.get(i);
+					ChannelFuture cf = mClient.connectByGUID(remoteGUID);
+					cf.awaitUninterruptibly();
+					Channel currentChannel = cf.getChannel();
+					if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
+						String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
+						logger.debug(msg);
+					} else {
+						if (currentChannel != null) {
+							currentChannel.close();
+						}
+						allConnected = -1;
+					}
+				}
+			}
+		}
+		allConnected = 1;
 	}
 
 	public static int getPauseOrContinue(){return pauseOrContinue;}
 
-    public static void setPauseOrContinue(int p){pauseOrContinue = p;}
-    
+	public static void setPauseOrContinue(int p){pauseOrContinue = p;}
+
 	// get assignment
 	public static Assignment getAssignment() {
 		return assignment;
 	}
 
 	// get topology
-    public static Topology getTopology(){
-        return topology;
-    }
-	
+	public static Topology getTopology(){
+		return topology;
+	}
+
 	// get tasks assigned to this computing node
 	public static ArrayList<Integer> getLocalTasks(String localAddress, Assignment assign) {
 		HashMap<String, ArrayList<Integer>> node2Tasks = assign.getNode2Tasks();

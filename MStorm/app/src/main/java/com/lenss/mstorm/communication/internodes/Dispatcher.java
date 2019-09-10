@@ -104,7 +104,6 @@ public class Dispatcher implements Runnable {
                                 StatusOfLocalTasks.task2EmitTimesUpStream.get(taskID).add(timePoint);
                                 StatusOfLocalTasks.task2EmitTimesNimbus.get(taskID).add(timePoint);
 
-
                                 if(StatusOfLocalTasks.task2EntryTimes.get(taskID).size()>0) {
                                     long entryTimePoint = StatusOfLocalTasks.task2EntryTimes.get(taskID).remove(0);
                                     long responseTime = timePoint - entryTimePoint;
@@ -123,8 +122,7 @@ public class Dispatcher implements Runnable {
                         }
                     }
                 }
-            }
-            else{
+            } else{
                 finished = true;
             }
         }

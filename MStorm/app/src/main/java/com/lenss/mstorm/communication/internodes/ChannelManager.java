@@ -168,7 +168,7 @@ public class ChannelManager {
 
     public static int sendToRandomDownstreamTask(String component, InternodePacket pkt){
         List<Integer> availTasks = comp2AvailRemoteTasks.get(component);
-        if(availTasks.size()==0){
+        if(availTasks == null || (availTasks!=null && availTasks.size()==0)){
             return -1;
         } else {
             int index = Helper.randInt(0, availTasks.size());

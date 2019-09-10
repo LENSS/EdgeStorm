@@ -64,6 +64,7 @@ public class GRecognitionActivity extends ActionBarActivity {
 
     private static final String CAMERA_SOURCE = "0";
     private static final String VIDEO_SOURCE = "1";
+    private static String IP_CAMERA_SOURCE = "10.8.162.1:8554/police1";
 
     private static final int NUM_OF_FACES=0;
     private TextView result;
@@ -90,7 +91,9 @@ public class GRecognitionActivity extends ActionBarActivity {
 
     public static ReadFromCamera rfc = null;
     public static ReadFromVideo rfv = null;
-    public static String streamSource = CAMERA_SOURCE;
+    public static ReadFromIPCamera rfipc = null;
+
+    public static String streamSource;
 
     Logger logger;
 
@@ -241,7 +244,7 @@ public class GRecognitionActivity extends ActionBarActivity {
             layout.setOrientation(LinearLayout.VERTICAL);
             AlertDialog.Builder alert = new AlertDialog.Builder(this);
             final EditText ssBox = new EditText(this);
-            ssBox.setHint("Camera:0 | Video: 1");
+            ssBox.setHint("YiCamera:0 | Video: 1 | IPCamera: RTSP URL");
             layout.addView(ssBox);
             alert.setView(layout);
             alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
@@ -315,10 +318,15 @@ public class GRecognitionActivity extends ActionBarActivity {
                 rfc = new ReadFromCamera();
                 new Thread(rfc).start();
             }
-        } else { // pull stream from video
+        } else if(streamSource.equals(VIDEO_SOURCE)){ // pull stream from video
             if (rfv == null) {
                 rfv = new ReadFromVideo();
                 new Thread(rfv).start();
+            }
+        } else{
+            if(rfipc == null){
+                rfipc = new ReadFromIPCamera();
+                new Thread(rfipc).start();
             }
         }
 
@@ -335,10 +343,15 @@ public class GRecognitionActivity extends ActionBarActivity {
                 rfc.stop();
                 rfc = null;
             }
-        } else { // stop pulling from video
+        } else if(streamSource.equals(VIDEO_SOURCE)){ // stop pulling from video
             if (rfv != null) {
                 rfv.stop();
                 rfv = null;
+            }
+        } else {
+            if (rfipc != null) {
+                rfipc.stop();
+                rfipc = null;
             }
         }
     }
@@ -349,6 +362,32 @@ public class GRecognitionActivity extends ActionBarActivity {
             result.setText(msg.obj.toString());
         }
     };
+
+    class ReadFromIPCamera implements Runnable{
+        public void run(){
+            String rtsp = streamSource;
+
+            int lastReturnCode = 1;
+            // 1:AmbaRTSPServer@YICamera restarts, because the camera has not started recording and there is no stream to be pull to the phone.
+            while ((lastReturnCode == 1)) {
+                try {
+                    Thread.sleep(1000);     // wait for RTSP server restarting at the camera
+                } catch (InterruptedException e){
+                    e.printStackTrace();
+                }
+                lastReturnCode = FFmpeg.execute("-i rtsp://" + rtsp +" -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
+            }
+            // 0: FFmpeg client to AmbaRTSPServer@YICamera is timeout, because the camera stops recording.
+            if(lastReturnCode == 0){
+                stopPullStream();
+                startPullStream();
+            }
+        }
+
+        public void stop(){
+            FFmpeg.cancel();
+        }
+    }
 
     class ReadFromCamera implements Runnable{
         public void run(){

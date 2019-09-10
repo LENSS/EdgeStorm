@@ -13,13 +13,12 @@ import org.apache.zookeeper.KeeperException;
 import cluster.Cluster;
 import zookeeper.ZookeeperClient;
 import communication.CommunicationServer;
-import edu.tamu.cse.lenss.gnsService.client.*;
+import edu.tamu.cse.lenss.edgeKeeper.client.EKClient;
 
 public class MasterNode {
 	public static ZookeeperClient mZkClient;
 	public CommunicationServer mServer;
 	public NimbusScheduler mNimbusScheduler;
-	public GnsServiceClient gnsClient;
 
 	public static class MasterNodeHolder{
 		public static final MasterNode instance = new MasterNode();
@@ -29,12 +28,10 @@ public class MasterNode {
 		return MasterNodeHolder.instance;
 	}
 	
-	public void setup(String portNum){
-		gnsClient = new GnsServiceClient();
-		
+	public void setup(){
 		// establish a zooKeeper client
 		try {
-			mZkClient = new ZookeeperClient(portNum);
+			mZkClient = new ZookeeperClient(EKClient.getZooKeeperConnectionString());
 		} catch (KeeperException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -50,7 +47,7 @@ public class MasterNode {
 		mNimbusScheduler= new NimbusScheduler();
 		
 		// register as a service to GNS server
-		if(gnsClient.addService("MStorm", "master")) {
+		if(EKClient.addService("MStorm", "master")) {
 			System.out.println("MStorm master successfully register to GNS server ... ");
 		} else {
 			System.out.println("MStorm master can NOT register to GNS server ... ");
@@ -74,7 +71,7 @@ public class MasterNode {
 		}
 		
 		MasterNode masterNode = MasterNode.getInstance();
-		masterNode.setup(args[0]);
+		masterNode.setup();
 		
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 	        public void run() {
@@ -94,5 +91,7 @@ public class MasterNode {
 				}
 			}
 		}
+		
+		EKClient.removeService("MStorm");
 	}
 }

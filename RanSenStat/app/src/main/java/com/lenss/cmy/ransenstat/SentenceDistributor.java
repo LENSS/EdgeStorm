@@ -38,6 +38,7 @@ public class SentenceDistributor extends Distributor {
     private int workload_senDistributor;
 
     PullStreamThreadLocal pullStream;
+    //PullStreamThread pullStream;
 
     public void setWorkload(int workload) {
         workload_senDistributor = workload;
@@ -47,6 +48,8 @@ public class SentenceDistributor extends Distributor {
     public void prepare() {
         pullStream = new PullStreamThreadLocal();
         new Thread(pullStream).start();
+        //pullStream = new PullStreamThread();
+        //new Thread(pullStream).start();
     }
 
     @Override
@@ -70,17 +73,21 @@ public class SentenceDistributor extends Distributor {
 
     @Override
     public void postExecute() {
-       pullStream.stop();
+        pullStream.stop();
     }
 
     class PullStreamThreadLocal implements Runnable {
         private LocalSocket localClient;
         private DataInputStream input;
+        private boolean connected;
 
         public void run() {
             localClient = new LocalSocket();
             try {
                 localClient.connect(new LocalSocketAddress(LOCAL_ADDRESS));
+                if (localClient.isConnected()) {
+                    connected = true;
+                }
                 input = new DataInputStream(localClient.getInputStream());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -88,25 +95,24 @@ public class SentenceDistributor extends Distributor {
 
             System.out.println("************** Get connected to [stream server]****************");
 
-            while (!Thread.currentThread().isInterrupted() && (ComputingNode.getPauseOrContinue() == 0)) {
+            while (connected && ComputingNode.getPauseOrContinue() == false) {
                 try {
                     int count = input.available();
                     if (count > 0) {
                         byte[] pktByte = new byte[count];
                         input.read(pktByte);
-                        String serializedPkt = new String(pktByte,"UTF-8");
+                        String serializedPkt = new String(pktByte, "UTF-8");
                         InternodePacket pkt = (InternodePacket) Serialization.Deserialize(serializedPkt, InternodePacket.class);
                         MessageQueues.collect(getTaskID(), pkt);
                     }
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    connected = false;
                 }
             }
 
-            if(ComputingNode.getPauseOrContinue() != 0){
-                try{
+            if (ComputingNode.getPauseOrContinue() != false) {
+                try {
                     localClient.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -114,10 +120,66 @@ public class SentenceDistributor extends Distributor {
             }
         }
 
-        public void stop(){
-            if(!localClient.isClosed()) {
+        public void stop() {
+            connected = false;
+            if (!localClient.isClosed()) {
                 try {
                     localClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    class PullStreamThread implements Runnable {
+        private Socket client;
+        private DataInputStream input;
+        private boolean connected;
+
+        public void run() {
+            try {
+                InetAddress serverAddr = InetAddress.getByName(getSourceIP());
+                client = new Socket(serverAddr, 8999);
+                if (client.isConnected()) {
+                    connected = true;
+                }
+                input = new DataInputStream(client.getInputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("************** Get connected to [stream server]****************");
+
+            while (!Thread.currentThread().isInterrupted() && connected) {
+                try {
+                    int count = input.available();
+                    if (count > 0) {
+                        byte[] pktByte = new byte[count];
+                        input.read(pktByte);
+                        String serializedPkt = new String(pktByte, "UTF-8");
+                        InternodePacket pkt = (InternodePacket) Serialization.Deserialize(serializedPkt, InternodePacket.class);
+                        MessageQueues.collect(getTaskID(), pkt);
+                    }
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                    connected = false;
+                }
+            }
+
+            if (connected != false) {
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void stop() {
+            if (!client.isClosed()) {
+                try {
+                    client.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

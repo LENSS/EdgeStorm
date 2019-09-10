@@ -25,7 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.lenss.mstorm.R;
-//import com.lenss.mstorm.communication.masternode.GNSHandler;
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.GPSTracker;
 import com.lenss.mstorm.utils.Helper;
@@ -33,19 +32,7 @@ import com.lenss.mstorm.utils.Intents;
 import com.lenss.mstorm.utils.TAGs;
 
 import org.apache.log4j.Logger;
-
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
-import edu.tamu.cse.lenss.gnsService.client.GnsServiceClient;
 
 public class MStorm extends ActionBarActivity {
     // For Logs
@@ -139,9 +126,10 @@ public class MStorm extends ActionBarActivity {
 
         /// Get own GUID
         GUID = GNSServiceHelper.getOwnGUID();
-
-        /// Get own address status
-        isPublicOrPrivate = "0";    // This can be get from some configuration file later: 0 means private, 1 means public
+        if(GUID == null) {
+            mLog.append("\nEdgeKeeper unreachable!");
+            onStop();
+        }
 
         /// For Real Machines WiFi
 /*        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
@@ -156,23 +144,29 @@ public class MStorm extends ActionBarActivity {
         /// For containers
         //localAddress = Helper.getIPAddress();
 
-        /// Get Master Node IP address
-        MASTER_NODE_IP = GNSServiceHelper.getMasterNodeIPInUse();
-        if (MASTER_NODE_IP == null){
-            mLog.setText("MStorm Master Unregistered OR EdgeKeeper unreachable!\nPlease check them and restart this APP.");
+        /// Get Master Node GUID and IP
+        MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
+        if (MASTER_NODE_GUID == null){
+            mLog.append("\nMStorm Master Unregistered!");
             onStop();
         }
-        /// Zookeeper is assumed to be co-located with MStorm master
-        ZK_ADDRESS_IP = MASTER_NODE_IP;
+        MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
+        if (MASTER_NODE_IP == null){
+            mLog.append("\nMStorm Master unreachable!\n");
+            onStop();
+        }
+        /// Get Zookeeper IP
+        ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
 
-        MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
+        /// Get own address status
+        isPublicOrPrivate = "0";    // This can be get from some configuration file later: 0 means private, 1 means public
 
         // Configure the logger to store logs in file
         try {
             TAGs.initLogger(LOG_URL);
             logger = Logger.getLogger(TAG);
         } catch (IOException e) {
-            mLog.setText("Can not create log file probably due to insufficient permission");
+            mLog.append("Can not create log file probably due to insufficient permission");
             logger.error(e);
         }
     }
@@ -201,14 +195,13 @@ public class MStorm extends ActionBarActivity {
                 mBound = false;
             }
             stopService(Intents.createExplicitFromImplicitIntent(this, new Intent(Intents.ACTION_STOP_SUPERVISOR)));
-        }
 
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-
         super.onDestroy();
     }
 

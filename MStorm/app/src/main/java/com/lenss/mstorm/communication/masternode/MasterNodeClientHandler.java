@@ -77,6 +77,7 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 		if(Supervisor.mHandler!=null)
 			Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,exceptionMSG).sendToTarget();
 		logger.info(exceptionMSG);
+		Thread.sleep(2000L);
 		masterNodeClient.connect();
 	}
 

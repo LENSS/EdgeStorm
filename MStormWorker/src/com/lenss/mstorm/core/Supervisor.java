@@ -66,7 +66,7 @@ public class Supervisor{
 		}
 		
 		// Start master node client
-		masterNodeClient = new MasterNodeClient(MStormWorker.GUID);
+		masterNodeClient = new MasterNodeClient(MStormWorker.MASTER_NODE_GUID);
 		masterNodeClient.setup();
 		masterNodeClient.connect();
 		
