@@ -281,7 +281,7 @@ public class ComputingNode extends Service {
         notification.defaults = Notification.DEFAULT_SOUND;
         startForeground(101, notification);
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override

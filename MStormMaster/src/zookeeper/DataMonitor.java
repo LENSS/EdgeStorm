@@ -61,6 +61,15 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
     	 zk.setData(getAssgDir(id)+"/"+ass.getAssignId(),b, -1, this, null);
     }
     
+    public void deleteAssignment(int assId, int clusterId ) {
+    	 try {
+			zk.delete(getAssgDir(clusterId)+"/"+assId, -1);
+		} catch (InterruptedException | KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
     /**
      * Other classes use the DataMonitor by implementing this method
      */

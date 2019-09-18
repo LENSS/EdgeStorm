@@ -25,10 +25,10 @@ public class MasterNodeClient {
     
     public MasterNodeClient(String GUID) {
         mMasterNodeGUID = GUID;
-        mMasterNodeAddress = new InetSocketAddress(GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID), MStormWorker.MASTER_PORT);
+        setup();
     }
     
-    public void setup() {
+    private void setup() {
             factory = new NioClientSocketChannelFactory(
                     Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
 
@@ -66,10 +66,11 @@ public class MasterNodeClient {
     
     public void connect() {     
     	String newMasterNodeIP = GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID);
-    	if(newMasterNodeIP!=null && !newMasterNodeIP.equals(mMasterNodeAddress.getAddress().getHostAddress())){
-            mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStormWorker.MASTER_PORT);
+    	InetSocketAddress mMasterNodeAddress;
+    	if(newMasterNodeIP!=null){
+    		mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStormWorker.MASTER_PORT);
+    		mClientBootstrap.connect(mMasterNodeAddress);
         }
-        mClientBootstrap.connect(mMasterNodeAddress);
     }
     
     public void sendRequest(Request req) {

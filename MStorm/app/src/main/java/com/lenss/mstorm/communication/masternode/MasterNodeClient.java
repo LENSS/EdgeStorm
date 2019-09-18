@@ -14,6 +14,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
@@ -25,12 +26,11 @@ public class MasterNodeClient {
     private NioClientSocketChannelFactory mFactory;
     private Channel mChannel=null;
     private String mMasterNodeGUID;
-    private InetSocketAddress mMasterNodeAddress;
     private Reply reply = null;
+    ExecutorService executorService;
 
     public MasterNodeClient(String GUID) {
         mMasterNodeGUID = GUID;
-        mMasterNodeAddress = new InetSocketAddress(GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID), MStorm.MASTER_PORT);
         createClientBootstrap();
     }
 
@@ -70,7 +70,18 @@ public class MasterNodeClient {
     }
 
     public void connect() {
-        new Connect2Master().execute();
+        executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(new Runnable(){
+            @Override
+            public void run(){
+                String newMasterNodeIP = GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID);
+                InetSocketAddress mMasterNodeAddress;
+                if(newMasterNodeIP!=null){
+                    mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStorm.MASTER_PORT);
+                    mClientBootstrap.connect(mMasterNodeAddress);
+                }
+            }
+        });
     }
 
     public void sendRequest(Request req) {
@@ -82,6 +93,7 @@ public class MasterNodeClient {
     public void close() {
         if(mFactory!=null) mFactory.releaseExternalResources();
         if(mChannel!=null) mChannel.close();
+        executorService.shutdownNow();
     }
 
     public void setReply(Reply reply){
@@ -90,17 +102,5 @@ public class MasterNodeClient {
 
     public Reply getReply(){
         return reply;
-    }
-
-    private class Connect2Master extends AsyncTask<Object, Channel, Channel> {
-        protected Channel doInBackground(Object... objects) {
-            String newMasterNodeIP = GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID);
-            if(newMasterNodeIP!=null && !newMasterNodeIP.equals(mMasterNodeAddress.getAddress().getHostAddress())){
-                mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStorm.MASTER_PORT);
-            }
-            ChannelFuture future = mClientBootstrap.connect(mMasterNodeAddress);
-            //future.awaitUninterruptibly();
-            return future.getChannel();
-        }
     }
 }

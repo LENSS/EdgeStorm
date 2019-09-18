@@ -10,6 +10,7 @@ public class Request implements Serializable{
 	public static final int TOPOLOGY=2;
 	public static final int GETAPKFILE=3;
 	public static final int PHONESTATUS=4;
+	public static final int CANCEL = 5;
 	
 	@Expose
 	private int type;

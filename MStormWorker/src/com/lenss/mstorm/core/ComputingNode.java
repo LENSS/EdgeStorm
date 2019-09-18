@@ -25,6 +25,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 
 import com.google.gson.Gson;
+import com.lenss.mstorm.communication.internodes.ChannelManager;
 import com.lenss.mstorm.communication.internodes.CommunicationClient;
 import com.lenss.mstorm.communication.internodes.CommunicationServer;
 import com.lenss.mstorm.communication.internodes.Dispatcher;
@@ -45,8 +46,9 @@ public class ComputingNode implements Runnable {
 	private final String TAG="ComputingNode";
 	Logger logger = Logger.getLogger(TAG);
 
-	private static String jarDirectory= System.getProperty("user.home") + File.separator + "EdgeStorm" + File.separator;
+	//private static String jarDirectory= System.getProperty("user.home") + File.separator + "EdgeStorm" + File.separator;
 	//private static String jarDirectory= "/";
+	private static String jarDirectory= ""; 
 	//// EXECUTORS
 	private ExecutorManager mExecutorManager;
 	private LinkedBlockingDeque<Runnable> mExecutorQueue;
@@ -193,6 +195,41 @@ public class ComputingNode implements Runnable {
 
 	}
 
+	public void stop() {
+		// stop client and server for communication
+        if (mClient != null) {
+            mClient.release();
+            mClient = null;
+        }
+        if (mServer != null) {
+            mServer.release();
+            mServer = null;
+        }
+
+        // stop the executors
+        List<Runnable> threadsInExecutor = mExecutorManager.shutdownNow();
+        for(Runnable thread: threadsInExecutor){
+            if(thread instanceof Executor)
+                ((Executor) thread).stop();
+        }
+
+        try {
+            System.out.println("Wait all threads in executor pool to stop ... ");
+            Thread.sleep(100);
+        } catch (InterruptedException e1) {
+            e1.printStackTrace();
+        }
+
+        // stop packet dispatcher
+        dispatcher.stop();
+        // stop status reporter
+        reporterThread.interrupt();
+        // clear computation status
+        MessageQueues.removeTaskQueues();
+        // clear channel status
+        ChannelManager.releaseChannelsToRemote();
+	}
+	
 	public void connectTasks() {
 		List<String> assignNodes = assignment.getAssginedNodes();
 		int numOfNodes = assignNodes.size();

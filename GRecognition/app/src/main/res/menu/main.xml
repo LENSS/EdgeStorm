@@ -70,7 +70,10 @@
         android:title="@string/action_submit_topology"
         android:orderInCategory="100"
         app:showAsAction="never" />
-
-
+    <item
+        android:id="@+id/action_cancel_topology"
+        android:title="@string/action_cancel_topology"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
     
 </menu>

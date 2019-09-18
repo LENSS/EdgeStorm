@@ -159,5 +159,6 @@
     <string name="action_set_streamSource"> Set StreamSource</string>
     <string name="action_set_frameRate"> Set FrameRate</string>
     <string name="action_submit_topology">Submit Topology</string>
+    <string name="action_cancel_topology">Cancel Topology</string>
     <string name="action_train">Train Face Database</string>
 </resources>

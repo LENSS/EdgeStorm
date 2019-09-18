@@ -11,4 +11,7 @@ public interface AssignmentProcessor {
     void startComputing(String newAssignment);
 
     void stopComputing();
+
+    void stopComputing(String assignment);
+
 }

@@ -31,6 +31,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <service
             android:name="com.lenss.mstorm.core.ComputingNode" android:stopWithTask="true">
             <intent-filter>
@@ -38,6 +39,7 @@
                 <action android:name="com.lenss.mstorm.STOP_COMPUTING" />
             </intent-filter>
         </service>
+
         <service
             android:name="com.lenss.mstorm.core.Supervisor" android:stopWithTask="true">
             <intent-filter>
@@ -45,5 +47,6 @@
                 <action android:name="com.lenss.mstorm.STOP_SUPERVISOR" />
             </intent-filter>
         </service>
+
     </application>
 </manifest>

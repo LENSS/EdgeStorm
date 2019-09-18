@@ -21,7 +21,7 @@
     android:versionCode="33"
     android:versionName="1.0">
 
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="25" />
+    <!--<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="25" />-->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.CAMERA" />
@@ -58,8 +58,14 @@
 
         <activity
             android:name="com.lenss.cmy.DetailsActivity"
-            android:theme="@style/Transparent"
-            />
+            android:theme="@style/Transparent">
+        </activity>
+
+        <service
+            android:name="com.lenss.cmy.OnClearFromRecentService"
+            android:stopWithTask="false" >
+        </service>
+
     </application>
 
 </manifest>

@@ -7,6 +7,8 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.imageio.spi.RegisterableService;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
+import org.junit.validator.PublicClassValidator;
+
 import com.google.gson.Gson;
 import com.lenss.mstorm.communication.masternode.MasterNodeClient;
 import com.lenss.mstorm.communication.masternode.Request;
@@ -28,6 +30,7 @@ public class Supervisor{
 	public static MasterNodeClient masterNodeClient;
 	public static String cluster_id;
 	public Assignment newAssignment;
+	public ComputingNode computingNode;
 	
 	public static Handler mHandler;
 	
@@ -67,7 +70,6 @@ public class Supervisor{
 		
 		// Start master node client
 		masterNodeClient = new MasterNodeClient(MStormWorker.MASTER_NODE_GUID);
-		masterNodeClient.setup();
 		masterNodeClient.connect();
 		
         // join MStorm cluster
@@ -119,7 +121,8 @@ public class Supervisor{
 		if(!isRuning) { // the computing service is not running, start it
             if (newAssignment.getAssginedNodes().contains(MStormWorker.GUID)) {
                 mHandler.handleMessage(Message_LOG, "New Assignment, start computing!");
-                new Thread(new ComputingNode(newAssignment)).start();
+                computingNode = new ComputingNode(newAssignment);
+                new Thread(computingNode).start();
                 isRuning = true;
             }
         } else {
@@ -131,6 +134,14 @@ public class Supervisor{
 		if(isRuning) {
             Supervisor.mHandler.handleMessage(Supervisor.Message_LOG,"Stop computing!");
             isRuning=false;
+            computingNode.stop();
+        }
+	}
+	
+	public void stopComputing(String assignment) {
+		Assignment cancelAssign=new Gson().fromJson(assignment, Assignment.class);
+        if(cancelAssign.getAssginedNodes().contains(MStormWorker.GUID)){
+            stopComputing();
         }
 	}
 	

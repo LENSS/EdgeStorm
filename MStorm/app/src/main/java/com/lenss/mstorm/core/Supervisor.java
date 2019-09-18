@@ -74,7 +74,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
         notification.defaults = Notification.DEFAULT_SOUND;
         startForeground(102, notification);
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -218,6 +218,15 @@ public class Supervisor extends Service implements AssignmentProcessor {
             Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,"Stop computing!").sendToTarget();
             stopService(Intents.createExplicitFromImplicitIntent(this, new Intent(Intents.ACTION_STOP_COMPUTING_NODE)));
             isRuning=false;
+            newAssignment = null;
+        }
+    }
+
+    @Override
+    public void stopComputing(String assignment){
+        Assignment cancelAssign=new Gson().fromJson(assignment, Assignment.class);
+        if(cancelAssign.getAssginedNodes().contains(MStorm.GUID)){
+            stopComputing();
         }
     }
 

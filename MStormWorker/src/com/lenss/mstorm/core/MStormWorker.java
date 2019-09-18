@@ -79,7 +79,7 @@ public class MStormWorker{
 		// Get Configuration, public(1) or private(0)
 		BufferedReader reader = null;
 		try {
-			reader = new BufferedReader(new FileReader("." + File.separator + "MSW.conf"));
+			reader = new BufferedReader(new FileReader("MSW.conf"));
 			reader.readLine();
 			isPublicOrPrivate = reader.readLine().split("\\=")[1];
 		} catch (IOException e) {

@@ -36,9 +36,9 @@ import java.util.concurrent.Semaphore;
 public class CommunicationServerHandler extends SimpleChannelHandler {
 
 	static Semaphore semaphore = new Semaphore(1);
-	
+
 	static Logger logger = Logger.getLogger(CommunicationServerHandler.class);
-	
+
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd, HH:mm:ss");
 
 	/** Session is connected! */
@@ -91,21 +91,21 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 
 			// can be commented out for exercise by putting apk files in different phones
 			// !!!!!!!!!!!!!!!!!!!!!!
-//			FileClient fileClient = new FileClient(System.getProperty("user.home") + "/apkFiles");
-//			String fileName = recReq.getFileName();
-//			fileClient.requestFile(fileName, recReq.getIP()); // get the apk file from User
-//			new Thread(fileClient).start();
-//
-//			while (!FileClientHandler.FileOnServer) {
-//				try {
-//					System.out.println("Client is uploading apk file ...");
-//					Thread.sleep(1000);
-//				} catch (InterruptedException e1) {
-//					// TODO Auto-generated catch block
-//					e1.printStackTrace();
-//				}
-//			}
-//			System.out.println("Apk file is in server now!");
+			//			FileClient fileClient = new FileClient(System.getProperty("user.home") + "/apkFiles");
+			//			String fileName = recReq.getFileName();
+			//			fileClient.requestFile(fileName, recReq.getIP()); // get the apk file from User
+			//			new Thread(fileClient).start();
+			//
+			//			while (!FileClientHandler.FileOnServer) {
+			//				try {
+			//					System.out.println("Client is uploading apk file ...");
+			//					Thread.sleep(1000);
+			//				} catch (InterruptedException e1) {
+			//					// TODO Auto-generated catch block
+			//					e1.printStackTrace();
+			//				}
+			//			}
+			//			System.out.println("Apk file is in server now!");
 			// can be commented out for exercise by putting apk files in different phones
 			// !!!!!!!!!!!!!!!!!!!!!!!
 
@@ -120,12 +120,21 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			reply2.setContent(Integer.toString(topologyId));
 			ctx.getChannel().write(reply2);
 			break;
+		case Request.CANCEL:
+			// Logging
+			String loggerCancelTopologyMsg = "Cancel Topology" + "\n\n"; 
+			System.out.println("[" + sdf.format(new Date()) + "] " + loggerCancelTopologyMsg);
+			logger.info(loggerCancelTopologyMsg);
+			Cluster curClusterCancel =  Cluster.getClusterByNodeAddress(recReq.getGUID());
+			String topologyIdCancel = recReq.getContent();
+			curClusterCancel.deleteAssignment(Integer.valueOf(topologyIdCancel));
+			break;
 		case Request.GETAPKFILE:
 			// Logging
 			String loggerNewAPKFileMsg = "New Request Recived! Request Type is Request for APK file!" + "\n\n"; 
 			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewAPKFileMsg);
 			logger.info(loggerNewAPKFileMsg);
-			
+
 			synchronized (FileServer.ServerExist) {
 				if (!FileServer.ServerExist) {
 					FileServer fileServer = new FileServer(System.getProperty("user.home") + "/apkFiles");
@@ -150,41 +159,41 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		case Request.PHONESTATUS:
 			String statusReportStr = recReq.getContent();
 			String phoneAddress = recReq.getGUID();
-			
+
 			// Logging
 			String loggerNewStatusReportMsg = "A Status Report from GUID: " + phoneAddress + "\n" + "The Report is: " + statusReportStr + "\n\n"; 
 			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewStatusReportMsg);
 			logger.info(loggerNewStatusReportMsg);
-			
-//// temporary comment out for March exercise, need more debugging later
-//			// Update the report statistics at server
-//			int cluster_id = Integer.parseInt(recReq.getClusterID());
-//			Cluster cluster = Cluster.getClusterById(cluster_id);
-//			if(cluster != null) {
-//              ReportToNimbus statusReport = (ReportToNimbus) Serialization.Deserialize(statusReportStr, ReportToNimbus.class);			
-//				int nodeId = cluster.getNodeIDByAddr(phoneAddress);
-//				Node node = cluster.getNodeByNodeId(nodeId);
-//				try {
-//					semaphore.acquire();
-//					node.updateStatus(statusReport);
-//				} catch (InterruptedException e1) {
-//					// TODO Auto-generated catch block
-//					e1.printStackTrace();
-//				} finally {
-//					semaphore.release();
-//				}
-//			}
-//			// Check if reschedule is needed
-//			int topoId = cluster.getTopologyIdByNodeId(nodeId);
-//			if (topoId != -1) {
-//				if (cluster.meetConditionForReScheduling(topoId)) {
-//					cluster.setTopologyBeingScheduled(topoId, true);
-//					NimbusScheduler scheduler = MasterNode.getInstance().mNimbusScheduler;
-//					scheduler.reSchedule(topoId, cluster);
-//					cluster.setTopologyBeingScheduled(topoId, false);
-//				}
-//			}
-//// temporary comment out for March exercise, need more debugging later
+
+			//// temporary comment out for March exercise, need more debugging later
+			//			// Update the report statistics at server
+			//			int cluster_id = Integer.parseInt(recReq.getClusterID());
+			//			Cluster cluster = Cluster.getClusterById(cluster_id);
+			//			if(cluster != null) {
+			//              ReportToNimbus statusReport = (ReportToNimbus) Serialization.Deserialize(statusReportStr, ReportToNimbus.class);			
+			//				int nodeId = cluster.getNodeIDByAddr(phoneAddress);
+			//				Node node = cluster.getNodeByNodeId(nodeId);
+			//				try {
+			//					semaphore.acquire();
+			//					node.updateStatus(statusReport);
+			//				} catch (InterruptedException e1) {
+			//					// TODO Auto-generated catch block
+			//					e1.printStackTrace();
+			//				} finally {
+			//					semaphore.release();
+			//				}
+			//			}
+			//			// Check if reschedule is needed
+			//			int topoId = cluster.getTopologyIdByNodeId(nodeId);
+			//			if (topoId != -1) {
+			//				if (cluster.meetConditionForReScheduling(topoId)) {
+			//					cluster.setTopologyBeingScheduled(topoId, true);
+			//					NimbusScheduler scheduler = MasterNode.getInstance().mNimbusScheduler;
+			//					scheduler.reSchedule(topoId, cluster);
+			//					cluster.setTopologyBeingScheduled(topoId, false);
+			//				}
+			//			}
+			//// temporary comment out for March exercise, need more debugging later
 			break;
 		default:
 			return;

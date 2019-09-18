@@ -124,6 +124,15 @@ public class MStorm extends ActionBarActivity {
         gps = new GPSTracker(MStorm.this);
         context = getApplicationContext();
 
+        // Configure the logger to store logs in file
+        try {
+            TAGs.initLogger(LOG_URL);
+            logger = Logger.getLogger(TAG);
+        } catch (IOException e) {
+            mLog.append("Can not create log file probably due to insufficient permission");
+            logger.error(e);
+        }
+
         /// Get own GUID
         GUID = GNSServiceHelper.getOwnGUID();
         if(GUID == null) {
@@ -160,15 +169,6 @@ public class MStorm extends ActionBarActivity {
 
         /// Get own address status
         isPublicOrPrivate = "0";    // This can be get from some configuration file later: 0 means private, 1 means public
-
-        // Configure the logger to store logs in file
-        try {
-            TAGs.initLogger(LOG_URL);
-            logger = Logger.getLogger(TAG);
-        } catch (IOException e) {
-            mLog.append("Can not create log file probably due to insufficient permission");
-            logger.error(e);
-        }
     }
 
     @Override
@@ -183,11 +183,13 @@ public class MStorm extends ActionBarActivity {
 
     @Override
     protected void onStop() {
+        logger.info("onStop");
         super.onStop();
     }
 
     @Override
     public void onDestroy() {
+        logger.info("onDestroy");
         if (SERVICE_STARTED) {
             SERVICE_STARTED = false;
             if (mBound) {

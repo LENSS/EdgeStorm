@@ -41,7 +41,9 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
     private DataMonitorListener listener;
 
     private String assignPath = null;
+    private String assignment = null;
     private AssignmentProcessor assignmentProcessor;
+
 
     public DataMonitor(ZooKeeper zk, AssignmentProcessor assignmentProcessor, Watcher chainedWatcher, DataMonitorListener listener) {
         this.assignmentProcessor=assignmentProcessor;
@@ -152,8 +154,7 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
         }
         if(path.equals(NODES_DIR)) {
             // TODO
-        }
-        else { // Assign Dir Changed
+        } else { // Assign Dir Changed
             if (!initiated) {
                 initiated = true;
             } else {
@@ -215,8 +216,7 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
-            if(newAssignment!=null)
-            {
+            if(newAssignment!=null) {
                 //Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,"New assignment from"+path).sendToTarget();
                 try {
                     OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(MStorm.ASSIGNMENT_URL, true));
@@ -227,6 +227,11 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
                     logger.error("Fail to write assignment result to local file!");
                 }
                 assignmentProcessor.startComputing(newAssignment);
+                assignment = newAssignment;
+            }
+        } else {
+            if(assignment!=null){
+                assignmentProcessor.stopComputing(assignment);
             }
         }
     }

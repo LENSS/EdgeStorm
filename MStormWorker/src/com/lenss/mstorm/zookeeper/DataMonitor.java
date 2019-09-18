@@ -34,6 +34,7 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
     private DataMonitorListener listener;
 
     private String assignPath = null;
+    private String assignment = null;
     private Supervisor mSupervisor=null;
 
     public DataMonitor(Supervisor supervisor, ZooKeeper zk, Watcher chainedWatcher, DataMonitorListener listener) {
@@ -192,7 +193,12 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
             if(newAssignment!=null)
             {
                 mSupervisor.startComputing(newAssignment);
+                assignment = newAssignment;
             }
+        } else {
+        	if(assignment!=null) {
+        		mSupervisor.stopComputing(assignment);
+        	}
         }
     }
 

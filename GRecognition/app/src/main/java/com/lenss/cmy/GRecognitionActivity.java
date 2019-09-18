@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -42,9 +43,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 
-import static java.lang.Thread.sleep;
 
-public class GRecognitionActivity extends ActionBarActivity {
+public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     public static final String TAG = "GRecognitionActivity";
 
     private boolean mRecordingEnabled = false;      // controls button state
@@ -86,6 +86,8 @@ public class GRecognitionActivity extends ActionBarActivity {
     public static int faceRecognizerScheduleReq = Topology.Schedule_Any;
     public static int faceSaverScheduleReq = Topology.Schedule_Local;
 
+    public static int topologyID = 0;
+
     // Input frame rate
     public static String frameRate = "1";
 
@@ -93,7 +95,7 @@ public class GRecognitionActivity extends ActionBarActivity {
     public static ReadFromVideo rfv = null;
     public static ReadFromIPCamera rfipc = null;
 
-    public static String streamSource;
+    public static String streamSource = VIDEO_SOURCE;  // use video source as default
 
     Logger logger;
 
@@ -161,6 +163,14 @@ public class GRecognitionActivity extends ActionBarActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        // bind to Service
+        Intent intent = new Intent(this, OnClearFromRecentService.class);
+        startService(intent);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         updateControls();
@@ -172,10 +182,10 @@ public class GRecognitionActivity extends ActionBarActivity {
         super.onStop();
     }
 
-    @Override
     protected void onDestroy() {
         logger.info("onDestroy");
         stopPullStream();
+        cancelTopology();
         super.onDestroy();
     }
 
@@ -275,34 +285,59 @@ public class GRecognitionActivity extends ActionBarActivity {
                     // do nothing
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
+        } else if(id == R.id.action_submit_topology) {
+            submitTopology();
+        } else {
+            cancelTopology();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void submitTopology(){
+        if (topologyID != 0) {
+            Toast.makeText(this, "Topology Already Submitted!", Toast.LENGTH_SHORT).show();
         } else {
             Topology topology = GRecognizerTopology.createTopology();
-            StormSubmitter submitter = new StormSubmitter(this, apkFileDirectory);
-            submitter.submitTopology(apkFileName,topology);
+            StormSubmitter submitter = new StormSubmitter(this);
+            submitter.submitTopology(apkFileName, topology);
             // wait for reply containing topologyID
             Reply reply;
-            while((reply=submitter.getReply())==null){
+            while ((reply = submitter.getReply()) == null) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            int topologyID = new Integer(reply.getContent());
-            if(topologyID != 0)
+            topologyID = new Integer(reply.getContent());
+            if (topologyID != 0)
                 Toast.makeText(this, "Topology Scheduled!", Toast.LENGTH_SHORT).show();
         }
-        return super.onOptionsItemSelected(item);
+    }
+
+    public void cancelTopology(){
+        if (topologyID == 0) {
+            Toast.makeText(this, "Topology Already Canceled!", Toast.LENGTH_SHORT).show();
+        } else {
+            StormSubmitter submitter = new StormSubmitter(this);
+            submitter.cancelTopology(Integer.toString(topologyID));
+            topologyID = 0;
+            Toast.makeText(this, "Topology Canceled!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
-        mRecordingEnabled = !mRecordingEnabled;
-        updateControls();
-
-        if(mRecordingEnabled)
-            startPullStream();
-        else
-            stopPullStream();
+        if(topologyID == 0){
+            Toast.makeText(this, "Topology Not Submitted/Scheduled Yet!", Toast.LENGTH_SHORT).show();
+        } else {
+            mRecordingEnabled = !mRecordingEnabled;
+            updateControls();
+            if (mRecordingEnabled)
+                startPullStream();
+            else
+                stopPullStream();
+        }
     }
 
     public void updateControls() {
