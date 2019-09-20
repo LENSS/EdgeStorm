@@ -40,6 +40,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		if(pkt!=null) {
 			if (pkt.type == InternodePacket.TYPE_INIT){
 				ChannelManager.addChannelToRemote(ctx.getChannel(), pkt.simpleContent.get("GUID"));
+				System.out.println("***************************" + pkt.simpleContent.get("GUID"));
 			} else if (pkt.type == InternodePacket.TYPE_DATA){
 				int taskID = pkt.toTask;
 				MessageQueues.collect(taskID, pkt);

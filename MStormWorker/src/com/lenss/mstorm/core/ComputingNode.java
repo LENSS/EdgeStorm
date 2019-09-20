@@ -46,9 +46,10 @@ public class ComputingNode implements Runnable {
 	private final String TAG="ComputingNode";
 	Logger logger = Logger.getLogger(TAG);
 
-	//private static String jarDirectory= System.getProperty("user.home") + File.separator + "EdgeStorm" + File.separator;
-	//private static String jarDirectory= "/";
-	private static String jarDirectory= ""; 
+	private static String jarDirectory= System.getProperty("user.home") + File.separator + "EdgeStormTest" + File.separator + "MStormWorker" + File.separator;  // For Eclipse
+	//private static String jarDirectory= "/";			// For container
+	//private static String jarDirectory= ""; 			// For jar
+	
 	//// EXECUTORS
 	private ExecutorManager mExecutorManager;
 	private LinkedBlockingDeque<Runnable> mExecutorQueue;

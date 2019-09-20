@@ -25,8 +25,7 @@ public class Dispatcher implements Runnable {
         
         while (!Thread.currentThread().isInterrupted() && !finished) {
             if(localTasks!=null) {
-                for (int i = 0; i < localTasks.size(); i++) {
-                    int taskID = localTasks.get(i);
+                for (int taskID: localTasks) {                 
                     MyPair<String, InternodePacket> outdata = MessageQueues.retrieveOutgoingQueue(taskID);
                     if (outdata != null) {
                         //StatusReporter.getInstance().updateIsIncludingTask();

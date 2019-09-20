@@ -108,6 +108,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
             }
         } else {
             if (path != null && path.matches(NODE_CHANGE_PARTERN)) {
+            	System.out.println("processevent,getChildren ************************" + path);
              	zk.getChildren(path, true, this, null);
             }
         }
@@ -169,8 +170,8 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
         	}
        
         	if(path.matches(NODE_CHANGE_PARTERN)) {
-        		Cluster.getClusterById(getClusterIdFromPath(path)).updateComputingNodes(children);
-        		//System.out.println("Cluster changed! Current Cluster size:"+children.size());       	
+        		System.out.println("Cluster changed! Current Cluster size:"+children.size());       
+        		Cluster.getClusterById(getClusterIdFromPath(path)).updateComputingNodes(children);	
         	}
 
 

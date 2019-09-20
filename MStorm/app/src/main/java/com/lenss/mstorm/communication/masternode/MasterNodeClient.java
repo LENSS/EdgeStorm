@@ -26,6 +26,7 @@ public class MasterNodeClient {
     private NioClientSocketChannelFactory mFactory;
     private Channel mChannel=null;
     private String mMasterNodeGUID;
+    private String mMasterNodeIP;
     private Reply reply = null;
     ExecutorService executorService;
 
@@ -75,9 +76,13 @@ public class MasterNodeClient {
             @Override
             public void run(){
                 String newMasterNodeIP = GNSServiceHelper.getIPInUseByGUID(mMasterNodeGUID);
-                InetSocketAddress mMasterNodeAddress;
+                // update MasterNodeIP
                 if(newMasterNodeIP!=null){
-                    mMasterNodeAddress = new InetSocketAddress(newMasterNodeIP, MStorm.MASTER_PORT);
+                    mMasterNodeIP = newMasterNodeIP;
+                }
+                InetSocketAddress mMasterNodeAddress;
+                if(mMasterNodeIP!=null) {
+                    mMasterNodeAddress = new InetSocketAddress(mMasterNodeIP, MStorm.MASTER_PORT);
                     mClientBootstrap.connect(mMasterNodeAddress);
                 }
             }

@@ -127,7 +127,8 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			logger.info(loggerCancelTopologyMsg);
 			Cluster curClusterCancel =  Cluster.getClusterByNodeAddress(recReq.getGUID());
 			String topologyIdCancel = recReq.getContent();
-			curClusterCancel.deleteAssignment(Integer.valueOf(topologyIdCancel));
+			if(curClusterCancel!=null)
+				curClusterCancel.deleteAssignment(Integer.valueOf(topologyIdCancel));
 			break;
 		case Request.GETAPKFILE:
 			// Logging

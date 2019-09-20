@@ -96,10 +96,12 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
             }
         } else {
             if (path != null && path.matches(ASSIGN_ADD_PATTERM)) {
+                logger.debug("processevent,getChildren ************************" + path);
                 zk.getChildren(path, true, this, null);
             }
 
             if(path != null && path.matches(ASSIGN_CHANGE_PATTERM)){
+                logger.debug("processevent,getData ************************" + path);
                 zk.getData(path,true,this,null);
             }
         }
@@ -160,7 +162,10 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
             } else {
                 if(!children.isEmpty()) {
                     assignPath = children.get(children.size() - 1); // get the newest assignment
+                    logger.debug("processResult, getChildren ************************" + path);
                     zk.getData(path + "/" + assignPath, true, this, null);
+                } else {
+                    assignmentProcessor.stopComputing();
                 }
             }
         }
@@ -228,10 +233,12 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
                 }
                 assignmentProcessor.startComputing(newAssignment);
                 assignment = newAssignment;
+                logger.debug("processResult, getData ************************" + path);
             }
         } else {
             if(assignment!=null){
                 assignmentProcessor.stopComputing(assignment);
+                assignment = null;
             }
         }
     }
