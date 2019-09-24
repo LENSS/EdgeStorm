@@ -25,11 +25,35 @@ public class GNSServiceHelper {
 	
 	public static String getMasterNodeGUID(){
 		String masterGUID = null;
-		List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
-		if(masterGUIDs.size()!=0)
-			masterGUID = masterGUIDs.get(0);
-		return masterGUID;
+        List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
+
+        ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
+        List<ValidGUID> validGUIDs = new ArrayList<>();
+        for (String candidateGUID: masterGUIDs){
+            ValidGUID validGuid = new ValidGUID(candidateGUID);
+            validGUIDs.add(validGuid);
+        }
+        try {
+            masterGUID = executor.invokeAny(validGUIDs);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            logger.error("No MStorm Master Usable!");
+        } finally{
+            executor.shutdownNow();
+        }
+        return masterGUID;
 	}
+	
+    static class ValidGUID implements Callable<String>{
+        public String GUID;
+        public ValidGUID(String guid) {GUID = guid;}
+        public String call() throws Exception{
+            if(getIPInUseByGUID(GUID)!=null)
+                return GUID;
+            else
+                return null;
+        }
+    }
 
 	public static String getIPInUseByGUID(String GUID){
 		String IPInUse = null;

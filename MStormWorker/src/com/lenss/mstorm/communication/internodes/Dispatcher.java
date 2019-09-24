@@ -12,8 +12,9 @@ import com.lenss.mstorm.zookeeper.Assignment;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Dispatcher implements Runnable {
+import org.apache.log4j.Logger;
 
+public class Dispatcher implements Runnable {
     private boolean finished = false;
     @Override
     public void run() {
@@ -38,7 +39,7 @@ public class Dispatcher implements Runnable {
                                         try {
                                             MessageQueues.reQueue(taskID, outdata);
                                         } catch (InterruptedException e) {
-                                            e.printStackTrace();
+                                        	e.printStackTrace();
                                         }
                                     } else {   //sent
                                         long timePoint = System.nanoTime();
@@ -70,6 +71,7 @@ public class Dispatcher implements Runnable {
                                             MessageQueues.reQueue(taskID, outdata);
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
+                                            
                                         }
                                     } else { //sent
                                         long timePoint = System.nanoTime();

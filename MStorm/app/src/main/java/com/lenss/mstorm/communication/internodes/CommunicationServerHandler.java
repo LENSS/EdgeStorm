@@ -73,7 +73,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 
 		// remove the record of the channel
 		if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId()))
-			ChannelManager.removeChannelToRemote(ch);
+			ChannelManager.removeChannelToRemoteGUID(ch);
 
 		// close the channel
 		ch.close();

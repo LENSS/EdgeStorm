@@ -42,7 +42,7 @@ public class MyFaceSaver extends Processor {
 
     public void saveFaceFileWithName(byte[] jpgBytes, String name){
         try {
-            File file = new File(PIC_URL + System.nanoTime() + "_" + name);
+            File file = new File(PIC_URL + System.nanoTime() + "_" + name + ".jpg");
             FileOutputStream fOut = new FileOutputStream(file);
             fOut.write(jpgBytes);
             fOut.flush();

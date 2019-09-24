@@ -101,7 +101,7 @@ public class MyFaceRecognizer extends Processor {
 				        recognizedFace = personModel.get_personName();
 				      }
 				    }
-				    
+				    System.out.println(recognizedFace);
 				    InternodePacket pktSend = new InternodePacket();
                     pktSend.type = InternodePacket.TYPE_DATA;
                     pktSend.fromTask = getTaskID();

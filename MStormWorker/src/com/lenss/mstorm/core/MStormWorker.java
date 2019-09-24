@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
@@ -37,6 +38,15 @@ public class MStormWorker{
 			//			System.err.println("USAGE: MasterNode_IP(Zookeeper_IP)");
 		//			System.exit(2);
 		//		}
+		
+		try {
+			System.setProperty("log4j.configuration", new File(".", File.separatorChar+"log4j.properties").toURL().toString());
+			//System.setProperty("java.util.logging.config.file", new File(".", File.separatorChar+"logging.properties").toURL().toString());
+		} catch (MalformedURLException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		
 		MStormWorker mStormWorker = MStormWorker.getInstance();
 		mStormWorker.setup();
 

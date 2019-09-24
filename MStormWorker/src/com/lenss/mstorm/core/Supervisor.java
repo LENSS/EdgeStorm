@@ -143,7 +143,6 @@ public class Supervisor{
         if(cancelAssign.getAssginedNodes().contains(MStormWorker.GUID)){
             stopComputing();
         }
-	}
-	
+	}	
 }
 

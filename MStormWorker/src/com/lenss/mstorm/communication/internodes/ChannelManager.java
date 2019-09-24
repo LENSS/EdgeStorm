@@ -151,6 +151,10 @@ public class ChannelManager {
         }
         channel2RemoteGUID.remove(ch.getId());
     }
+    
+    public static void removeChannelToRemoteGUID(Channel ch) {
+    	channel2RemoteGUID.remove(ch.getId());
+    }
 
     public static void releaseChannelsToRemote(){
         Iterator<Map.Entry<Integer,Channel>> it1 = availRemoteTask2Channel.entrySet().iterator();

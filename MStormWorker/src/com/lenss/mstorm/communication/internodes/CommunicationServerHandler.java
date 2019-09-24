@@ -59,7 +59,9 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 		super.exceptionCaught(ctx, e);
 		Channel ch = ctx.getChannel();
-
+		System.out.println("******************************");
+		System.out.println(e);
+		System.out.println("******************************");
 		// a connected channel gets disconnected
 		if(ch!=null && ch.getRemoteAddress()!=null) {
 			String channelClosedMSG = "P-server " + ((InetSocketAddress)ch.getLocalAddress()).getAddress().getHostAddress()
@@ -70,7 +72,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 
 		// remove the record of the channel
 		if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId()))
-			ChannelManager.removeChannelToRemote(ch);
+			ChannelManager.removeChannelToRemoteGUID(ch);
 
 		// close the channel
 		ch.close();

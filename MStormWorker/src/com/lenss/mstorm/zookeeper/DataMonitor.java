@@ -137,6 +137,8 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
                 if(!children.isEmpty()) {
                     assignPath = children.get(children.size() - 1); // get the newest assignment
                     zk.getData(path + "/" + assignPath, true, this, null);
+                } else {
+                	mSupervisor.stopComputing();
                 }
             }
         }
