@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import edu.tamu.cse.lenss.edgeKeeper.client.*;
 
@@ -23,27 +24,43 @@ public class GNSServiceHelper {
     public static String getMasterNodeGUID(){
         String masterGUID = null;
         List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
-
         ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
-        List<ValidGUID> validGUIDs = new ArrayList<>();
-        for (String candidateGUID: masterGUIDs){
-            ValidGUID validGuid = new ValidGUID(candidateGUID);
-            validGUIDs.add(validGuid);
+        List<ValidingGUID> potentialGUIDs = new ArrayList<>();
+        for (String potentialGUID: masterGUIDs){
+            ValidingGUID validGuid = new ValidingGUID(potentialGUID);
+            potentialGUIDs.add(validGuid);
         }
+
+        // using invokeAll
+        List<Future<String>> candidateGUIDs;
         try {
-            masterGUID = executor.invokeAny(validGUIDs);
+            candidateGUIDs = executor.invokeAll(potentialGUIDs);
+            if(candidateGUIDs!=null && candidateGUIDs.size()!=0){
+                masterGUID = candidateGUIDs.get(0).get();
+            }
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
             logger.error("No MStorm Master Usable!");
         } finally{
             executor.shutdownNow();
         }
+
+        // using invokeAny
+//        try {
+//            masterGUID = executor.invokeAny(potentialGUIDs);
+//        } catch (ExecutionException | InterruptedException e) {
+//            e.printStackTrace();
+//            logger.error("No MStorm Master Usable!");
+//        } finally{
+//            executor.shutdownNow();
+//        }
+
         return masterGUID;
     }
 
-    static class ValidGUID implements Callable<String>{
+    static class ValidingGUID implements Callable<String>{
         public String GUID;
-        public ValidGUID(String guid) {GUID = guid;}
+        public ValidingGUID(String guid) {GUID = guid;}
         public String call() throws Exception{
             if(getIPInUseByGUID(GUID)!=null)
                 return GUID;
@@ -62,7 +79,9 @@ public class GNSServiceHelper {
                     IPInUse = getReachable(siteLocalIPs);
                     if(IPInUse == null) {
                         IPs.removeAll(siteLocalIPs);
-                        IPInUse = getReachable(IPs);
+                        if(IPs.size()!=0) {
+                            IPInUse = getReachable(IPs);
+                        }
                     }
                 } else {
                     IPInUse = getReachable(IPs);
@@ -85,10 +104,10 @@ public class GNSServiceHelper {
     }
 
     public static String getReachable(List<String> hostIPs) {
-        ExecutorService executor = Executors.newFixedThreadPool(hostIPs.size());
         String result = null;
-        List<PingRemoteAddress> pings = new ArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(hostIPs.size());
 
+        List<PingRemoteAddress> pings = new ArrayList<>();
         for (String hostIP: hostIPs){
             PingRemoteAddress ping = new PingRemoteAddress(hostIP);
             pings.add(ping);
@@ -110,7 +129,7 @@ public class GNSServiceHelper {
             remoteHostIp = HostIp;
         }
         public String call() throws Exception{
-            if(InetAddress.getByName(remoteHostIp).isReachable(5000))
+            if(InetAddress.getByName(remoteHostIp).isReachable(3000))
                 return remoteHostIp;
             else
                 return null;

@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import edu.tamu.cse.lenss.edgeKeeper.client.*;
@@ -24,29 +25,45 @@ public class GNSServiceHelper {
 	public static final Logger logger = Logger.getLogger(TAG);
 	
 	public static String getMasterNodeGUID(){
-		String masterGUID = null;
+        String masterGUID = null;
         List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
-
         ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
-        List<ValidGUID> validGUIDs = new ArrayList<>();
-        for (String candidateGUID: masterGUIDs){
-            ValidGUID validGuid = new ValidGUID(candidateGUID);
-            validGUIDs.add(validGuid);
+        List<ValidingGUID> potentialGUIDs = new ArrayList<>();
+        for (String potentialGUID: masterGUIDs){
+            ValidingGUID validGuid = new ValidingGUID(potentialGUID);
+            potentialGUIDs.add(validGuid);
         }
+
+        // using invokeAll
+        List<Future<String>> candidateGUIDs;
         try {
-            masterGUID = executor.invokeAny(validGUIDs);
+            candidateGUIDs = executor.invokeAll(potentialGUIDs);
+            if(candidateGUIDs!=null && candidateGUIDs.size()!=0){
+                masterGUID = candidateGUIDs.get(0).get();
+            }
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
             logger.error("No MStorm Master Usable!");
         } finally{
             executor.shutdownNow();
         }
+
+        // using invokeAny
+//        try {
+//            masterGUID = executor.invokeAny(potentialGUIDs);
+//        } catch (ExecutionException | InterruptedException e) {
+//            e.printStackTrace();
+//            logger.error("No MStorm Master Usable!");
+//        } finally{
+//            executor.shutdownNow();
+//        }
+        
         return masterGUID;
 	}
 	
-    static class ValidGUID implements Callable<String>{
+    static class ValidingGUID implements Callable<String>{
         public String GUID;
-        public ValidGUID(String guid) {GUID = guid;}
+        public ValidingGUID(String guid) {GUID = guid;}
         public String call() throws Exception{
             if(getIPInUseByGUID(GUID)!=null)
                 return GUID;

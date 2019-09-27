@@ -328,16 +328,16 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     }
 
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
-        if(topologyID == 0){
-            Toast.makeText(this, "Topology Not Submitted/Scheduled Yet!", Toast.LENGTH_SHORT).show();
-        } else {
+//        if(topologyID == 0){
+//            Toast.makeText(this, "Topology Not Submitted/Scheduled Yet!", Toast.LENGTH_SHORT).show();
+//        } else {
             mRecordingEnabled = !mRecordingEnabled;
             updateControls();
             if (mRecordingEnabled)
                 startPullStream();
             else
                 stopPullStream();
-        }
+        //}
     }
 
     public void updateControls() {
@@ -563,7 +563,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                     item = new GridItem();
                     item.setTitle(title);
                     item.setImage(PicURL + title);
-                    mGridData.add(item);
+                    mGridData.add(0,item);
                 }
             }
         } catch (Exception e) {

@@ -60,7 +60,7 @@ public class MyFaceRecognizer extends Processor {
                         InternodePacket pktSend = new InternodePacket();
                         pktSend.type = InternodePacket.TYPE_DATA;
                         pktSend.fromTask = getTaskID();
-                        pktSend.simpleContent.put("name",vdr.getLabel().split("\\:")[0]);
+                        pktSend.simpleContent.put("name",vdr.getLabel().split("\\.")[0]);
                         pktSend.complexContent = imageByteArray;
                         logger.info("TIME STAMP 9, FACE RECOGNIZER SAVES A FACE, "+ getTaskID());
                         String component = MyFaceSaver.class.getName();

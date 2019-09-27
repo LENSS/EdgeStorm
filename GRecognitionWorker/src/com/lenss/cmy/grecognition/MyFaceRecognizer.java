@@ -55,15 +55,21 @@ public class MyFaceRecognizer extends Processor {
 	public void prepare() {
 	    System.out.println("Loading DL4J and FaceRecognizer");    
 	    ZooModel objZooModel = new VGG16();
+	    System.out.println("Test 1 ......");
 	    ComputationGraph objComputationGraph = null;
 	    try {
-	    	objComputationGraph = (ComputationGraph)objZooModel.initPretrained(PretrainedType.VGGFACE);
-	    } catch (IOException e) {			
+	    	objComputationGraph = (ComputationGraph)objZooModel.initPretrained(PretrainedType.VGGFACE);	
+	    	System.out.println("Test 2 ......");
+	    } catch (IOException e) {
+	    	System.out.println("Test 3 ......");
 			e.printStackTrace();
 	    }
-		transferLearningHelper = new TransferLearningHelper(objComputationGraph,"pool4");
+	    transferLearningHelper = new TransferLearningHelper(objComputationGraph,"pool4");
+		System.out.println("Test 4 ......");
 		nativeImageLoader = new NativeImageLoader(224, 224, 3);
+		System.out.println("Test 5 ......");
 		scaler = new VGG16ImagePreProcessor();
+		System.out.println("Test 6 ......");
 		trainList = readTrainedFacesFromDisk(); 
 	    System.out.println("Loaded DL4J and FaceRecognizer");
 	}
@@ -82,6 +88,7 @@ public class MyFaceRecognizer extends Processor {
 					INDArray imageMatrix = nativeImageLoader.asMatrix(img);
 					scaler.transform(imageMatrix);
 					DataSet objDataSet = new DataSet(imageMatrix, Nd4j.create(new float[]{0,0}));
+					System.out.println(transferLearningHelper);
 				    DataSet objFeaturized = transferLearningHelper.featurize(objDataSet);
 				    INDArray featuresArray = objFeaturized.getFeatures();				 
 				    int reshapeDimension=1;

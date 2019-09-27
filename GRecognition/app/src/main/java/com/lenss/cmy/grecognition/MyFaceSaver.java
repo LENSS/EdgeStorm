@@ -9,6 +9,8 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 /**
  * Created by cmy on 8/14/19.
@@ -18,10 +20,12 @@ public class MyFaceSaver extends Processor {
     private final String TAG="MyFaceSaver";
     private String PIC_URL = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/StreamFDPic/";
     Logger logger;
+    SimpleDateFormat formatter;
 
     @Override
     public void prepare() {
         logger = Logger.getLogger(TAG);
+        formatter = new SimpleDateFormat("yyyyMMdd_HH:mm:ss.SSS");
     }
 
     @Override
@@ -42,7 +46,7 @@ public class MyFaceSaver extends Processor {
 
     public void saveFaceFileWithName(byte[] jpgBytes, String name){
         try {
-            File file = new File(PIC_URL + System.nanoTime() + "_" + name + ".jpg");
+            File file = new File(PIC_URL + formatter.format(Calendar.getInstance().getTimeInMillis()) + "_" + name + ".jpg");
             FileOutputStream fOut = new FileOutputStream(file);
             fOut.write(jpgBytes);
             fOut.flush();
