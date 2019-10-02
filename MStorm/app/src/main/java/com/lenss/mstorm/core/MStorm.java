@@ -159,11 +159,13 @@ public class MStorm extends ActionBarActivity {
             mLog.append("\nMStorm Master Unregistered!");
             onStop();
         }
+
         MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
         if (MASTER_NODE_IP == null){
             mLog.append("\nMStorm Master unreachable!\n");
             onStop();
         }
+
         /// Get Zookeeper IP
         ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
 

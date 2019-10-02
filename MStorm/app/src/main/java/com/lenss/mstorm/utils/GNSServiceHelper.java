@@ -24,28 +24,37 @@ public class GNSServiceHelper {
     public static String getMasterNodeGUID(){
         String masterGUID = null;
         List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
-        ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
-        List<ValidingGUID> potentialGUIDs = new ArrayList<>();
-        for (String potentialGUID: masterGUIDs){
-            ValidingGUID validGuid = new ValidingGUID(potentialGUID);
-            potentialGUIDs.add(validGuid);
-        }
-
-        // using invokeAll
-        List<Future<String>> candidateGUIDs;
-        try {
-            candidateGUIDs = executor.invokeAll(potentialGUIDs);
-            if(candidateGUIDs!=null && candidateGUIDs.size()!=0){
-                masterGUID = candidateGUIDs.get(0).get();
+        if(masterGUIDs.size() == 0){
+            masterGUID = null;
+        } else {
+            ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
+            List<ValidingGUID> potentialGUIDs = new ArrayList<>();
+            for (String potentialGUID : masterGUIDs) {
+                ValidingGUID validGuid = new ValidingGUID(potentialGUID);
+                potentialGUIDs.add(validGuid);
             }
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-            logger.error("No MStorm Master Usable!");
-        } finally{
-            executor.shutdownNow();
-        }
 
-        // using invokeAny
+            // using invokeAll
+            List<Future<String>> candidateGUIDs;
+            try {
+                candidateGUIDs = executor.invokeAll(potentialGUIDs);
+                if (candidateGUIDs != null && candidateGUIDs.size()!=0) {
+                    for(Future<String> guid: candidateGUIDs) {
+                        masterGUID = guid.get();
+                        if(masterGUID!=null)
+                            break;
+                    }
+                } else {
+                    logger.error("NO candidate Master GUID is reachable");
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+                logger.error("No MStorm Master Usable!");
+            } finally {
+                executor.shutdownNow();
+            }
+
+            // using invokeAny
 //        try {
 //            masterGUID = executor.invokeAny(potentialGUIDs);
 //        } catch (ExecutionException | InterruptedException e) {
@@ -55,6 +64,7 @@ public class GNSServiceHelper {
 //            executor.shutdownNow();
 //        }
 
+        }
         return masterGUID;
     }
 
@@ -106,8 +116,8 @@ public class GNSServiceHelper {
     public static String getReachable(List<String> hostIPs) {
         String result = null;
         ExecutorService executor = Executors.newFixedThreadPool(hostIPs.size());
-
         List<PingRemoteAddress> pings = new ArrayList<>();
+
         for (String hostIP: hostIPs){
             PingRemoteAddress ping = new PingRemoteAddress(hostIP);
             pings.add(ping);

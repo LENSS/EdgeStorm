@@ -161,4 +161,5 @@
     <string name="action_submit_topology">Submit Topology</string>
     <string name="action_cancel_topology">Cancel Topology</string>
     <string name="action_train">Train Face Database</string>
+    <string name="action_save_images"> Save Images</string>
 </resources>

@@ -77,11 +77,14 @@ public class MStormWorker{
 			System.out.println("MStorm Master Unregistered!");
 			System.exit(-1);
 		}
+		System.out.println("The Master GUID is: " + MASTER_NODE_GUID);
+		
 		MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
 		if (MASTER_NODE_IP == null){
 			System.out.println("MStorm Master unreachable!");
 			System.exit(-1);
 		}
+		System.out.println("The Master IP is: " + MASTER_NODE_IP);
 
 		// Get ZOOKEEPER IP
 		ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();

@@ -75,5 +75,10 @@
         android:title="@string/action_cancel_topology"
         android:orderInCategory="100"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_save_images"
+        android:title="@string/action_save_images"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
     
 </menu>

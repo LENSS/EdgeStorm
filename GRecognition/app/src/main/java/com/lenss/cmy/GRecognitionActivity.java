@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.TestLooperManager;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -32,6 +33,8 @@ import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.topology.StormSubmitter;
 import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceRec;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
@@ -59,6 +62,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     private static final String LOG_URL = MStormDir + "mstorm.log";
     private static final String RAW_PIC_URL = MStormDir+"RawPic/";
     private static final String PIC_URL = MStormDir+"StreamFDPic/";
+    private static final String STORAGE_PIC_URL = MStormDir+"StoragePic/";
     private static final String apkFileDirectory = MStormDir + "APK/";
     private static final String apkFileName = "GRecognition.apk";
 
@@ -250,47 +254,109 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
 //            }).setIcon(android.R.drawable.ic_dialog_alert).show();
 //        }
         else if(id == R.id.action_set_streamSource){
-            LinearLayout layout = new LinearLayout(this);
+            final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-            final EditText ssBox = new EditText(this);
-            ssBox.setHint("YiCamera:0 | Video: 1 | IPCamera: RTSP URL");
-            layout.addView(ssBox);
-            alert.setView(layout);
-            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    // continue with delete
-                    streamSource = ssBox.getText().toString();
-                }
-            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    // do nothing
-                }
-            }).setIcon(android.R.drawable.ic_dialog_alert).show();
+            CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};
+            new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(streamSources, 0, null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            dialog.dismiss();
+                            int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+                            switch (selectedPosition) {
+                                case 0: // Yi Camera
+                                    streamSource = CAMERA_SOURCE;
+                                    break;
+                                case 1: // Local Video
+                                    streamSource = VIDEO_SOURCE;
+                                    break;
+                                case 2: // RTSP Camera
+                                    AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
+                                    final EditText ssBox = new EditText(GRecognitionActivity.this);
+                                    ssBox.setHint("Input the RTSP camera URL");
+                                    layout.addView(ssBox);
+                                    alert.setView(layout);
+                                    alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // continue with delete
+                                        streamSource = ssBox.getText().toString();
+                                    }}).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            streamSource = IP_CAMERA_SOURCE;
+                                        }
+                                    }).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                    break;
+                            }
+                        }
+                    }).show();
         } else if(id == R.id.action_set_frameRate){
-            LinearLayout layout = new LinearLayout(this);
+            final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-            final EditText frBox = new EditText(this);
-            frBox.setHint("Default (F/s): " + frameRate);
-            layout.addView(frBox);
-            alert.setView(layout);
-            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    // continue with delete
-                    frameRate = frBox.getText().toString();
-                }
-            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    // do nothing
-                }
-            }).setIcon(android.R.drawable.ic_dialog_alert).show();
+            final CharSequence[] frameRates = {"1 Frame/s", "2 Frames/s", "3 Frames/s", "5 Frames/s", "Manually Setting"};
+            new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(frameRates, 0, null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            dialog.dismiss();
+                            int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+                            switch (selectedPosition) {
+                                case 0: // 1 Frame/s
+                                    frameRate = "1";
+                                    break;
+                                case 1: // 2 Frames/s
+                                    frameRate = "2";
+                                    break;
+                                case 2: // 3 Frames/s
+                                    frameRate = "3";
+                                    break;
+                                case 3: // 5 Frame/s
+                                    frameRate = "5";
+                                    break;
+                                case 4: // Manually Setting
+                                    final AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
+                                    final EditText frBox = new EditText(GRecognitionActivity.this);
+                                    frBox.setHint("Default (F/s): " + frameRate);
+                                    layout.addView(frBox);
+                                    alert.setView(layout);
+                                    alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            // continue with delete
+                                            frameRate = frBox.getText().toString();
+                                            if(Integer.valueOf(frameRate) >30 || Integer.valueOf(frameRate) <= 0){
+                                                LinearLayout newLayout = new LinearLayout(GRecognitionActivity.this);
+                                                newLayout.setOrientation(LinearLayout.VERTICAL);
+                                                AlertDialog.Builder newAlert = new AlertDialog.Builder(GRecognitionActivity.this);
+                                                final TextView text = new TextView(GRecognitionActivity.this);
+                                                text.setTextSize(16);
+                                                text.setText("FrameRate must be integer between 1 and 30");
+                                                newLayout.addView(text);
+                                                newAlert.setView(newLayout);
+                                                newAlert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                                                    public void onClick(DialogInterface dialog, int which) {
+                                                        frameRate = "1";
+                                                    }
+                                                }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                                    public void onClick(DialogInterface dialog, int which) {
+                                                        frameRate = "1";
+                                                    }}).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                            }
+                                        }
+                                    }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            frameRate = "1";
+                                        }
+                                    }).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                    break;
+                            }
+                        }
+                    }).show();
         } else if(id == R.id.action_submit_topology) {
             submitTopology();
-        } else {
+        } else if (id == R.id.action_cancel_topology){
             cancelTopology();
+        } else {
+            saveImages();
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -620,6 +686,27 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
             e.printStackTrace();
             return false;
         }
+    }
+
+    public void saveImages(){
+        String destinationFolder = STORAGE_PIC_URL;
+        File destination = new File(destinationFolder);
+
+        File directory = new File(PIC_URL);
+        File[] picFiles = directory.listFiles();
+        if(picFiles!=null) {
+            for(File source:picFiles){
+                try
+                {
+                    FileUtils.moveFileToDirectory(source, destination,true);
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        mGridData.clear();
     }
 }
 
