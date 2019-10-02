@@ -4,6 +4,8 @@ MStromWorker: MStorm client running on desktop.
 
 MStormMaster: MStorm server running on desktop.
 
+GDetection: A video face detection App of MStorm running on Android phones.
+
 GRecognition: A video face recognition App of MStorm running on Android phones.
 
 Dlib: Face models for GRecognition.
