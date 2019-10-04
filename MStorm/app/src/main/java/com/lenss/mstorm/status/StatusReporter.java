@@ -641,7 +641,7 @@ public class StatusReporter implements Runnable {
                 logger.error("The report thread has stopped because of [interruption] ...");
                 break;
             }
-            updateTaskTrafficReportToUpstream();
+            //updateTaskTrafficReportToUpstream();
             periodCounter++;
 
             if(periodCounter==PERIOD_RATIO) {

@@ -11,7 +11,7 @@ case "$1" in
 #    echo "Starting Zookeeper"
 #    zookeeper-3.4.6/bin/zkServer.sh start
     echo "Starting MStormMaster"
-    java -jar $JARFILENAME localhost:2181 >> mstorm_terminal.out &
+    java -jar $JARFILENAME >> mstorm.out &
     ;;
   stop)
     echo "Stopping MStormMaster"

@@ -55,13 +55,7 @@ public class MasterNode {
 	}
 	
 	public static void main(String[] args) {
-		if (args.length < 1) {
-			System.err.println("USAGE: MasterNode Zookeeper_Address");
-			System.exit(2);
-		}
-		
-		//BasicConfigurator.configure();
-		
+		//BasicConfigurator.configure();		
 		try {
 			System.setProperty("log4j.configuration", new File(".", File.separatorChar+"log4j.properties").toURL().toString());
 			//System.setProperty("java.util.logging.config.file", new File(".", File.separatorChar+"logging.properties").toURL().toString());

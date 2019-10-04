@@ -94,9 +94,9 @@ public class MyFaceDetector extends Processor {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
             // Logical code starts
             if(pktRecv!=null){
+                long enterTime = System.nanoTime();
                 byte[] frame = pktRecv.complexContent;
                 logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
-
                 FaceData[] qfaces = null;           // QFD
                 List<VisionDetRet> dfaces = null;   // For DFD
                 SparseArray<Face> afaces = null;    // For AFD
@@ -192,9 +192,17 @@ public class MyFaceDetector extends Processor {
                         bmface.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                         byte[] imageByteArray = stream.toByteArray();
                         InternodePacket pktSend = new InternodePacket();
+                        pktSend.ID = pktRecv.ID;
                         pktSend.type = InternodePacket.TYPE_DATA;
                         pktSend.fromTask = getTaskID();
                         pktSend.complexContent = imageByteArray;
+                        pktSend.traceTask = pktRecv.traceTask;
+                        pktSend.traceTask.add("MFD_"+getTaskID());
+                        pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                        pktSend.traceTaskEnterTime.put("MFD_"+ getTaskID(), enterTime);
+                        pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                        long exitTime = System.nanoTime();
+                        pktSend.traceTaskExitTime.put("MFD_"+ getTaskID(), exitTime);
                         String component = MyFaceRecognizer.class.getName();
                         try {
                             MessageQueues.emit(pktSend, getTaskID(), component);

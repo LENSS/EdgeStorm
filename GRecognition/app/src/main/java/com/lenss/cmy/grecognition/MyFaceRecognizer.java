@@ -37,6 +37,7 @@ public class MyFaceRecognizer extends Processor {
         while (!Thread.currentThread().isInterrupted()) {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
             if(pktRecv != null){
+                long enterTime = System.nanoTime();
                 byte[] frame = pktRecv.complexContent;
                 logger.info("TIME STAMP 8, FACE RECOGNIZER RECEIVES A FRAME, "+ getTaskID());
                 BitmapFactory.Options bitmapFatoryOptions = new BitmapFactory.Options();
@@ -58,10 +59,18 @@ public class MyFaceRecognizer extends Processor {
                         bmface.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                         byte[] imageByteArray = stream.toByteArray();
                         InternodePacket pktSend = new InternodePacket();
+                        pktSend.ID = pktRecv.ID;
                         pktSend.type = InternodePacket.TYPE_DATA;
                         pktSend.fromTask = getTaskID();
                         pktSend.simpleContent.put("name",vdr.getLabel().split("\\.")[0]);
                         pktSend.complexContent = imageByteArray;
+                        pktSend.traceTask = pktRecv.traceTask;
+                        pktSend.traceTask.add("MFR_"+getTaskID());
+                        pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                        pktSend.traceTaskEnterTime.put("MFR_"+getTaskID(), enterTime);
+                        pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                        long exitTime = System.nanoTime();
+                        pktSend.traceTaskExitTime.put("MFR_"+getTaskID(), exitTime);
                         logger.info("TIME STAMP 9, FACE RECOGNIZER SAVES A FACE, "+ getTaskID());
                         String component = MyFaceSaver.class.getName();
                         try {

@@ -10,6 +10,7 @@ import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
+import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.core.MStorm;
 import com.lenss.mstorm.topology.Processor;
 import com.qualcomm.snapdragon.sdk.face.FaceData;
@@ -18,6 +19,9 @@ import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
 import org.apache.log4j.Logger;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,6 +98,7 @@ public class MyFaceDetector extends Processor {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
             // Logical code starts
             if(pktRecv!=null){
+                long enterTime = System.nanoTime();
                 byte[] frame = pktRecv.complexContent;
                 logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
 
@@ -192,9 +197,17 @@ public class MyFaceDetector extends Processor {
                         bmface.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                         byte[] imageByteArray = stream.toByteArray();
                         InternodePacket pktSend = new InternodePacket();
+                        pktSend.ID = pktRecv.ID;
                         pktSend.type = InternodePacket.TYPE_DATA;
                         pktSend.fromTask = getTaskID();
                         pktSend.complexContent = imageByteArray;
+                        pktSend.traceTask = pktRecv.traceTask;
+                        pktSend.traceTask.add("MFD_"+getTaskID());
+                        pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                        pktSend.traceTaskEnterTime.put("MFD_"+ getTaskID(), enterTime);
+                        pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                        long exitTime = System.nanoTime();
+                        pktSend.traceTaskExitTime.put("MFD_"+ getTaskID(), exitTime);
                         String component = MyFaceSaver.class.getName();
                         try {
                             MessageQueues.emit(pktSend, getTaskID(), component);
