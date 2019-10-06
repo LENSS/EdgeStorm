@@ -1,14 +1,15 @@
 ## MStorm: MStorm client running on Android phones.
 
-## MStromWorker: MStorm client running on desktop.
+## MStromWorker: MStorm client running on server.
 
-## MStormMaster: MStorm server running on desktop.
+## MStormMaster: MStorm server running on server.
 
 ## GDetection: A video face detection App of MStorm running on Android phones.
 
 ## GRecognition: A video face recognition App of MStorm running on Android phones.
 
 ## Dlib: Face models for GRecognition.
+... If you want to change the face database, just replace pictures inside /sdcard/distressnet/mstorm/Dlib/images folder at your phone and push the "train face database" buttion at your GRecognition App.
 
 ## GRecognitionWorker: Sever version of GRecognition.
 

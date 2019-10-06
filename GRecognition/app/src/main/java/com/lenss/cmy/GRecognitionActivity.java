@@ -45,6 +45,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
@@ -161,9 +162,9 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
             public void run() {
                 new AsyncShowPicTask().execute(PIC_URL);
                 mProgressBar.setVisibility(View.VISIBLE);
-                handler.postDelayed(this, 10);
+                handler.postDelayed(this, 500);
             }
-        }, 10);
+        }, 500);
     }
 
     @Override
@@ -590,7 +591,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                     Utils.copyFileFromRawToOthers(GRecognitionActivity.this, R.raw.dlib_face_recognition_resnet_model_v1, Constants.getFaceDescriptorModelPath());
                 }
             } else {
-                //Log.d(TAG, "error in setting dlib_rec_example directory");
+                Log.d(TAG, "No Dlib directory and cannot create Dlib directory");
             }
 
             FaceRec mFaceRec = new FaceRec(Constants.getDLibDirectoryPath());
@@ -621,6 +622,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
         try {
             File directory = new File(PicURL);
             File[] files = directory.listFiles();
+            Arrays.sort(files);
             GridItem item;
 
             if(files!=null) {

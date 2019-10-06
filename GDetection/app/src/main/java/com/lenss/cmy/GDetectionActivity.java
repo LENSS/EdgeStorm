@@ -39,10 +39,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
@@ -156,9 +158,9 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
             public void run() {
                 new AsyncShowPicTask().execute(PIC_URL);
                 mProgressBar.setVisibility(View.VISIBLE);
-                handler.postDelayed(this, 10);
+                handler.postDelayed(this, 500);
             }
-        }, 10);
+        }, 500);
     }
 
     @Override
@@ -564,6 +566,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         try {
             File directory = new File(PicURL);
             File[] files = directory.listFiles();
+            Arrays.sort(files);
             GridItem item;
 
             if(files!=null) {
