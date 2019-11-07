@@ -50,11 +50,11 @@
         android:title="@string/action_set_parallelTasks"
         android:orderInCategory="100"
         app:showAsAction="never" />
-<!--    <item
+    <item
         android:id="@+id/action_set_groupingMethod"
         android:title="@string/action_set_groupingMethod"
         android:orderInCategory="100"
-        app:showAsAction="never" />-->
+        app:showAsAction="never" />
     <item
         android:id="@+id/action_set_streamSource"
         android:title="@string/action_set_streamSource"

@@ -20,15 +20,15 @@
             android:id="@+id/linearLayout">
 
             <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="254dp"
                 android:id="@+id/scrollView"
+                android:layout_width="match_parent"
+                android:layout_height="368dp"
                 android:layout_gravity="center_horizontal">
 
                 <TextView
+                    android:id="@+id/log"
                     android:layout_width="wrap_content"
                     android:layout_height="198dp"
-                    android:id="@+id/log"
                     android:layout_weight="1.31"
                     android:text="Welcome to MStorm!" />
             </ScrollView>
@@ -50,7 +50,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/repriodReport"
+                android:id="@+id/periodReport"
                 android:layout_gravity="center_vertical"
                 android:layout_weight="0.39" />
 

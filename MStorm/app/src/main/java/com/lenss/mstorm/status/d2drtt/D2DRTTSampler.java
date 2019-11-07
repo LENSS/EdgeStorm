@@ -4,7 +4,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.os.SystemClock;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,7 +15,7 @@ public class D2DRTTSampler {
     private AtomicInteger mSamplingCounter;
     private SamplingHandler mHandler;
     private HandlerThread mThread;
-    private ArrayList<String> mIpAddresses;
+    private ArrayList<String> mAddresses;
 
     private static class D2DRTTSamplerHolder {
         public static final D2DRTTSampler instance = new D2DRTTSampler();
@@ -49,18 +48,18 @@ public class D2DRTTSampler {
         return (mSamplingCounter.get() != 0);
     }
 
-    public void setIpAddresses(ArrayList<String> addresses){
-        mIpAddresses = addresses;
+    public void setAddresses(ArrayList<String> addresses){
+        mAddresses = addresses;
     }
 
     public void pingToMultipleAddress(){
-        for (String addr: mIpAddresses){
+        for (String addr: mAddresses){
             new Thread(new D2DRTTAverage(addr)).start();
         }
     }
 
     private class SamplingHandler extends Handler {
-        static final long SAMPLE_TIME = 30000;     // sampling every 30s
+        static final long SAMPLE_TIME = 5000;     // sampling every 5s
         static private final int MSG_START = 1;
 
         public SamplingHandler(Looper looper) {
@@ -87,6 +86,4 @@ public class D2DRTTSampler {
             removeMessages(SamplingHandler.MSG_START);
         }
     }
-
-
 }

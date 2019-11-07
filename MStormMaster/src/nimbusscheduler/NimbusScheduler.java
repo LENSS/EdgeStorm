@@ -24,8 +24,13 @@ public class NimbusScheduler {
 		
 		String serTopology = req.getContent();
 		Topology topology= (Topology) Serialization.Deserialize(serTopology, Topology.class);
+		
 		RoundRobinScheduling rrs = new RoundRobinScheduling(submitterAddress,topology,cluster);
 		Assignment newAssign = rrs.schedule();
+		
+//		ResilientScheduling resSch = new ResilientScheduling(submitterAddress, topology, cluster);
+//		Assignment newAssign = resSch.schedule();
+		
 		if(newAssign!=null){	// can be scheduled
 			int topologyId=cluster.getNextTopologyId();	 // assign a unique id for this topology/assignment		
 			newAssign.setAssignId(topologyId);			// topology id is also used as assignment id
@@ -41,14 +46,14 @@ public class NimbusScheduler {
 	}
 	
 	public void reSchedule(int topologyId, Cluster cluster) {
-		FeedbackBasedScheduling fbs = new FeedbackBasedScheduling(topologyId, cluster);
-		double[] oldAssignMetricsInCurrentEnvironment = fbs.getMetricsOfPreAllocationByRStormSearch();
+		AdvancedScheduling as = new AdvancedScheduling(topologyId, cluster, AdvancedScheduling.RESOURCE_S);
+		double[] oldAssignMetricsInCurrentEnvironment = as.getMetricsOfPreAllocation();
 		System.out.println("Time: " + "\t" + System.nanoTime() + "\t" +
 		                   "delayMetric: " + "\t" + oldAssignMetricsInCurrentEnvironment[0] + "\t" +
 						   "energyMetric: " + "\t" + oldAssignMetricsInCurrentEnvironment[1]);
 		
-/*		if(cluster.getAssignmentByTopologyId(topologyId).getAssignType() == Assignment.FSTSCHE){	// The First Reschedule Always Happens
-				Assignment newAssign = fbs.advancedSchedule();
+		if(cluster.getAssignmentByTopologyId(topologyId).getAssignType() == Assignment.FSTSCHE){	// The First Reschedule Always Happens
+				Assignment newAssign = as.schedule();
 				newAssign.setAssignId(topologyId);		// topology id is also used as assignment id
 				Assignment oldAssign = cluster.getAssignmentByTopologyId(topologyId);
 				newAssign.setApk(oldAssign.getApk());
@@ -57,8 +62,8 @@ public class NimbusScheduler {
 				cluster.updateAssignment(topologyId,oldAssign, newAssign);
 				MasterNode.getInstance().mZkClient.getDM().updateAssignment(newAssign,cluster.getClusterId());
 		} else {	// 2nd~nth reschedule based on feedback information			
-			if (fbs.meetRescheduleCondition()){
-				Assignment newAssign = fbs.advancedSchedule();
+			if (as.meetRescheduleCondition()){
+				Assignment newAssign = as.schedule();
 				newAssign.setAssignId(topologyId);		// topology id is also used as assignment id
 				Assignment oldAssign = cluster.getAssignmentByTopologyId(topologyId);
 				newAssign.setApk(oldAssign.getApk());
@@ -67,6 +72,6 @@ public class NimbusScheduler {
 				cluster.updateAssignment(topologyId,oldAssign,newAssign);
 				MasterNode.getInstance().mZkClient.getDM().updateAssignment(newAssign,cluster.getClusterId());
 			}
-		}*/
+		}
 	}
 }

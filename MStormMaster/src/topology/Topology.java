@@ -21,8 +21,10 @@ public class Topology implements Serializable {
     public static final int Schedule_Any =  2;
 
     // stream grouping choice
-    public static final int Shuffle = 1;
-    public static final int Feedback_based = 2;
+    public static final int Shuffle = 0;
+    public static final int MinSojournTime = 1;
+    public static final int SojournTimeProb = 2;
+    public static final int MinEWT = 3;
 
     @Expose
     private int componentNum;       // num of component

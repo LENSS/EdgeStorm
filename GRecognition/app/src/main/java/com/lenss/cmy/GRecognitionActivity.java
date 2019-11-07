@@ -39,8 +39,13 @@ import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -69,6 +74,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
 
     private static final String CAMERA_SOURCE = "0";
     private static final String VIDEO_SOURCE = "1";
+    private static final String FOLDER_SOURCE = "2";
     private static String IP_CAMERA_SOURCE = "10.8.162.1:8554/police1";
 
     private static final int NUM_OF_FACES=0;
@@ -98,9 +104,10 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
 
     public static ReadFromCamera rfc = null;
     public static ReadFromVideo rfv = null;
+    public static ReadFromFolder rff = null;
     public static ReadFromIPCamera rfipc = null;
 
-    public static String streamSource = VIDEO_SOURCE;  // use video source as default
+    public static String streamSource = FOLDER_SOURCE;  // use video source as default
 
     Logger logger;
 
@@ -235,29 +242,41 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
         }
-//        else if (id == R.id.action_set_groupingMethod) {
-//            LinearLayout layout = new LinearLayout(this);
-//            layout.setOrientation(LinearLayout.VERTICAL);
-//            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-//            final EditText distributorBox = new EditText(this);
-//            distributorBox.setHint("distributor (shuffle:1, feedbackBased:2):" + distributorGroupingMethod);
-//            layout.addView(distributorBox);
-//            alert.setView(layout);
-//            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-//                public void onClick(DialogInterface dialog, int which) {
-//                    // continue with delete
-//                    distributorGroupingMethod = Integer.parseInt(distributorBox.getText().toString());
-//                }
-//            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-//                public void onClick(DialogInterface dialog, int which) {
-//                    // do nothing
-//                }
-//            }).setIcon(android.R.drawable.ic_dialog_alert).show();
-//        }
+        else if (id == R.id.action_set_groupingMethod) {
+            final LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            CharSequence[] streamSources = {"Shuffle", "MinSojourn", "SojournProb", "MinEWT"};
+            new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(streamSources, 0, null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            dialog.dismiss();
+                            int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+                            switch (selectedPosition) {
+                                case 0: // shuffle
+                                    faceDetectorGroupingMethod = Topology.Shuffle;
+                                    faceRecognizerGroupingMethod = Topology.Shuffle;
+                                    break;
+                                case 1: // MinSojourn
+                                    faceDetectorGroupingMethod = Topology.MinSojournTime;
+                                    faceRecognizerGroupingMethod = Topology.MinSojournTime;
+                                    break;
+                                case 2: // SojournProb
+                                    faceDetectorGroupingMethod = Topology.SojournTimeProb;
+                                    faceRecognizerGroupingMethod = Topology.SojournTimeProb;
+                                    break;
+                                case 3: // MinEWT
+                                    faceDetectorGroupingMethod = Topology.MinEWT;
+                                    faceRecognizerGroupingMethod = Topology.MinEWT;
+                                    break;
+                            }
+                        }
+                    }).show();
+        }
         else if(id == R.id.action_set_streamSource){
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};
+            CharSequence[] streamSources = {"Yi Camera", "Local Video", "Local Folder", "RTSP Camera"};
             new AlertDialog.Builder(this)
                     .setSingleChoiceItems(streamSources, 0, null)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -271,7 +290,10 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                                 case 1: // Local Video
                                     streamSource = VIDEO_SOURCE;
                                     break;
-                                case 2: // RTSP Camera
+                                case 2: // Local Folder
+                                    streamSource = FOLDER_SOURCE;
+                                    break;
+                                case 3: // RTSP Camera
                                     AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
                                     final EditText ssBox = new EditText(GRecognitionActivity.this);
                                     ssBox.setHint("Input the RTSP camera URL");
@@ -425,13 +447,17 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                 rfv = new ReadFromVideo();
                 new Thread(rfv).start();
             }
-        } else{
+        } else if(streamSource.equals(FOLDER_SOURCE)){
+            if (rff == null) {
+                rff = new ReadFromFolder();
+                new Thread(rff).start();
+            }
+        } else {
             if(rfipc == null){
                 rfipc = new ReadFromIPCamera();
                 new Thread(rfipc).start();
             }
         }
-
 //         pull stream to FD App
 //        if(rfs==null){
 //            rfs = new ReadFromStream();
@@ -449,6 +475,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
             if (rfv != null) {
                 rfv.stop();
                 rfv = null;
+            }
+        } else if(streamSource.equals(FOLDER_SOURCE)){
+            if (rff != null) {
+                rff.stop();
+                rff = null;
             }
         } else {
             if (rfipc != null) {
@@ -532,6 +563,53 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
         }
         public void stop(){
             FFmpeg.cancel();
+        }
+    }
+
+    class ReadFromFolder implements Runnable{
+        String inputPath = MStormDir + "ResourcePic/";
+        File sourceFiles = new File(inputPath);
+        int totalNumOfFiles = sourceFiles.listFiles().length;
+        int fps = Integer.parseInt(frameRate);
+        Double interval = new Double (1.0/fps * 1000 * 0.95);
+
+        public void run(){
+            for(int i=1; i<=totalNumOfFiles; i++){
+                String inputFile = "sample"+i+".jpg";
+                copyFile(inputPath, inputFile, RAW_PIC_URL);
+                try{
+                    Thread.sleep(interval.longValue());
+                } catch(InterruptedException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void stop(){
+            logger.info("ReadFromFolder is stopped ... ");
+        }
+
+        private void copyFile(String inputPath, String inputFile, String outputPath) {
+            InputStream in = null;
+            OutputStream out = null;
+            try {
+                in = new FileInputStream(inputPath + inputFile);
+                out = new FileOutputStream(outputPath + inputFile);
+
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                in.close();
+
+                // write the output file (You have now copied the file)
+                out.flush();
+                out.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -28,17 +28,13 @@ public class RoundRobinScheduling {
 	}
 		
 	public Assignment schedule(){
-		
 		Assignment newAssign = new Assignment();
 		
 		// Report IP addresses of available nodes to clients, such that they can calculate the RTT time to each other
 		List<String> availableNodes = cluster.getAvailableCompNodes();					
 		for (String addr: availableNodes){
 			newAssign.addAddress(addr);
-		}
-		
-		// set assignment metric to be maximum double
-		newAssign.setAssignMetric(Double.MAX_VALUE);   
+		}   
 		
 		// Set the submitterIP
 		newAssign.setSourceAddr(submitterAddr);
@@ -47,37 +43,96 @@ public class RoundRobinScheduling {
 		String serTopology = Serialization.Serialize(t);
 		newAssign.setSerTopology(serTopology);
 		
-		// Assign tasks to computing nodes
+		// Assign tasks to computing nodes using round robin scheduling
 		String[] topComponents = t.getComponents();
-		String spoutComponent = topComponents[0];		
+		
 		int componentNum = t.getComponentNum();
 		int nodeNum = availableNodes.size();
+		
+		
+		//// added For RSTORM PAPER
+		Map<String, Integer> node2AvailExecutors = new HashMap<>();
+		for(String eachNode: availableNodes) {
+			if(eachNode.equals(submitterAddr)) {
+				node2AvailExecutors.put(eachNode, 2);
+			} else {
+				node2AvailExecutors.put(eachNode, 6);
+			}
+		}
+		
+      // Assign task of the first and last component to the submitter
+		String spoutComponent = topComponents[0];		
+		newAssign.assgin(submitterAddr, cluster.getNextTaskId(), spoutComponent);
+		String LastComponent = topComponents[componentNum-1];
+		newAssign.assgin(submitterAddr, cluster.getNextTaskId(), LastComponent);
+		newAssign.addSpoutAddr(submitterAddr);
+		newAssign.addAssginedNodes(submitterAddr);
+		
+	    // Assign at least one task of each component to the submitter
+//		for(int i = 0; i < componentNum; i++) {
+//			String component = topComponents[i];
+//			newAssign.assgin(submitterAddr, cluster.getNextTaskId(), component);
+//		}
+//		newAssign.addSpoutAddr(submitterAddr);
+//		newAssign.addAssginedNodes(submitterAddr);
+		
 		int freeNodeIndex = 0;
 		HashMap<String,Integer> paraHints=t.getParallelismHints();
-		HashMap<String,Integer> scheduleRequirements = t.getScheduleRequirements();
-		for(int i=0;i<componentNum;i++){
+		for(int i=1;i<componentNum-1;i++){
 			String component=topComponents[i];
 			int parallelNum = paraHints.get(component);
 			for(int j=0;j<parallelNum;j++)
 			{	
-				
 				int taskid = cluster.getNextTaskId();
-				String node;
-				if(scheduleRequirements.get(component) == Topology.Schedule_Local) {
-					node = submitterAddr;
-				}
-				else {
+				String node = availableNodes.get(freeNodeIndex%nodeNum);
+				while(node2AvailExecutors.get(node)==0) {
+					freeNodeIndex++;
 					node = availableNodes.get(freeNodeIndex%nodeNum);
 				}
-				if(component.equals(spoutComponent)){
-					newAssign.addSpoutAddr(node);		// set the spoutAddresses
-				}
+				int newAvailExecutor = node2AvailExecutors.get(node)-1;
+				node2AvailExecutors.put(node,newAvailExecutor);
 				newAssign.assgin(node, taskid, component);
 				// update the node set that receives tasks [update 2018/03/21]
 				newAssign.addAssginedNodes(node);
 				freeNodeIndex++;
 			}
 		}
+				
+		System.out.println(newAssign.getTask2Node());
+		//// added For RSTORM PAPER
+		
+		//// Comment Out for RSTORM PAPER
+//		int freeNodeIndex = 0;
+//		HashMap<String,Integer> paraHints=t.getParallelismHints();
+//		HashMap<String,Integer> scheduleRequirements = t.getScheduleRequirements();
+//		for(int i=0;i<componentNum;i++){
+//			String component=topComponents[i];
+//			int parallelNum = paraHints.get(component);
+//			for(int j=0;j<parallelNum;j++)
+//			{	
+//				
+//				int taskid = cluster.getNextTaskId();
+//				String node;
+//				if(scheduleRequirements.get(component) == Topology.Schedule_Local) {
+//					node = submitterAddr;
+//				}
+//				else {
+//					node = availableNodes.get(freeNodeIndex%nodeNum);
+//				}
+//				if(component.equals(spoutComponent)){
+//					newAssign.addSpoutAddr(node);		// set the spoutAddresses
+//				}
+//				newAssign.assgin(node, taskid, component);
+//				// update the node set that receives tasks [update 2018/03/21]
+//				newAssign.addAssginedNodes(node);
+//				freeNodeIndex++;
+//			}
+//		}
+		//// Comment Out for RSTORM PAPER
+		
+		
+		// set assignment metric to be maximum double
+		newAssign.setAssignMetric(Double.MAX_VALUE);  // Set initial assignment metric to be maximum double to reschedule later
 		
 		// Assign port to task pair
 //		HashMap<Integer,String> task2Comp = newAssign.getTask2Component();
@@ -126,7 +181,7 @@ public class RoundRobinScheduling {
 					String downStreamTaskNode = newAssign.getTask2Node().get(downStreamTaskID);
 					int downStreamTaskNodeAddrStatus = assignNode2AddrStatus.get(downStreamTaskNode);
 					int downStreamTaskNodeIndex = assignNode2Index.get(downStreamTaskNode);
-					// Algorithm provided by Amran Haroon
+					// Algorithm provided by Amran
 					if(taskNodeAddrStatus == Node.PRIVATE) {
 						if(node2NodeConnection[downStreamTaskNodeIndex][taskNodeIndex] != 1)
 							node2NodeConnection[taskNodeIndex][downStreamTaskNodeIndex] = 1;

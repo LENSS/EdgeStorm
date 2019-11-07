@@ -25,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.lenss.mstorm.R;
+import com.lenss.mstorm.communication.internodes.StreamSelector;
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.GPSTracker;
 import com.lenss.mstorm.utils.Helper;
@@ -78,6 +79,14 @@ public class MStorm extends ActionBarActivity {
     // Public or Private
     public static String isPublicOrPrivate;
 
+    // Availability of this node
+    public static double availability = 1.0;
+
+    // Stream selection strategy
+    public static int streamSelectionStrategy = StreamSelector.NO_SELECTION;
+    public static int maxInQueueLength = 10;
+    public static double startDroppingThreshold = 0.5;
+
     // GPS
     public static GPSTracker gps = null;
 
@@ -119,8 +128,7 @@ public class MStorm extends ActionBarActivity {
         mFaceDetected = (TextView) findViewById(R.id.facedetected);
         mDataSend = (TextView) findViewById(R.id.senddata);
         mDataRecvd = (TextView) findViewById(R.id.datarcvd);
-        mPeriodReport = (TextView) findViewById(R.id.repriodReport);
-
+        mPeriodReport = (TextView) findViewById(R.id.periodReport);
         gps = new GPSTracker(MStorm.this);
         context = getApplicationContext();
 
@@ -222,7 +230,85 @@ public class MStorm extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_start_computing_service) {
+        if(id == R.id.action_set_availability){
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+            final EditText availBox = new EditText(this);
+            availBox.setHint("Availability:" + availability);
+            layout.addView(availBox);
+
+            alert.setView(layout);
+            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    availability = Double.parseDouble(availBox.getText().toString());
+                }
+            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // do nothing
+                }
+            }).setIcon(android.R.drawable.ic_dialog_alert).show();
+        } else if(id == R.id.action_set_in_queue_parameter){
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+            final EditText inQueueLengthBox = new EditText(this);
+            inQueueLengthBox.setHint("MaxInQueueLength:"+maxInQueueLength);
+            layout.addView(inQueueLengthBox);
+
+            final EditText startDroppingBox = new EditText(this);
+            startDroppingBox.setHint("StartDroppingThreshold:"+startDroppingThreshold);
+            layout.addView(startDroppingBox);
+
+            alert.setView(layout);
+            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // continue with delete
+                    maxInQueueLength = Integer.parseInt(inQueueLengthBox.getText().toString());
+                    StreamSelector.setMaxQueueLength(maxInQueueLength);
+                    startDroppingThreshold =  Double.parseDouble(startDroppingBox.getText().toString());
+                    StreamSelector.setStartDroppingThreshold(startDroppingThreshold);
+                }
+            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // do nothing
+                }
+            }).setIcon(android.R.drawable.ic_dialog_alert).show();
+        } else if(id == R.id.action_set_stream_selection_strategy){
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            CharSequence[] streamSelectionStrategies = {"NoSelection", "QueueThresholdBased", "QueueProbBased", "IOSpeedBased", "IOSpeedProbBased"};
+            new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(streamSelectionStrategies, 0, null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            dialog.dismiss();
+                            int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+                            switch (selectedPosition) {
+                                case 0: // No Selection
+                                    streamSelectionStrategy = StreamSelector.NO_SELECTION;
+                                    break;
+                                case 1: // Threshold Based
+                                    streamSelectionStrategy = StreamSelector.QUEUE_THRESHOLD_BASED;
+                                    break;
+                                case 2: // Probability Based
+                                    streamSelectionStrategy = StreamSelector.QUEUE_PROBABILITY_BASED;
+                                    break;
+                                case 3: // IOSpeed Based
+                                    streamSelectionStrategy = StreamSelector.IO_SPEED_BASED;
+                                    break;
+                                case 4: // IOSpeed Probability Based
+                                    streamSelectionStrategy = StreamSelector.IO_SPEED_PROBABILITY_BASED;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            StreamSelector.setSelectStrategy(streamSelectionStrategy);
+                        }
+                    }).show();
+        } else if (id == R.id.action_start_computing_service) {
             if (SERVICE_STARTED == false) {
                 SERVICE_STARTED = true;
                 if (!mBound) {

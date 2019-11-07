@@ -19,30 +19,37 @@ import zookeeper.Assignment;
 import cluster.Cluster;
 import cluster.Node;
 
-public class FeedbackBasedScheduling {
-	private final double LOW_BOUND = 0.75;
-	private final double UP_BOUND = 0.75;
-	private final double compRatio = 1.2;
-	private final double devResRatio = 0.75;
+public class AdvancedScheduling {
+	public static final int FEEDBACK_S = 0;
+	public static final int RESOURCE_S = 1;
+	public static final int TRAFFIC_S = 2;
+	public static final int RESILIENT_S = 3;
+	
+	private final double LOW_BOUND = 0.5;
+	private final double UP_BOUND = 1;
+	private final double compRatio = 1;
+	private final double devResRatio = 1;
 	
 	private final double COMP_THRESHOLD = 10;
 	private final double TASK_THRESHOLD = 10;
 	private final double E2EDELAY_THRESHOLD = 1500; //ms
 	private final double RESCHEDULE_THRESHOLD = 1.5;
+	
 	private final double BYTES_TO_BITS = 8.0;
 	
 	String submitterAddr;
 	Topology t;
 	Cluster cluster;
 	int topologyId;
+	int schType;
 	
 	String[] allAvailableDevice;
 	int devNum;
 	double[] devAvailResource;
 	double[] devCPUCapcity;
 	int[] devCPUCoreNum;
+	double[] devAvailability;
 	public int [] exptExecutorsOfDevice;
-	
 	public double[][] d2dPropDelay;
 	public double[][] d2dTransDelay;
 	public double[][] d2dEnergyPerbit;
@@ -50,6 +57,7 @@ public class FeedbackBasedScheduling {
 	public ArrayList<Integer> currentTasks;
 	public double[][] measuredt2tOutputRate;
 	public double[][] measuredt2tPktAvgSize;
+	public double[][] measuredt2tTraffic;
 	public double[][] preAllocation;
 	
 	int compNum;
@@ -62,15 +70,18 @@ public class FeedbackBasedScheduling {
 	
 	// new task number for each component
 	HashMap<String, Integer> compName2TaskNum;
+	int[] compParallelism;
 	HashMap<String, Integer> compName2InitTaskIndex;
 	List<String> taskCompName;
 	int totalTaskNum;
 	public double[][] t2tOutputRate;
 	public double[][] t2tPktAvgSize;
+	public double[][] t2tTraffic;
 	
-	public FeedbackBasedScheduling(int topoId, Cluster clus) {
+	public AdvancedScheduling(int topoId, Cluster clus, int type) {
 		cluster = clus;
 		topologyId = topoId;
+		schType = type;
 		submitterAddr = clus.getAssignmentByTopologyId(topologyId).getSourceAddr();
 		t = clus.getTopologyByTopologyId(topologyId);
 		updateStatusMatrix();
@@ -81,6 +92,7 @@ public class FeedbackBasedScheduling {
 		devAvailResource = new double[devNum];
 		devCPUCapcity = new double[devNum];
 		devCPUCoreNum = new int[devNum];
+		devAvailability = new double[devNum];
 		for(int i = 0; i < devNum; i++){
 			String nodeAddr = allAvailableDevice[i];
 			Node node = cluster.getNodeByNodeId(cluster.getNodeIDByAddr(nodeAddr));
@@ -88,6 +100,7 @@ public class FeedbackBasedScheduling {
 			devAvailResource[i] = report.availCPUForMStormTasks;
 			devCPUCoreNum[i]=report.cpuCoreNum;
 			devCPUCapcity[i] = report.cpuFrequency * report.cpuCoreNum;
+			devAvailability[i] = report.availability;
 		}
 	}
 	
@@ -102,20 +115,21 @@ public class FeedbackBasedScheduling {
 			int taskNum = tasks.size();
 			double outputRate = 0.0;
 			double workload = 0.0;
-			for (int j = 0; j<taskNum;j++){
+			for (int j = 0; j<taskNum; j++){
 				int taskId = tasks.get(j);
 				String nodeAddr = oldAssign.getTask2Node().get(taskId);
 				Node node = cluster.getNodeByNodeId(cluster.getNodeIDByAddr(nodeAddr));
 				ReportToNimbus report = node.getReportToNimbus();
-				outputRate += report.task2Throughput.get(taskId);
-				workload += report.taskID2CPUUsage.get(taskId);
+				outputRate += report.task2Output.getOrDefault(taskId,0.0);
+				workload += report.taskID2CPUUsage.getOrDefault(taskId,0.0);
 			}
-			compWorkload[i] = compExpectedInputRate[i]/outputRate * workload;
+			compWorkload[i] = (outputRate == 0.0 || workload == 0.0) ? 1.0 : compExpectedInputRate[i]/outputRate * workload;
 			
 			System.out.println("compWorkload"+i+":"+compWorkload[i]);
 			System.out.println("compExpectedInputRate"+i+":"+compExpectedInputRate[i]);
 			System.out.println("outputRate"+i+":"+outputRate);
 			System.out.println("workload"+i+":"+workload);
+			System.out.println();
 		}
 	}
 	
@@ -151,7 +165,8 @@ public class FeedbackBasedScheduling {
 	
 	public void getTask2TaskInfo(){ //// GET THE PARAMETERS FROM TASK TO TASK
 		t2tOutputRate = new double[totalTaskNum][totalTaskNum];
-		t2tPktAvgSize = new double[totalTaskNum][totalTaskNum];	
+		t2tPktAvgSize = new double[totalTaskNum][totalTaskNum];
+		t2tTraffic = new double[totalTaskNum][totalTaskNum];
         for(int i = 1; i< compNum; i++){
         	String compName = compNames[i];
         	int curCompIndex = Arrays.asList(compNames).indexOf(compName);
@@ -169,6 +184,7 @@ public class FeedbackBasedScheduling {
 					for (int c = 0; c< curParallel; c++){
 						t2tOutputRate[initIndexPre+p][initIndexCur+c] = trafficRate;
 						t2tPktAvgSize[initIndexPre+p][initIndexCur+c] = trafficPktSize;
+						t2tTraffic[initIndexPre+p][initIndexCur+c] = trafficRate * trafficPktSize;
 					}
 				}
 			}
@@ -182,29 +198,12 @@ public class FeedbackBasedScheduling {
 		getTask2TaskInfo();
 	}
 	
-	public Assignment advancedSchedule(){
+	public Assignment schedule(){
+		Assignment newAssign = new Assignment();
+		
 		/// CALCULATE THE EXPECTED TASKS FOR EACH COMPONENT ADJUST THE CORRESPOND TASK TO TASK INFORMATION
 		preSchedule();
-		
-		//// CALL GENETIC ALGORITHM TO SEARCH THE BEST SCHEDULE
-/*		AdvancedGeneticSearch adgs = new AdvancedGeneticSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
-        Matrix bestSchedule = adgs.search();*/
-		
-		//// CALL TSTORM ALGORITHM TO SEARCH THE BEST SCHEDULE
-/*		TStormSearch tss = new TStormSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
-		Matrix bestSchedule =  tss.search();*/
-		
-		//// CALL RSTORM ALGORITHM TO SEARCH THE BEST SCHEDULE
-    	RStormSearch rss = new RStormSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
-		Matrix bestSchedule =  rss.search();
-           
-        //// CREATE THE ASSIGNMENT ACCORDING TO THE SCHEDULING RESULT
-        Assignment newAssign = new Assignment();
-        
-        // Set assignment metric (only used in genetic algorithm, and is not useful now, but useful for the future)
-/*        double bestMetric = adgs.getBestMetric();
-        newAssign.setAssignMetric(bestMetric);*/
-        
+		        
         // Report the ip addresses of available computing nodes to clients, such that they can calculate the RTT time to each other
 		for (String addr: allAvailableDevice){
 			newAssign.addAddress(addr);
@@ -226,42 +225,95 @@ public class FeedbackBasedScheduling {
 		String serTopology = Serialization.Serialize(newTopology);
 		newAssign.setSerTopology(serTopology);
 		
-		// Assign tasks to computing nodes
-		String[] topComponents = t.getComponents();
-		String spoutComponent = topComponents[0];		
-		double[][] bestScheduleArray = bestSchedule.getArray();
-		for(int i = 0; i < totalTaskNum; i++){
-			for(int j = 0; j < devNum;j++){
-				if(bestScheduleArray[i][j]==1){
-					String nodeAddrStr = allAvailableDevice[j];
-					String compName = taskCompName.get(i);
-					if(compName.equals(spoutComponent)){
-						newAssign.addSpoutAddr(nodeAddrStr);	// set the spoutAddresses
-					}
-					int taskID = cluster.getNextTaskId();
-					newAssign.assgin(nodeAddrStr, taskID, compName);
-					// update the node set that receives tasks [update 2018/03/21]
-					newAssign.addAssginedNodes(nodeAddrStr);
-				}
-			}
+		// Do schedule
+		Matrix bestSchedule = null;
+		switch (schType) {
+			case FEEDBACK_S:  	// GENETIC ALGORITHM TO SEARCH THE BEST SCHEDULE
+				FBMStormAdvancedGeneticSearch adgs = new FBMStormAdvancedGeneticSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
+		        bestSchedule = adgs.search();
+		        newAssign.setAssignMetric(adgs.getBestMetric());   // Set assignment metric (currently, feedback scheduling algorithm allows multiple reschedulings)
+		        break;
+			case TRAFFIC_S:		// TSTORM ALGORITHM TO SEARCH THE BEST SCHEDULE
+				TStormSearch tss = new TStormSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
+				bestSchedule = tss.search();
+				break;
+			case RESOURCE_S:	// RSTORM ALGORITHM TO SEARCH THE BEST SCHEDULE
+		    	RStormSearch rss = new RStormSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, t2tOutputRate, t2tPktAvgSize, exptExecutorsOfDevice, dBattery);
+				bestSchedule =  rss.search();
+				break;
+			case RESILIENT_S:	// RESILIENT ALGORITHM TO SERACH THE BEST SCHEDULE
+				REMStormAdvancedGeneticSearch adrs = new REMStormAdvancedGeneticSearch(t2tTraffic, compParallelism, exptExecutorsOfDevice, devAvailability);
+				bestSchedule = adrs.search();
+				break;
+			default:
+				break;
 		}
 		
-		// Assign port to task pair
-		HashMap<Integer,String> task2Component = newAssign.getTask2Component();
-		Iterator<Entry<Integer,String>> it = task2Component.entrySet().iterator();
-		while(it.hasNext())
-		{			
-			Entry<Integer,String> entry=(Entry<Integer,String>)it.next();
-			int taskID = entry.getKey();
-			String component = entry.getValue();
-			ArrayList<String> downStreamComponents = t.getDownStreamComponents(component);
-			for (int i=0; i<downStreamComponents.size();i++){
-				String downComponent = downStreamComponents.get(i);
-				ArrayList<Integer> downStreamtaskIDs = newAssign.getComponent2Tasks().get(downComponent);
-				for (int j=0; j<downStreamtaskIDs.size();j++){
-					newAssign.assignPort(Helper.getNextPort(), taskID, downStreamtaskIDs.get(j));
+		if(bestSchedule!=null) {
+			// Assign tasks to computing nodes according to the scheduling results
+			String[] topComponents = t.getComponents();
+			String spoutComponent = topComponents[0];
+			double[][] bestScheduleArray = bestSchedule.getArray();
+			for(int i = 0; i < totalTaskNum; i++){
+				for(int j = 0; j < devNum;j++){
+					if(bestScheduleArray[i][j]==1){
+						String node = allAvailableDevice[j];
+						String compName = taskCompName.get(i);
+						if(compName.equals(spoutComponent)){
+							newAssign.addSpoutAddr(node);	// set the spoutAddresses
+						}
+						int taskID = cluster.getNextTaskId();
+						newAssign.assgin(node, taskID, compName);
+						newAssign.addAssginedNodes(node);
+					}
 				}
 			}
+			
+			// Tell assigned nodes how to connect each other
+			List<String> assignNodes = newAssign.getAssginedNodes();
+			HashMap<String, Integer> assignNode2AddrStatus = new HashMap<String, Integer>();
+			HashMap<String, Integer> assignNode2Index = new HashMap<String, Integer>();
+			int index = 0;
+			for(String assignNode:assignNodes) {
+				int nodeID = cluster.getNodeIDByAddr(assignNode);
+				Node node = cluster.getNodeByNodeId(nodeID);
+				assignNode2AddrStatus.put(assignNode,node.getAddrStatus());
+				assignNode2Index.put(assignNode, index);
+				index++;
+			}
+			int assignNodeSize = assignNodes.size();
+			int[][] node2NodeConnection = new int[assignNodeSize][assignNodeSize];
+			HashMap<Integer,String> task2Component = newAssign.getTask2Component();
+			for(Integer taskID: task2Component.keySet()) {
+				String component = task2Component.get(taskID);
+				String taskNode = newAssign.getTask2Node().get(taskID);
+				int taskNodeAddrStatus = assignNode2AddrStatus.get(taskNode);
+				int taskNodeIndex = assignNode2Index.get(taskNode);
+				ArrayList<String> downStreamComponents = t.getDownStreamComponents(component);
+				for (int i=0; i<downStreamComponents.size();i++){
+					String downComponent = downStreamComponents.get(i);
+					ArrayList<Integer> downStreamtaskIDs = newAssign.getComponent2Tasks().get(downComponent);
+					for (int j=0; j<downStreamtaskIDs.size();j++){
+						int downStreamTaskID = downStreamtaskIDs.get(j);
+						String downStreamTaskNode = newAssign.getTask2Node().get(downStreamTaskID);
+						int downStreamTaskNodeAddrStatus = assignNode2AddrStatus.get(downStreamTaskNode);
+						int downStreamTaskNodeIndex = assignNode2Index.get(downStreamTaskNode);
+						// Algorithm provided by Amran
+						if(taskNodeAddrStatus == Node.PRIVATE) {
+							if(node2NodeConnection[downStreamTaskNodeIndex][taskNodeIndex] != 1)
+								node2NodeConnection[taskNodeIndex][downStreamTaskNodeIndex] = 1;
+						} else {
+							if(node2NodeConnection[downStreamTaskNodeIndex][taskNodeIndex] != 1) {
+								if(downStreamTaskNodeAddrStatus == Node.PRIVATE)
+									node2NodeConnection[downStreamTaskNodeIndex][taskNodeIndex] = 1;
+								else
+									node2NodeConnection[taskNodeIndex][downStreamTaskNodeIndex] = 1; 
+							}
+						}
+					}
+				}
+			}	
+			newAssign.setNode2NodeConnection(node2NodeConnection);
 		}
 		
 		return newAssign;
@@ -286,7 +338,8 @@ public class FeedbackBasedScheduling {
 			Node dev = cluster.getNodeByNodeId(devId);
 			ReportToNimbus report = dev.getReportToNimbus();
 			dBattery[i] = report.batteryCapacity*report.batteryLevel/100.0;
-		}	
+		}
+		
 		for(int i = 0 ; i < availableNodeNum; i++){
 			String nodeAddr = availableNodes.get(i);
 			int index = assignedNodeNum+i;
@@ -332,6 +385,7 @@ public class FeedbackBasedScheduling {
 		int currentTaskNum = task2Node.size();
 		measuredt2tOutputRate = new double[currentTaskNum][currentTaskNum];
 	    measuredt2tPktAvgSize = new double[currentTaskNum][currentTaskNum];
+	    measuredt2tTraffic = new double[currentTaskNum][currentTaskNum];
 		preAllocation = new double [currentTaskNum][devNum];		
 		
 		for(int i = 0; i < assignedNodeNum; i++){
@@ -363,6 +417,12 @@ public class FeedbackBasedScheduling {
 					int downTaskIndex = currentTasks.indexOf(downTask);
 					measuredt2tPktAvgSize[curTaskIndex][downTaskIndex] = task2AvgPktSizeEntry.getValue();
 				}	
+			}
+			
+			for(int row = 0; row < currentTaskNum; row++) {
+				for(int col = 0; col< currentTaskNum; col++) {
+					measuredt2tTraffic[row][col] = measuredt2tOutputRate[row][col]*measuredt2tPktAvgSize[row][col];
+				}
 			}
 		}		
 		
@@ -407,7 +467,7 @@ public class FeedbackBasedScheduling {
 					String nodeAddrStr = assign.getTask2Node().get(preTaskId);
 					Node node = cluster.getNodeByNodeId(cluster.getNodeIDByAddr(nodeAddrStr));
 					ReportToNimbus report = node.getReportToNimbus();
-					preCompTasksOutput += report.task2Throughput.get(preTaskId);
+					preCompTasksOutput += report.task2Output.get(preTaskId);
 					Map<Integer, Double> ToDownStreamCompTasksTupleRate = report.task2TaskTupleRate.get(preTaskId);
 					for(Map.Entry<Integer, Double> entry: ToDownStreamCompTasksTupleRate.entrySet()){
 						if (curCompTasks.contains(entry.getKey())){
@@ -429,7 +489,7 @@ public class FeedbackBasedScheduling {
 		for(int i=0; i< lastCompNodes.size();i++){
 			Node node = cluster.getNodeByNodeId(cluster.getNodeIDByAddr(lastCompNodes.get(i)));
 			ReportToNimbus report = node.getReportToNimbus();
-			HashMap<Integer, Double> task2Throughput= (HashMap<Integer, Double>) report.task2Throughput;
+			HashMap<Integer, Double> task2Throughput= (HashMap<Integer, Double>) report.task2Output;
 			for(Map.Entry<Integer, Double> entry: task2Throughput.entrySet())
 				compActualOutputRate[compNum-1] += entry.getValue();
 		}
@@ -520,7 +580,7 @@ public class FeedbackBasedScheduling {
 				taskID2Input.put(entry.getKey(),entry.getValue());
 			}
 			
-			HashMap<Integer, Double> t2Throughput = (HashMap<Integer, Double>) report.task2Throughput;
+			HashMap<Integer, Double> t2Throughput = (HashMap<Integer, Double>) report.task2Output;
 			for(Map.Entry<Integer, Double> entry: t2Throughput.entrySet()){
 				taskID2Output.put(entry.getKey(), entry.getValue());
 			}
@@ -570,9 +630,24 @@ public class FeedbackBasedScheduling {
 		
 		return meetCondition;
 	}
+	
+	public double[] getMetricsOfPreAllocation() {
+		switch(schType) {
+			case FEEDBACK_S:
+				return getMetricsOfPreAllocationByGeneticSearch();
+			case TRAFFIC_S:
+				return getMetricsOfPreAllocationByTStormSearch();
+			case RESOURCE_S:
+				return getMetricsOfPreAllocationByRStormSearch();
+			case RESILIENT_S:
+				return getMetricsOfPreAllocationByResilientSearch();
+			default:
+				return null;
+		}
+	}
 
 	public double[] getMetricsOfPreAllocationByGeneticSearch(){		
-		AdvancedGeneticSearch adgs = new AdvancedGeneticSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, measuredt2tOutputRate, measuredt2tPktAvgSize);
+		FBMStormAdvancedGeneticSearch adgs = new FBMStormAdvancedGeneticSearch(d2dPropDelay, d2dTransDelay, d2dEnergyPerbit, measuredt2tOutputRate, measuredt2tPktAvgSize);
 		Matrix preAllocationGraph = new Matrix(preAllocation);
 		double [] metrics = new double[2];
 		metrics[0] = adgs.calculateDelay(preAllocationGraph); 	// delay metric
@@ -595,6 +670,14 @@ public class FeedbackBasedScheduling {
 		double [] metrics = new double[2];
 		metrics[0] = rss.calculateDelay(preAllocationGraph); 	// delay metric
 		metrics[1] = rss.calculateEnergy(preAllocationGraph);	// energy metric
+		return metrics;
+	}
+
+	public double[] getMetricsOfPreAllocationByResilientSearch(){		
+		REMStormAdvancedGeneticSearch adrs = new REMStormAdvancedGeneticSearch(measuredt2tTraffic, compParallelism, exptExecutorsOfDevice, devAvailability);
+		Matrix preAllocationGraph = new Matrix(preAllocation);
+		double [] metrics = new double[2];
+		// TODO: WHAT METRICS TO RETURN
 		return metrics;
 	}
 }

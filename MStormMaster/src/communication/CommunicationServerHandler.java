@@ -166,35 +166,36 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewStatusReportMsg);
 			logger.info(loggerNewStatusReportMsg);
 
-			//// temporary comment out for March exercise, need more debugging later
-			//			// Update the report statistics at server
-			//			int cluster_id = Integer.parseInt(recReq.getClusterID());
-			//			Cluster cluster = Cluster.getClusterById(cluster_id);
-			//			if(cluster != null) {
-			//              ReportToNimbus statusReport = (ReportToNimbus) Serialization.Deserialize(statusReportStr, ReportToNimbus.class);			
-			//				int nodeId = cluster.getNodeIDByAddr(phoneAddress);
-			//				Node node = cluster.getNodeByNodeId(nodeId);
-			//				try {
-			//					semaphore.acquire();
-			//					node.updateStatus(statusReport);
-			//				} catch (InterruptedException e1) {
-			//					// TODO Auto-generated catch block
-			//					e1.printStackTrace();
-			//				} finally {
-			//					semaphore.release();
-			//				}
-			//			}
-			//			// Check if reschedule is needed
-			//			int topoId = cluster.getTopologyIdByNodeId(nodeId);
-			//			if (topoId != -1) {
-			//				if (cluster.meetConditionForReScheduling(topoId)) {
-			//					cluster.setTopologyBeingScheduled(topoId, true);
-			//					NimbusScheduler scheduler = MasterNode.getInstance().mNimbusScheduler;
-			//					scheduler.reSchedule(topoId, cluster);
-			//					cluster.setTopologyBeingScheduled(topoId, false);
-			//				}
-			//			}
-			//// temporary comment out for March exercise, need more debugging later
+			// temporary comment out for March exercise, need more debugging later
+//			int cluster_id = Integer.parseInt(recReq.getClusterID());
+//			Cluster cluster = Cluster.getClusterById(cluster_id);
+//			if(cluster != null) {
+//				// Update report at server  
+//				ReportToNimbus statusReport = (ReportToNimbus) Serialization.Deserialize(statusReportStr, ReportToNimbus.class);			
+//				int nodeId = cluster.getNodeIDByAddr(phoneAddress);
+//				Node node = cluster.getNodeByNodeId(nodeId);
+//				try {
+//					semaphore.acquire();
+//					node.updateStatus(statusReport);
+//				} catch (InterruptedException e1) {
+//					// TODO Auto-generated catch block
+//					e1.printStackTrace();
+//				} finally {
+//					semaphore.release();
+//				}
+//
+//				// Check if reschedule is needed
+//				int topoId = cluster.getTopologyIdByNodeId(nodeId);
+//				if (topoId != -1) {
+//					if (cluster.meetConditionForReScheduling(topoId)) {
+//						cluster.setTopologyBeingScheduled(topoId, true);
+//						NimbusScheduler scheduler = MasterNode.getInstance().mNimbusScheduler;
+//						scheduler.reSchedule(topoId, cluster);
+//						cluster.setTopologyBeingScheduled(topoId, false);
+//					}
+//				}
+//			}
+//			// temporary comment out for March exercise, need more debugging later
 			break;
 		default:
 			return;

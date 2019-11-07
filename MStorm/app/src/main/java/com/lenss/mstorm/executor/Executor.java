@@ -25,7 +25,6 @@ public class Executor implements Runnable {
 
 	@Override
 	public void run() {
-
 		StatusReporter reporter = StatusReporter.getInstance();
 		reporter.addTaskForMonitoring(Process.myTid(), task.getTaskID(), task.getComponent());
 		task.prepare();

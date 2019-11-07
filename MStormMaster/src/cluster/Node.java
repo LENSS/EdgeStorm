@@ -1,6 +1,7 @@
 package cluster;
 
 
+import java.security.acl.LastOwnerException;
 import java.util.Map;
 
 import status.ReportToNimbus;
@@ -11,14 +12,17 @@ public class Node {
 	private ReportToNimbus latestPhoneStatus;
 	private boolean hasUpdatedStatusReport;
 	private int publicOrPrivate;
+	private double availability;
+	
 	private static final double RATIO = 0.37;   // 1/e
 	public static final int PUBLIC = 1;
 	public static final int PRIVATE = 0;
 	
-	public Node(String addr, int pubOrPri)
+	public Node(String addr, int pubOrPri, double availability)
 	{
 		address = addr;
 		publicOrPrivate = pubOrPri;
+		this.availability = availability;
 		latestPhoneStatus = null;
 		hasUpdatedStatusReport = false;
 	}
@@ -30,7 +34,11 @@ public class Node {
 	public int getAddrStatus() {
 		return publicOrPrivate;
 	}
-		
+	
+	public double getNodeAvailibility() {
+		return availability;
+	}
+	
 	public Boolean isReportContainingTaskInfor(){
 		if(latestPhoneStatus!=null)
 			return (latestPhoneStatus.isIncludingTaskReport);
@@ -64,6 +72,7 @@ public class Node {
 	
 	public ReportToNimbus update(ReportToNimbus latestPhoneStatus, ReportToNimbus newPhoneStatus, double ratio){
 		//// update CPU related parameters
+		latestPhoneStatus.availability = newPhoneStatus.availability;
 		latestPhoneStatus.cpuCoreNum = newPhoneStatus.cpuCoreNum;
 		latestPhoneStatus.cpuFrequency = latestPhoneStatus.cpuFrequency * ratio + newPhoneStatus.cpuFrequency * (1-ratio);
 		latestPhoneStatus.cpuUsage = latestPhoneStatus.cpuUsage * ratio + newPhoneStatus.cpuUsage * (1-ratio);
@@ -114,9 +123,9 @@ public class Node {
 				entry2.setValue(tupleRate);
 			}
 		}
-		for(Map.Entry<Integer, Double> entry:latestPhoneStatus.task2Throughput.entrySet()){
+		for(Map.Entry<Integer, Double> entry:latestPhoneStatus.task2Output.entrySet()){
 			int taskID = entry.getKey();
-			double throughput = entry.getValue()*ratio+newPhoneStatus.task2Throughput.get(taskID)*(1-ratio);
+			double throughput = entry.getValue()*ratio+newPhoneStatus.task2Output.get(taskID)*(1-ratio);
 			entry.setValue(throughput);
 		}
 		for(Map.Entry<Integer, Double> entry:latestPhoneStatus.task2Delay.entrySet()){

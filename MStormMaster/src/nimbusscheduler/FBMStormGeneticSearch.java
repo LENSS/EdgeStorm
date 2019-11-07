@@ -8,7 +8,7 @@ import java.util.List;
 import utils.RandomNumGenerator;
 import Jama.*;
 
-public class GeneticSearch {
+public class FBMStormGeneticSearch {
 	
 	public static final int initialPopulationSize = 20;	
 	public static final int parentMax = 10;				// parent size

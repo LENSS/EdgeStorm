@@ -6,10 +6,14 @@ import android.util.Pair;
 import com.google.gson.Gson;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.core.MStorm;
+import com.lenss.mstorm.status.StatusOfDownStreamTasks;
 import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.status.StatusReporter;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.zookeeper.Assignment;
+
+import org.apache.zookeeper.data.Stat;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -32,67 +36,90 @@ public class Dispatcher implements Runnable {
                         StatusReporter.getInstance().updateIsIncludingTask();
                         if (!outdata.first.equals("END")) { // Go to tasks of the next component
                             if ((outdata.second != null)) {
-                                int remoteTaskID;
+                                Status status;
                                 if (grouping.get(outdata.first) == Topology.Shuffle) {         // Shuffle stream grouping
-                                    if ((remoteTaskID = ChannelManager.sendToRandomDownstreamTask(outdata.first, outdata.second)) == -1) {
+                                    status = ChannelManager.sendToRandomDownstreamTask(outdata.first, outdata.second);
+                                    if (!status.success) {
                                         try {
                                             MessageQueues.reQueue(taskID, outdata);
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
-                                    } else { // Todo, make sure the way of recording these statuses is correct
-                                        long timePoint = SystemClock.elapsedRealtimeNanos();
-                                        StatusOfLocalTasks.task2EmitTimesUpStream.get(taskID).add(timePoint);
-                                        StatusOfLocalTasks.task2EmitTimesNimbus.get(taskID).add(timePoint);
-
-                                        if(StatusOfLocalTasks.task2EntryTimes.get(taskID).size()>0) {
-                                            long entryTimePoint = StatusOfLocalTasks.task2EntryTimes.get(taskID).remove(0);
-                                            long responseTime = timePoint - entryTimePoint;
-                                            StatusOfLocalTasks.task2ResponseTimesUpStream.get(taskID).add(responseTime);
-                                            StatusOfLocalTasks.task2ResponseTimesNimbus.get(taskID).add(responseTime);
-                                        }
-
-                                        if (StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).size()>0) {
-                                            long beginProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).remove(0);
-                                            long processingTime = timePoint - beginProcessingTime;
-                                            StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskID).add(processingTime);
-                                        }
-
-                                        int newTotalTupleNum = StatusOfLocalTasks.task2taskTupleNum.get(taskID).get(remoteTaskID) + 1;
-                                        StatusOfLocalTasks.task2taskTupleNum.get(taskID).put(remoteTaskID, newTotalTupleNum);
-
-                                        long newTotalTupleSize = StatusOfLocalTasks.task2taskTupleSize.get(taskID).get(remoteTaskID) + outdata.second.toString().length();
-                                        StatusOfLocalTasks.task2taskTupleSize.get(taskID).put(remoteTaskID, newTotalTupleSize);
+                                    } else {
+                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
                                     }
-                                } else if (grouping.get(outdata.first) == Topology.Feedback_based) {       // Feedback based stream grouping
-                                    if ((remoteTaskID = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second)) == -1) { // not sent
-                                        try {
-                                            MessageQueues.reQueue(taskID, outdata);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
+                                } else if (grouping.get(outdata.first) == Topology.MinSojournTime) {
+                                    status = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, false);
+                                    if (!status.success) {
+                                        if(status.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
                                         }
-                                    } else { // Todo, make sure the way of recording these statuses is correct
-                                        long timePoint = SystemClock.elapsedRealtimeNanos();
-                                        StatusOfLocalTasks.task2EmitTimesUpStream.get(taskID).add(timePoint);
-                                        StatusOfLocalTasks.task2EmitTimesNimbus.get(taskID).add(timePoint);
-
-                                        if(StatusOfLocalTasks.task2EntryTimes.get(taskID).size()>0) {
-                                            long entryTimePoint = StatusOfLocalTasks.task2EntryTimes.get(taskID).remove(0);
-                                            long responseTime = timePoint - entryTimePoint;
-                                            StatusOfLocalTasks.task2ResponseTimesUpStream.get(taskID).add(responseTime);
-                                            StatusOfLocalTasks.task2ResponseTimesNimbus.get(taskID).add(responseTime);
+                                        status = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, true);
+                                        if (!status.success) {
+                                            if(status.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                            }
+                                            try {
+                                                MessageQueues.reQueue(taskID, outdata);
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        } else {
+                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
                                         }
-
-                                        if (StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).size()>0) {
-                                            long beginProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).remove(0);
-                                            long processingTime = timePoint - beginProcessingTime;
-                                            StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskID).add(processingTime);
+                                    } else {
+                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                    }
+                                } else if(grouping.get(outdata.first) == Topology.SojournTimeProb){
+                                    status = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, false);
+                                    if (!status.success) {
+                                        if(status.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
                                         }
-
-                                        int newTotalTupleNum = StatusOfLocalTasks.task2taskTupleNum.get(taskID).get(remoteTaskID) + 1;
-                                        StatusOfLocalTasks.task2taskTupleNum.get(taskID).put(remoteTaskID, newTotalTupleNum);
-                                        long newTotalTupleSize = StatusOfLocalTasks.task2taskTupleSize.get(taskID).get(remoteTaskID) + outdata.second.toString().length();
-                                        StatusOfLocalTasks.task2taskTupleSize.get(taskID).put(remoteTaskID, newTotalTupleSize);
+                                        status = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, true);
+                                        if (!status.success) {
+                                            if(status.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                            }
+                                            try {
+                                                MessageQueues.reQueue(taskID, outdata);
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        } else {
+                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        }
+                                    } else {
+                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                    }
+                                } else if (grouping.get(outdata.first) == Topology.MinEWT){
+                                    status = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, false);
+                                    if (!status.success) {
+                                        if(status.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                        }
+                                        status = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, true);
+                                        if (!status.success) {
+                                            if(status.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                            }
+                                            try {
+                                                MessageQueues.reQueue(taskID, outdata);
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        } else {
+                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        }
+                                    } else {
+                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
                                     }
                                 }
                             }
@@ -110,12 +137,6 @@ public class Dispatcher implements Runnable {
                                     StatusOfLocalTasks.task2ResponseTimesUpStream.get(taskID).add(responseTime);
                                     StatusOfLocalTasks.task2ResponseTimesNimbus.get(taskID).add(responseTime);
                                 }
-
-                                if (StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).size()>0) {
-                                    long beginProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).remove(0);
-                                    long processingTime = timePoint - beginProcessingTime;
-                                    StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskID).add(processingTime);
-                                }
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -127,6 +148,41 @@ public class Dispatcher implements Runnable {
             }
         }
         System.out.println("The Dispatcher thread has stopped ... ");
+    }
+
+    public void updateLocalTaskStatus(int taskID, int remoteTaskID, long size){
+        long timePoint = SystemClock.elapsedRealtimeNanos();
+        StatusOfLocalTasks.task2EmitTimesUpStream.get(taskID).add(timePoint);
+        StatusOfLocalTasks.task2EmitTimesNimbus.get(taskID).add(timePoint);
+
+        if(StatusOfLocalTasks.task2EntryTimes.get(taskID).size()>0) {
+            long entryTimePoint = StatusOfLocalTasks.task2EntryTimes.get(taskID).remove(0);
+            long responseTime = timePoint - entryTimePoint;
+            StatusOfLocalTasks.task2ResponseTimesUpStream.get(taskID).add(responseTime);
+            StatusOfLocalTasks.task2ResponseTimesNimbus.get(taskID).add(responseTime);
+        }
+
+        int newTotalTupleNum = StatusOfLocalTasks.task2taskTupleNum.get(taskID).get(remoteTaskID) + 1;
+        StatusOfLocalTasks.task2taskTupleNum.get(taskID).put(remoteTaskID, newTotalTupleNum);
+
+        long newTotalTupleSize = StatusOfLocalTasks.task2taskTupleSize.get(taskID).get(remoteTaskID) + size;
+        StatusOfLocalTasks.task2taskTupleSize.get(taskID).put(remoteTaskID, newTotalTupleSize);
+    }
+
+    public void updateDownStreamTaskStatusOnSuccess(int remoteTaskID){
+        if(StatusOfDownStreamTasks.taskID2InQueueLength.containsKey(remoteTaskID)){
+            double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(remoteTaskID);
+            double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(remoteTaskID);
+            double deltaInputQueueLength = (inputRate > procRate) ? (inputRate-procRate)/inputRate : 0;
+            double inputQueueLength = StatusOfDownStreamTasks.taskID2InQueueLength.get(remoteTaskID) + deltaInputQueueLength;
+            StatusOfDownStreamTasks.taskID2InQueueLength.put(remoteTaskID, inputQueueLength);
+        }
+    }
+
+    public void updateDownStreamTaskStatusOnFailure(int remoteTaskID){
+        if(StatusOfDownStreamTasks.taskID2LinkQuality.containsKey(remoteTaskID)){
+            StatusOfDownStreamTasks.taskID2LinkQuality.put(remoteTaskID, 0.01);
+        }
     }
 
     public void stop(){

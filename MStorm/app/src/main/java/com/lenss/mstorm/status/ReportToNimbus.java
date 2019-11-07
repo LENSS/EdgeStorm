@@ -1,11 +1,15 @@
 package com.lenss.mstorm.status;
 
 import com.google.gson.annotations.Expose;
+import com.lenss.mstorm.core.MStorm;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ReportToNimbus {
+    @Expose
+    public double availability;
+
     //// STATUS ABOUT CPU AND WORKLOAD IN MHZ
     // availCPUForMStormTasks = cpuFrequency * cpuCoreNum - (cpuUsage - taskID2CPUUsage)
     @Expose
@@ -33,7 +37,9 @@ public class ReportToNimbus {
     @Expose
     public double rxBandwidth;
     @Expose
-    public Map<String, Double> rttMap; // the rrt time to other devices
+    public Map<String, Double> rttMap; // RTT to other devices
+    @Expose
+    public Map<String, Double> linkQualityMap; // linkQuality to other devices
     // For future use
     @Expose
     public double wifiLinkSpeed;
@@ -60,24 +66,28 @@ public class ReportToNimbus {
     @Expose
     public Map<Integer, Map<Integer, Double>> task2TaskTupleAvgSize;
 
-    //// STATUS ABOUT TUPLE OUTPUT RATE AND AVERAGE SIZE
+    //// STATUS ABOUT TUPLE INPUT/OUTPUT RATE AND DELAY
     @Expose
-    public Map<Integer, Double> task2Throughput;
+    public Map<Integer, Double> task2Output;
     @Expose
     public Map<Integer, Double> task2Delay;
-
+    @Expose
+    public Map<Integer, Double> task2Input;
     @Expose
     public Map<Integer, Double> task2StreamInput;
 
     public ReportToNimbus(){
         isIncludingTaskReport = false;
+        availability = MStorm.availability;
         taskID2CPUUsage = new HashMap<Integer,Double>();
         // pfThreadName2CPUUsage = new HashMap<String, Double>();
         rttMap = new HashMap<String, Double>();
+        linkQualityMap = new HashMap<String, Double>();
         task2TaskTupleRate = new HashMap<Integer, Map<Integer, Double>>();
         task2TaskTupleAvgSize = new HashMap<Integer, Map<Integer, Double>>();
-        task2Throughput = new HashMap<Integer,Double>();
+        task2Output = new HashMap<Integer,Double>();
         task2Delay = new HashMap<Integer,Double>();
+        task2Input = new HashMap<Integer, Double>();
         task2StreamInput = new HashMap<Integer, Double>();
     }
 }

@@ -68,7 +68,7 @@ public class RanSenStatActivity extends AppCompatActivity {
     public  final String MStormDir = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/";
     public  final String apkFileDirectory = MStormDir + "APK/";
     public  final String apkFileName = "RanSenStat.apk";
-    private final String E2E_RESPONSE_TIME_ADDRESS = apkFileDirectory + "E2EResponseTime";
+    private final String E2E_RESPONSE_TIME_ADDRESS = MStormDir + "E2EResponseTime";
 
     private final String LOCAL_ADDRESS = "com.android.cmy.ransenstat";
     private final String LOCAL_RESULT_ADDRESS = "com.android.cmy.ransenstat.result";
@@ -409,19 +409,35 @@ public class RanSenStatActivity extends AppCompatActivity {
             }
         }
 
+        public void generateSentence(){
+            sentence = sentences[rand.nextInt(sentences.length)];
+            mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
+            InternodePacket pkt = new InternodePacket();
+            pkt.ID = SystemClock.elapsedRealtimeNanos();
+            pkt.type = InternodePacket.TYPE_DATA;
+            pkt.simpleContent.put("sentence", sentence);
+            sentenceQueue.add(pkt);
+
+            // performance log
+            String report = "SEND:" + "ID:" + pkt.ID + "\n";
+            try {
+                FileWriter fw = new FileWriter(ComputingNode.EXEREC_ADDRESSES, true);
+                fw.write(report);
+                fw.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         public void constantInput(double avgIAT){
             long avgInterTime = Double.valueOf(avgIAT*1000000000).longValue();
             long millSleepTime = avgInterTime/1000000;
             int nanoSleepTime = (int) avgInterTime%1000000;
 
             while (!Thread.currentThread().isInterrupted()) {
-                sentence = sentences[rand.nextInt(sentences.length)];
-                mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
-                InternodePacket pkt = new InternodePacket();
-                pkt.ID = System.nanoTime();
-                pkt.type = InternodePacket.TYPE_DATA;
-                pkt.simpleContent.put("sentence", sentence);
-                sentenceQueue.add(pkt);
+                generateSentence();
                 Utils.highPrecisionSleep(millSleepTime,nanoSleepTime);
                 synchronized (this) {
                     while (suspended) {
@@ -439,12 +455,7 @@ public class RanSenStatActivity extends AppCompatActivity {
             double distance = maxIAT - minIAT;
 
             while (!Thread.currentThread().isInterrupted()) {
-                sentence = sentences[rand.nextInt(sentences.length)];
-                mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
-                InternodePacket pkt = new InternodePacket();
-                pkt.ID = System.nanoTime();
-                pkt.simpleContent.put("sentence", sentence);
-                sentenceQueue.add(pkt);
+                generateSentence();
                 long randIAT = Double.valueOf((rand.nextDouble() * distance + minIAT)*1000000000).longValue();
                 long millSleepTime = randIAT/1000000;
                 int nanoSleepTime = (int) randIAT%1000000;
@@ -463,12 +474,7 @@ public class RanSenStatActivity extends AppCompatActivity {
 
         public void gaussianInput(double minIAT, double maxIAT){
             while (!Thread.currentThread().isInterrupted()) {
-                sentence = sentences[rand.nextInt(sentences.length)];
-                mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
-                InternodePacket pkt = new InternodePacket();
-                pkt.ID = System.nanoTime();
-                pkt.simpleContent.put("sentence", sentence);
-                sentenceQueue.add(pkt);
+                generateSentence();
                 double randIAT = rand.nextGaussian()*(maxIAT-minIAT)/6 + (minIAT + maxIAT)/2;
                 while (!((randIAT >= minIAT) && (randIAT <= maxIAT))) {
                     randIAT = rand.nextGaussian()*(maxIAT-minIAT)/6 + (minIAT + maxIAT)/2;
@@ -493,12 +499,7 @@ public class RanSenStatActivity extends AppCompatActivity {
 
         public void exponentialInput(double minIAT, double maxIAT, double avgIAT){
             while (!Thread.currentThread().isInterrupted()) {
-                sentence = sentences[rand.nextInt(sentences.length)];
-                mHandler.obtainMessage(NEW_SENTENCE, sentence).sendToTarget();
-                InternodePacket pkt = new InternodePacket();
-                pkt.ID = System.nanoTime();
-                pkt.simpleContent.put("sentence", sentence);
-                sentenceQueue.add(pkt);
+                generateSentence();
                 double randIAT = - Math.log(rand.nextDouble()) * avgIAT;
                 while (!((randIAT >= minIAT) && (randIAT <= maxIAT))) {
                     randIAT = - Math.log(rand.nextDouble()) * avgIAT;
@@ -614,7 +615,7 @@ public class RanSenStatActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
 
-                    InternodePacket pkt = (InternodePacket) Serialization.Deserialize(strPkt, InternodePacket.class);
+                    InternodePacket pktRecv = (InternodePacket) Serialization.Deserialize(strPkt, InternodePacket.class);
 
                     totalPackets++;
                     String statResult = "#processedPkt:" + totalPackets;
@@ -628,11 +629,14 @@ public class RanSenStatActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
 
-                    Long startTime = pkt.ID;
-                    double responseTime = (SystemClock.elapsedRealtimeNanos() - startTime) / 1000000.0;  // ms
-                    String report = "StartTime:\t" + String.format("%.0f", startTime / 1000000000.0) + "\t"
-                                + "E2EResponseTime:\t" + String.format("%.1f", responseTime) + "\n";
+                    long exitTime = SystemClock.elapsedRealtimeNanos();
 
+                    // performance log
+                    String report = "RECV:" + "ID:" +pktRecv.ID + "|";
+                    for(String task: pktRecv.traceTask){
+                        report += task + ":" + "(" + pktRecv.traceTaskEnterTime.get(task) + "," + pktRecv.traceTaskExitTime.get(task) + ")" + "|";
+                    }
+                    report += "ResponseTime: " + (exitTime - pktRecv.ID)/1000000.0 + "\n"; //ms
                     try {
                         fw.write(report);
                         fw.close();

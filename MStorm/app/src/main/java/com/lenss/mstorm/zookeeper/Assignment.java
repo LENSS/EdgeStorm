@@ -21,8 +21,8 @@ public class Assignment implements Serializable {
     private String apk;
     private double assignMetric;
     private int assignType;
-    private ArrayList<String> ipAddresses = new ArrayList<String>(); 			// IP address of all available nodes
-    private ArrayList<String> spoutAddresses=new ArrayList<String>();			// IP address of all spout nodes
+    private ArrayList<String> addresses = new ArrayList<String>(); 			// Address of all available nodes
+    private ArrayList<String> spoutAddresses=new ArrayList<String>();			// Address of all spout nodes
     private HashMap<Integer,String> task2Node=new HashMap<Integer,String>();		// TaskID ==> Address
     private HashMap<Integer,String> task2Component=new  HashMap<Integer,String>();	// TaskID ==> Component
     private HashMap<String, ArrayList<Integer>> node2Tasks = new HashMap<String, ArrayList<Integer>>();				// Address  ==> List<TaskID>
@@ -86,16 +86,16 @@ public class Assignment implements Serializable {
         return assignType;
     }
 
-    public void addIpAddress(String addr){
-        ipAddresses.add(addr);
+    public void addAddress(String addr){
+        addresses.add(addr);
     }
 
-    public void removeIpAddress(String addr){
-        ipAddresses.remove(addr);
+    public void removeAddress(String addr){
+        addresses.remove(addr);
     }
 
-    public ArrayList<String> getIpAddresses(){
-        return ipAddresses;
+    public ArrayList<String> getAddresses(){
+        return addresses;
     }
 
     public void addSpoutAddr(String addr){
@@ -136,8 +136,7 @@ public class Assignment implements Serializable {
         return port2TaskPair;
     }
 
-    public void assgin(String node, int taskid, String component)
-    {
+    public void assgin(String node, int taskid, String component) {
         task2Node.put(taskid,node);
         task2Component.put(taskid, component);
 

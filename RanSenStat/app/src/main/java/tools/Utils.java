@@ -101,11 +101,10 @@ public class Utils {
             randomVarPercent = 1.0;*/
 
         for (int i=0;i<loopTimes;i++){
-            double k=1.0;
-            int innerLoopTimes = (int) (550000 * (1+randomVarPercent));
+            int innerLoopTimes = (int) (50000 * (1+randomVarPercent));
             for(int j=0; j<innerLoopTimes;j++)
             {
-                k=k*1.0;
+                Math.tan(20);
             }
         }
     }

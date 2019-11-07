@@ -2,6 +2,7 @@ package com.lenss.cmy.ransenstat;
 
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
+import android.os.SystemClock;
 import android.util.Pair;
 
 import com.google.gson.annotations.Expose;
@@ -49,13 +50,24 @@ public class SentenceSink extends Processor {
         int taskID = getTaskID();
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                InternodePacket pkt = MessageQueues.retrieveIncomingQueue(taskID);
-                if (pkt != null) {
+                InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(taskID);
+                if (pktRecv != null) {
+                    long enterTime = SystemClock.elapsedRealtimeNanos();
                     Utils.fakeExecutionTime(workload_SenSink);
+                    InternodePacket pktSend = new InternodePacket();
+                    pktSend.ID = pktRecv.ID;
+                    pktSend.type = InternodePacket.TYPE_DATA;
+                    pktSend.fromTask = taskID;
+                    pktSend.simpleContent = pktRecv.simpleContent;
+                    pktSend.traceTask = pktRecv.traceTask;
+                    pktSend.traceTask.add("SS_"+taskID);
+                    pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                    pktSend.traceTaskEnterTime.put("SS_"+ taskID, enterTime);
+                    pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                    long exitTime = SystemClock.elapsedRealtimeNanos();
+                    pktSend.traceTaskExitTime.put("SS_"+ taskID, exitTime);
                     String component = "END";
-                    pkt.type = InternodePacket.TYPE_DATA;
-                    pkt.fromTask = taskID;
-                    MessageQueues.emit(pkt, taskID, component);
+                    MessageQueues.emit(pktSend, taskID, component);
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();

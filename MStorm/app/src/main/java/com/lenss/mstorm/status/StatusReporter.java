@@ -42,6 +42,7 @@ import com.lenss.mstorm.utils.Serialization;
 import com.lenss.mstorm.utils.StatisticsCalculator;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 
 /**
@@ -84,7 +85,8 @@ public class StatusReporter implements Runnable {
     //private ConnectionClassManager mConnectionClassManager;
     //private DeviceBandwidthSampler mDeviceBandwidthSampler;
     private D2DRTTSampler mD2DRTTSampler;
-    private static Map<String, Double> rttMap= new ConcurrentHashMap<String, Double>();
+    private static Map<String, Double> rttMap = new ConcurrentHashMap<String, Double>();
+    private static Map<String, Double> linkQualityMap = new ConcurrentHashMap<String, Double>();
 
     private long lastTimePointNimbus;
     private long lastTxBytes;
@@ -97,16 +99,20 @@ public class StatusReporter implements Runnable {
     private static final double RX_ENERGY_THROUGHPUT_BETA  = 23.5;
 
     //// AUXILIARY PARAMETERS FOR REPORTING
-    public static final double END2ENDDELAY_THRESHOLD = 2000.0;
-    // Report to Nimbus every 30s
-    public static final int REPORT_PERIOD_TO_NIMBUS = 15000;
-    // Report to upstream tasks every 5s
-    public static final int REPORT_PERIOD_TO_UPSTREAM = 5000;
-    public static final int THROUGHPUT_NIMBUS = 1;
-    public static final int THROUGHPUT_UPSTREAM = 2;
-    // Report period ratio 6
+    public static final double END2ENDDELAY_THRESHOLD = 1000.0;
+    // Two report type
+    public static final int NIMBUS = 1;
+    public static final int UPSTREAM = 2;
+    // Report period to Nimbus
+    public static final int REPORT_PERIOD_TO_NIMBUS = 30000;   // 30s
+    // Report period to upstream tasks
+    public static final int REPORT_PERIOD_TO_UPSTREAM = 10000;  //10s
+    // Report period ratio
     public static final int PERIOD_RATIO = REPORT_PERIOD_TO_NIMBUS/REPORT_PERIOD_TO_UPSTREAM;
+
     private static int periodCounter = 0;
+
+    private static double MOVING_AVERAGE_RATIO = 0.2;
 
 
     private static class StatusReporterHolder {
@@ -138,13 +144,14 @@ public class StatusReporter implements Runnable {
     private void updateCPUMaxFrequency(){
         double cpuMaxFreq = 0;
         try {
-            RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+            RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "r");
             String MaxFreq = reader.readLine();
             cpuMaxFreq = Double.parseDouble(MaxFreq);      // the unit is KHz
             reader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         report2Nimbus.cpuFrequency = cpuMaxFreq / 1000.0;
     }
 
@@ -199,7 +206,6 @@ public class StatusReporter implements Runnable {
 
     // Update the total and busy CPU time from file /proc/stat
     public void updateCPUTimeFromFile(){
-        System.out.println("updateCPUTimeFromFile:" + SystemClock.elapsedRealtimeNanos());
         try {
             RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
             String cpuTime = reader.readLine();
@@ -214,7 +220,6 @@ public class StatusReporter implements Runnable {
 
     // Update the thread CPU time from file /proc/pid/tasks/tid/stat
     public void updateThreadCPUTimeFromFile(int processID, int threadID){
-        System.out.println("updateThreadCPUTimeFromFile:"+SystemClock.elapsedRealtimeNanos());
         long curThreadCPUTime = 0;
         try {
             RandomAccessFile reader = new RandomAccessFile("/proc/" + processID + "/task/" + threadID + "/stat", "r");
@@ -231,7 +236,6 @@ public class StatusReporter implements Runnable {
 
     // Add MStorm Executors (Tasks) for monitoring
     public void addTaskForMonitoring(int threadID, Integer taskID, String componentName){
-        System.out.println("add thread:"+threadID);
         task2Component.put(taskID,componentName);
         thread2Task.put(threadID, taskID);
         task2Thread.put(taskID,threadID);
@@ -334,14 +338,37 @@ public class StatusReporter implements Runnable {
     }*/
 
     // add RTT time in ms to devices
-    public static void addRTT2Device(String ipAddress, double rtt){
-        rttMap.put(ipAddress,rtt);
+    public static void addRTT2Device(String address, double rtt){
+        double preRtt = rttMap.get(address)==null? rtt : rttMap.get(address);
+        double newRtt = preRtt * MOVING_AVERAGE_RATIO + rtt * (1-MOVING_AVERAGE_RATIO);
+        rttMap.put(address,newRtt);
+    }
+
+    public static  Map<String, Double> getRTT2Device(){
+        return rttMap;
+    }
+
+    public static void addLinkQuality2Device(String address, double linkQuality){
+        double preLinkQuality = linkQualityMap.get(address)==null? linkQuality : linkQualityMap.get(address);
+        double newLinkQuality = preLinkQuality * MOVING_AVERAGE_RATIO + linkQuality * (1-MOVING_AVERAGE_RATIO);
+        linkQualityMap.put(address,newLinkQuality);
+    }
+
+    public static  Map<String, Double> getLinkQuality2Device(){
+        return linkQualityMap;
     }
 
     // update RTT Time in ms to devices
     public void updateRTT2Device(){
         for(Map.Entry<String, Double> rttEntry: rttMap.entrySet()){
             report2Nimbus.rttMap.put(rttEntry.getKey(),rttEntry.getValue());
+        }
+    }
+
+
+    public void updateLinkQuality2Device(){
+        for(Map.Entry<String, Double> rttEntry: linkQualityMap.entrySet()){
+            report2Nimbus.linkQualityMap.put(rttEntry.getKey(),rttEntry.getValue());
         }
     }
 
@@ -357,6 +384,13 @@ public class StatusReporter implements Runnable {
         WifiManager myWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
         report2Nimbus.rSSI = myWifiInfo.getRssi();
+    }
+
+    public int getRSSI(Context context) {
+        WifiManager myWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
+        int rSSI = myWifiInfo.getRssi();
+        return rSSI;
     }
 
 
@@ -427,13 +461,19 @@ public class StatusReporter implements Runnable {
             int tid = taskEntry.getKey();
             String component = taskEntry.getValue();
 
-            if(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid)!=null && StatusOfLocalTasks.task2EmitTimesUpStream.get(tid).size()!=0){
-                double inputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimes.get(tid),THROUGHPUT_UPSTREAM);          // tuple/s
-                double outputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid),THROUGHPUT_UPSTREAM);  // tuple/s
-                double processingTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid));            // ms
-                double procRate = 1/processingTime;
-                double sojournTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid));                 // ms
+            if(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid)!=null &&
+                    StatusOfLocalTasks.task2EmitTimesUpStream.get(tid).size()!=0){
+                double inputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesUpStream.get(tid), UPSTREAM);          // tuple/s
+                double outputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid), UPSTREAM);          // tuple/s
+                double processingTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid), UPSTREAM);   // ms
+                double procRate = 1.0 / processingTime * 1000.0; // tuple/s
+                double sojournTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid), UPSTREAM);        // ms
 
+                StatusOfLocalTasks.task2InputRate.put(tid,inputRate);
+                StatusOfLocalTasks.task2OutputRate.put(tid,outputRate);
+                StatusOfLocalTasks.task2ProcRate.put(tid,procRate);
+
+                StatusOfLocalTasks.task2EntryTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2EmitTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid).clear();
@@ -441,33 +481,39 @@ public class StatusReporter implements Runnable {
                 double inQueueLength = MessageQueues.incomingQueues.get(tid).size();
                 double outQueueLength = MessageQueues.outgoingQueues.get(tid).size();
 
+                int rssi = getRSSI(context);
+
                 InternodePacket pkt = new InternodePacket();
                 pkt.type = InternodePacket.TYPE_REPORT;
                 pkt.fromTask = tid;
                 pkt.toTask = -1; // broadcast
-                pkt.simpleContent.put("procRate", String.format("%.2f", procRate));
                 pkt.simpleContent.put("inputRate", String.format("%.2f", inputRate));
                 pkt.simpleContent.put("outputRate", String.format("%.2f", outputRate));
+                pkt.simpleContent.put("procRate", String.format("%.2f", procRate));
+                pkt.simpleContent.put("sojournTime", String.format("%.2f", sojournTime));
                 pkt.simpleContent.put("inQueueLength", String.format("%.2f", inQueueLength));
                 pkt.simpleContent.put("outQueueLength", String.format("%.2f", outQueueLength));
-                pkt.simpleContent.put("sojournTime", String.format("%.2f", sojournTime));
+                pkt.simpleContent.put("rssi", String.valueOf(rssi));
+
                 ChannelManager.broadcastToUpstreamTasks(tid, pkt);
 
                 // record execution information for file
                 long curTime = SystemClock.elapsedRealtimeNanos();
-                String report = String.format("%.0f", curTime / 1000000000.0) + "," + tid + "," + component + ","
-                              + String.format("%.2f", procRate) + ","
-                              + String.format("%.2f", inputRate) + ","
-                              + String.format("%.2f", outputRate) + ","
-                              + String.format("%.2f", inQueueLength) + ","
-                              + String.format("%.2f", outQueueLength) + ","
-                              + String.format("%.2f", sojournTime) + "\n";
+                String report = "Time: " + String.format("%.0f", curTime / 1000000000.0) + ","
+                                + "TaskID: " + tid + ","
+                                + "Component: " + component + ","
+                                + "InputRate: " + String.format("%.2f", inputRate) + ","
+                                + "OutputRate: " + String.format("%.2f", outputRate) + ","
+                                + "ProcRate: " + String.format("%.2f", procRate) + ","
+                                + "SojournTime: " + String.format("%.2f", sojournTime) + ","
+                                + "InQueueLength: " + String.format("%.2f", inQueueLength) + ","
+                                + "OutQueueLength: " + String.format("%.2f", outQueueLength) + ","
+                                + "rssi: " + rssi + "\n";
+                System.out.println(report);
                 try {
-                    FileWriter fw = new FileWriter(ComputingNode.EXEREC_ADDRESSES, true);
+                    FileWriter fw = new FileWriter(ComputingNode.REPORT_ADDRESSES, true);
                     fw.write(report);
                     fw.close();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -477,46 +523,45 @@ public class StatusReporter implements Runnable {
 
     // update the traffics from task to task (For Nimbus)
     private void updateTaskTrafficReportToNimbus(){
-
-        long curTimePoint = SystemClock.elapsedRealtimeNanos();
-        double timeDiff = (curTimePoint - lastTimePointNimbus)/1000000000.0;
-
-        System.out.println("DiffInTraffic:"+timeDiff);
-
         for (Map.Entry<Integer,String> taskEntry: task2Component.entrySet()) {
             int tid = taskEntry.getKey();
 
             // Get the input speed of app
             if(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid)!=null &&
                     StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid).size()!=0){ // this is a task of the first component
-                double input = StatisticsCalculator.getInput(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid));  // tuple/s
-                //double input = ComputingNode.task2EntryTimesForFstComp.get(tid).size() / timeDiff;
+                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid), NIMBUS);  // tuple/s
                 report2Nimbus.task2StreamInput.put(tid,input);
-                StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid).clear();
+                StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid).clear(); // start from the beginning
             }
 
             // Get the status for task
             if(StatusOfLocalTasks.task2EmitTimesNimbus.get(tid)!=null &&
                     StatusOfLocalTasks.task2EmitTimesNimbus.get(tid).size()!=0) {
-                //double throughput = StatisticsCalculator.getThroughput(ComputingNode.task2EmitTimesNimbus.get(tid),THROUGHPUT_NIMBUS); // tuple/s
-                double throughput = StatusOfLocalTasks.task2EmitTimesNimbus.get(tid).size() * 1.0 / timeDiff;
-                double avgResponseTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesNimbus.get(tid));  // ms
-                report2Nimbus.task2Throughput.put(tid, throughput);
+                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesNimbus.get(tid), NIMBUS);  // tuple/s
+                double output = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesNimbus.get(tid), NIMBUS); // tuple/s
+                double avgResponseTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesNimbus.get(tid), NIMBUS);  // ms
+                report2Nimbus.task2Input.put(tid,input);
+                report2Nimbus.task2Output.put(tid, output);
                 report2Nimbus.task2Delay.put(tid, avgResponseTime);
+                StatusOfLocalTasks.task2EntryTimesNimbus.get(tid).clear();       // start from the beginning
                 StatusOfLocalTasks.task2EmitTimesNimbus.get(tid).clear();        // start from the beginning
                 StatusOfLocalTasks.task2ResponseTimesNimbus.get(tid).clear();    // start from the beginning
+            }
 
-                // Average tuple rate from tid to any downStream task
+            // Average tuple rate from task to any downStream task
+            if(StatusOfLocalTasks.task2taskTupleNum.get(tid)!=null){
                 for (ConcurrentHashMap.Entry<Integer, Integer> task2TupleNumEntry : StatusOfLocalTasks.task2taskTupleNum.get(tid).entrySet()) {
                     int remoteTaskID = task2TupleNumEntry.getKey();
-                    double tupleRate = 1.0 * task2TupleNumEntry.getValue() / timeDiff;
+                    double tupleRate = 1.0 * task2TupleNumEntry.getValue() / REPORT_PERIOD_TO_NIMBUS * 1000; // tuple/s
                     report2Nimbus.task2TaskTupleRate.get(tid).put(remoteTaskID, tupleRate);
                 }
+            }
 
-                // Average tuple size from tid to any downStream task
+            // Average tuple size from task to any downStream task
+            if(StatusOfLocalTasks.task2taskTupleSize.get(tid)!=null){
                 for (ConcurrentHashMap.Entry<Integer, Long> task2TupleSizeEntry : StatusOfLocalTasks.task2taskTupleSize.get(tid).entrySet()) {
                     int remoteTaskID = task2TupleSizeEntry.getKey();
-                    long totalTupleSize = task2TupleSizeEntry.getValue();
+                    long totalTupleSize = task2TupleSizeEntry.getValue();  // bytes
                     int tupleNum = StatusOfLocalTasks.task2taskTupleNum.get(tid).get(remoteTaskID);
                     double avgTupleSize;
                     if(tupleNum != 0)
@@ -552,6 +597,7 @@ public class StatusReporter implements Runnable {
         //updateRxBandwidth();
         //mConnectionClassManager.reset();
         updateRTT2Device();
+        updateLinkQuality2Device();
         updateWifiLinkSpeed(context);
         updateRSSI(context);
 
@@ -617,8 +663,8 @@ public class StatusReporter implements Runnable {
 
         // Start sampling D2D rtt time
         mD2DRTTSampler = D2DRTTSampler.getInstance();
-        ArrayList<String> ipAddresses = Supervisor.newAssignment.getIpAddresses();
-        mD2DRTTSampler.setIpAddresses(ipAddresses);
+        ArrayList<String> addresses = Supervisor.newAssignment.getAddresses();
+        mD2DRTTSampler.setAddresses(addresses);
         mD2DRTTSampler.startSampling();
 
         updateCPUMaxFrequency();
@@ -641,7 +687,7 @@ public class StatusReporter implements Runnable {
                 logger.error("The report thread has stopped because of [interruption] ...");
                 break;
             }
-            //updateTaskTrafficReportToUpstream();
+            updateTaskTrafficReportToUpstream();
             periodCounter++;
 
             if(periodCounter==PERIOD_RATIO) {

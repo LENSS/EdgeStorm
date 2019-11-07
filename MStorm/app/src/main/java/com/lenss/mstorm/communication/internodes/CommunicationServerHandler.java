@@ -46,7 +46,9 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 				ChannelManager.addChannelToRemote(ctx.getChannel(), pkt.simpleContent.get("GUID"));
 			} else if(pkt.type == InternodePacket.TYPE_DATA){
 				int taskID = pkt.toTask;
-				MessageQueues.collect(taskID, pkt);
+				if(StreamSelector.select(taskID)==StreamSelector.KEEP) {
+					MessageQueues.collect(taskID, pkt);
+				}
 			} else if (pkt.type == InternodePacket.TYPE_REPORT) {
 				int taskID = pkt.fromTask;
 				StatusOfDownStreamTasks.collectReport(taskID, pkt);

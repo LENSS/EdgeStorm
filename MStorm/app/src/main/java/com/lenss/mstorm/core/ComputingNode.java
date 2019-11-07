@@ -51,7 +51,7 @@ public class ComputingNode extends Service {
 
     //// SOME CONSTANT STRING
     public static final String ASSIGNMENT = "NEW_ASSIGNMENT";
-    public static final String SPOUT_ADDRESSES=MStorm.MStormDir+"SpoutAddrs";
+    public static final String REPORT_ADDRESSES=MStorm.MStormDir+"ReportRecord";
     public static final String EXEREC_ADDRESSES=MStorm.MStormDir+"ExeRecord";
 
     //// MESSAGE TYPES

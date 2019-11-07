@@ -1,10 +1,15 @@
 package com.lenss.mstorm.communication.internodes;
 
+import android.os.AsyncTask;
+import android.os.SystemClock;
 import android.util.Pair;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.zookeeper.Assignment;
+
+import org.apache.zookeeper.data.Stat;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -21,9 +26,11 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class MessageQueues {
     //// DISTINCT DATA QUEUES FOR TASKS
+
     // data queues
     public static Map<Integer,BlockingQueue<InternodePacket>> incomingQueues = new HashMap<Integer,BlockingQueue<InternodePacket>>();
     public static Map<Integer,BlockingQueue<Pair<String, InternodePacket>>> outgoingQueues = new HashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>>();
+
     // result queues
     public static ConcurrentHashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>> resultQueues = new ConcurrentHashMap<Integer,BlockingQueue<Pair<String, InternodePacket>>>();
 
@@ -63,8 +70,10 @@ public class MessageQueues {
         }
 
         if (incomingQueues.get(taskid)!=null) {
-            Long entryTime = System.nanoTime();
+            long entryTime = SystemClock.elapsedRealtimeNanos();
             StatusOfLocalTasks.task2EntryTimes.get(taskid).add(entryTime);
+            StatusOfLocalTasks.task2EntryTimesUpStream.get(taskid).add(entryTime);
+            StatusOfLocalTasks.task2EntryTimesNimbus.get(taskid).add(entryTime);
             Assignment assignment = ComputingNode.getAssignment();
             HashMap<Integer,String> task2Component = assignment.getTask2Component();
             Topology topology = ComputingNode.getTopology();
@@ -78,7 +87,6 @@ public class MessageQueues {
 
     // API for user: Retrieve rx tuple from incoming queue to process
     public static InternodePacket retrieveIncomingQueue(int taskid){
-
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
@@ -88,18 +96,24 @@ public class MessageQueues {
         if (incomingQueues.get(taskid)!=null) {
             InternodePacket incomingData = incomingQueues.get(taskid).poll();
             if(incomingData!=null) {
-                Long beginProcessingTime = System.nanoTime();
+                long beginProcessingTime = SystemClock.elapsedRealtimeNanos();
                 StatusOfLocalTasks.task2BeginProcessingTimes.get(taskid).add(beginProcessingTime);
             }
             return incomingData;
-        }
-        else
+        } else {
             return null;
+        }
     }
 
     // API for user: Add tuple to the outgoing queue for tx
     public static void emit(InternodePacket data, int taskid, String Component) throws InterruptedException {
         if (outgoingQueues.get(taskid)!=null){
+            if (StatusOfLocalTasks.task2BeginProcessingTimes.get(taskid).size()>0) {
+                long timePoint = SystemClock.elapsedRealtimeNanos();
+                long beginProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskid).remove(0);
+                long processingTime = timePoint - beginProcessingTime;
+                StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskid).add(processingTime);
+            }
             Pair<String, InternodePacket> outData = new Pair<String, InternodePacket>(Component, data);
             outgoingQueues.get(taskid).put(outData);
         }
@@ -186,11 +200,15 @@ public class MessageQueues {
 
         StatusOfLocalTasks.task2BeginProcessingTimes.clear();
 
+        StatusOfLocalTasks.task2EntryTimesUpStream.clear();
+
         StatusOfLocalTasks.task2EmitTimesUpStream.clear();
 
         StatusOfLocalTasks.task2ResponseTimesUpStream.clear();
 
         StatusOfLocalTasks.task2ProcessingTimesUpStream.clear();
+
+        StatusOfLocalTasks.task2EntryTimesNimbus.clear();
 
         StatusOfLocalTasks.task2EmitTimesNimbus.clear();
 

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="app_name">MStorm</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
@@ -11,4 +10,7 @@
     <string name="zk_address">Zookeeper IP Address</string>
     <string name="m_address">Master IP Address</string>
     <string name="action_submit">Submit Topology </string>
+    <string name="action_set_availability">Set Availability </string>
+    <string name="action_set_stream_selection_strategy">Set Stream Selection Strategy</string>
+    <string name="action_set_in_queue_parameter"> Set Input Queue Parameter</string>
 </resources>

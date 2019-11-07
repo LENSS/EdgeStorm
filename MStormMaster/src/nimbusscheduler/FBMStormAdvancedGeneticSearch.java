@@ -8,7 +8,7 @@ import java.util.List;
 import utils.RandomNumGenerator;
 import Jama.Matrix;
 
-public class AdvancedGeneticSearch {
+public class FBMStormAdvancedGeneticSearch {
 
 	public static final int initialPopulationSize = 20;	
 	public static final int parentMax = 10;				// parent size should not larger than 5
@@ -37,7 +37,7 @@ public class AdvancedGeneticSearch {
     Matrix bestSchedule;
     double bestMetric;
 	
-	public AdvancedGeneticSearch(double[][] d2dPropDelay, double[][] d2dTransDelay, double[][] d2dEnergyPerbit,
+	public FBMStormAdvancedGeneticSearch(double[][] d2dPropDelay, double[][] d2dTransDelay, double[][] d2dEnergyPerbit,
 								 double[][] t2tOutputRate, double[][] t2tPktAvgSize, int[] exptExecutorsOfDevice, double[] batt){		
 		devPropDelayGraph = new Matrix(d2dPropDelay);
 		devTransDelayGraph = new Matrix(d2dTransDelay);
@@ -50,7 +50,7 @@ public class AdvancedGeneticSearch {
 		colNum = devPropDelayGraph.getRowDimension();
 	}
 	
-	public AdvancedGeneticSearch(double[][] d2dPropDelay, double[][] d2dTransDelay, double[][] d2dEnergyPerbit, 
+	public FBMStormAdvancedGeneticSearch(double[][] d2dPropDelay, double[][] d2dTransDelay, double[][] d2dEnergyPerbit, 
 			                     double[][] mt2tOutputRate, double[][] mt2tPktAvgSize){
 		devPropDelayGraph = new Matrix(d2dPropDelay);
 		devTransDelayGraph = new Matrix(d2dTransDelay);
@@ -60,15 +60,15 @@ public class AdvancedGeneticSearch {
 	}
 	
 	public Matrix search(){
-		GeneticSearch gs1 = new GeneticSearch();
-		gs1.InitForMaxDelay(devPropDelayGraph, devTransDelayGraph, topOutputRateGraph, topPktAvgSizeGraph, constraints, GeneticSearch.MAXDELAY);
+		FBMStormGeneticSearch gs1 = new FBMStormGeneticSearch();
+		gs1.InitForMaxDelay(devPropDelayGraph, devTransDelayGraph, topOutputRateGraph, topPktAvgSizeGraph, constraints, FBMStormGeneticSearch.MAXDELAY);
 		gs1.search();
 		maxDelay = gs1.getBestMetric();
 		
 		System.out.println("maxDelay:"+maxDelay);
 		
-		GeneticSearch gs2 = new GeneticSearch();
-		gs2.InitForMaxEnergy(devEnergyPerbitGraph, topOutputRateGraph, topPktAvgSizeGraph, constraints, GeneticSearch.MAXENERGY);
+		FBMStormGeneticSearch gs2 = new FBMStormGeneticSearch();
+		gs2.InitForMaxEnergy(devEnergyPerbitGraph, topOutputRateGraph, topPktAvgSizeGraph, constraints, FBMStormGeneticSearch.MAXENERGY);
 		gs2.search();
 		maxEnergy = gs2.getBestMetric();
 		

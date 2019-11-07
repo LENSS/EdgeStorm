@@ -3,6 +3,8 @@ package com.lenss.mstorm.communication.internodes;
 import android.util.Pair;
 
 import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.core.MStorm;
+import com.lenss.mstorm.core.Supervisor;
 import com.lenss.mstorm.status.StatusOfDownStreamTasks;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.utils.GNSServiceHelper;
@@ -124,7 +126,8 @@ public class ChannelManager {
                 availRemoteTask2Channel.put(remoteTask, ch);
                 String comp = task2Comp.get(remoteTask);
                 if (comp2AvailRemoteTasks.containsKey(comp)) {
-                    comp2AvailRemoteTasks.get(comp).add(remoteTask);
+                    if(!comp2AvailRemoteTasks.get(comp).contains(remoteTask))
+                        comp2AvailRemoteTasks.get(comp).add(remoteTask);
                 } else {
                     CopyOnWriteArrayList<Integer> availTasks = new CopyOnWriteArrayList<>();
                     availTasks.add(remoteTask);
@@ -170,10 +173,12 @@ public class ChannelManager {
         StatusOfDownStreamTasks.removeAllStatus();
     }
 
-    public static int sendToRandomDownstreamTask(String component, InternodePacket pkt){
+    public static Status sendToRandomDownstreamTask(String component, InternodePacket pkt){
+        Status status = new Status();
         List<Integer> availTasks = comp2AvailRemoteTasks.get(component);
         if(availTasks == null || (availTasks!=null && availTasks.size()==0)){
-            return -1;
+            status.remoteTaskID = -1;
+            status.success = false;
         } else {
             int index = Helper.randInt(0, availTasks.size());
             int taskID = availTasks.get(index);
@@ -181,63 +186,92 @@ public class ChannelManager {
             if (ch != null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                return taskID;
+                status.remoteTaskID = taskID;
+                status.success = true;
             } else {
-                return -1;
+                status.remoteTaskID = taskID;
+                status.success = false;
             }
         }
+        return status;
     }
 
-    public static int sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt){
-        int taskID = -1;
-        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
-        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
+    public static Status sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt, boolean localRequired){
+        Status status;
 
-        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
-            taskID = sendToRandomDownstreamTask(component, pkt);
-            return taskID;
+        if(StatusOfDownStreamTasks.taskID2SojournTime.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // no remote task status yet
+            status = sendToRandomDownstreamTask(component, pkt);
         } else {
-            double minSojournTIme = Double.MAX_VALUE;
-            for(int availableTaskID: availableTasks){
+            status = new Status();
+            double minSojournTime = Double.MAX_VALUE;
+            int taskID = -1;
+            for(int availableTaskID: StatusOfDownStreamTasks.taskID2SojournTime.keySet()){
                 double sojounTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
-                if(sojounTime < minSojournTIme){
-                    minSojournTIme = sojounTime;
-                    taskID = availableTaskID;
+                double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
+                int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                sojounTime = sojounTime/linkQuality*(-rssi);
+                if(localRequired){
+                    if((sojounTime < minSojournTime) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
+                        minSojournTime = sojounTime;
+                        taskID = availableTaskID;
+                    }
+                } else {
+                    if(sojounTime < minSojournTime){
+                        minSojournTime = sojounTime;
+                        taskID = availableTaskID;
+                    }
                 }
             }
             Channel ch = availRemoteTask2Channel.get(taskID);
             if (ch!=null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                return taskID;
+                status.remoteTaskID = taskID;
+                status.success = true;
             } else {
-                return -1;
+                status.remoteTaskID = taskID;
+                status.success = false;
             }
         }
+        return status;
     }
 
     /********************************************************************************************
      *|--sojourn1/sojourn1--|--sojourn1/sojourn2--|-------- ... ---------|--sojourn1/sojournN--|*
      *          0                     1                     ...                   N-1           *
      *******************************************************************************************/
-    public static int sendToDownstreamTaskMinSojournTimeProb(String component, InternodePacket pkt){
-        int taskID = -1;
-        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
-        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
+    public static Status sendToDownstreamTaskSojournTimeProb(String component, InternodePacket pkt, boolean localRequired){
+        Status status;
 
-        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
-            taskID = sendToRandomDownstreamTask(component, pkt);
-            return taskID;
+        if(StatusOfDownStreamTasks.taskID2SojournTime.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // no downstream task has report yet
+            status = sendToRandomDownstreamTask(component, pkt);
         } else {
+            status = new Status();
             // unify the sojourn time based on sojourn1 and added to a probability slot
             ArrayList<Pair<Integer,Double>> sojournTimeBasedProbSlots = new ArrayList<>();
+            ArrayList<Integer> availableTasks = new ArrayList<>(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
             double sojourn1 = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTasks.get(0));
             double maxBound = 0.0;
             for(int availableTaskID: availableTasks){
-                double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
-                double unifiedSojournTime = sojourn1/sojournTime;
-                sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
-                maxBound += unifiedSojournTime;
+                if(localRequired){
+                    if(Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
+                        double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
+                        double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
+                        int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                        sojournTime = sojournTime / linkQuality * (-rssi);
+                        double unifiedSojournTime = sojourn1/sojournTime;
+                        sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
+                        maxBound += unifiedSojournTime;
+                    }
+                } else {
+                    double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
+                    double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
+                    int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                    sojournTime = sojournTime / linkQuality * (-rssi);
+                    double unifiedSojournTime = sojourn1/sojournTime;
+                    sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
+                    maxBound += unifiedSojournTime;
+                }
             }
             // find the specific channel based probability
             double randomDouble = Helper.randDouble(0,maxBound);
@@ -251,30 +285,75 @@ public class ChannelManager {
                     randomDouble -= slotTime;
                 }
             }
-            taskID = sojournTimeBasedProbSlots.get(selectedIndex).first;
+            int taskID = sojournTimeBasedProbSlots.get(selectedIndex).first;
             Channel ch = availRemoteTask2Channel.get(taskID);
             if (ch!=null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                return taskID;
+                status.remoteTaskID = taskID;
+                status.success = true;
             } else {
-                return -1;
+                status.remoteTaskID = taskID;
+                status.success = false;
             }
         }
+        return status;
     }
 
-    public static int sendToDownstreamTaskMinSojournTimeFineGrained(String component, InternodePacket pkt) {
-        int taskID = -1;
-        CopyOnWriteArrayList<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
-        HashSet<Integer> availableTaskSet = new HashSet<>(availableTasks);
-
-        if(!StatusOfDownStreamTasks.taskID2SojournTime.keySet().containsAll(availableTaskSet)){  // not every downstream task has report yet
-            taskID = sendToRandomDownstreamTask(component, pkt);
-            return taskID;
+    public static Status sendToDownstreamTaskMinEWT(String component, InternodePacket pkt, boolean localRequired) {
+        Status status;
+        if(StatusOfDownStreamTasks.taskID2InQueueLength.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // not every downstream task has report yet
+            status = sendToRandomDownstreamTask(component, pkt);
         } else {
-            //todo
-            return taskID;
+            status = new Status();
+            double minEWT = Double.MAX_VALUE;
+            int taskID = -1;
+
+            logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            logger.info("PKTID: " + pkt.ID);
+
+            for(int availableTaskID: StatusOfDownStreamTasks.taskID2InQueueLength.keySet()){
+                double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
+                double inQueueLength = StatusOfDownStreamTasks.taskID2InQueueLength.get(availableTaskID);
+                inQueueLength = (inQueueLength==0) ? 0.1 : inQueueLength;
+                double outQueueLength = StatusOfDownStreamTasks.taskID2OutQueueLength.get(availableTaskID);
+                outQueueLength = (outQueueLength==0)? 0.1 : outQueueLength;
+                double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
+                double outputRate = StatusOfDownStreamTasks.taskID2OutputRate.get(availableTaskID);
+                double WT = (inQueueLength/procRate > outQueueLength/outputRate) ? inQueueLength/procRate : outQueueLength/outputRate;
+                double EWT = WT /linkQuality;
+
+                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " INQL: " + inQueueLength + " OUTQL: " +
+                        outQueueLength + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
+
+                if(localRequired){
+                    if((EWT < minEWT) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
+                        minEWT = EWT;
+                        taskID = availableTaskID;
+                    }
+                } else {
+                    if(EWT < minEWT){
+                        minEWT = EWT;
+                        taskID = availableTaskID;
+                    }
+                }
+            }
+
+            logger.info("CHOOSE　" + " TaskID: " + taskID + " EWT: " + minEWT);
+            logger.info("-------------------------------------------------------------------------------------------------");
+
+            Channel ch = availRemoteTask2Channel.get(taskID);
+            if (ch!=null && ch.isWritable()) {
+                pkt.toTask = taskID;
+                ch.write(pkt);
+                status.remoteTaskID = taskID;
+                status.success = true;
+            } else {
+                status.remoteTaskID = taskID;
+                status.success = false;
+            }
         }
+        return status;
     }
 
     public static int broadcastToUpstreamTasks(int taskID, InternodePacket pkt) {

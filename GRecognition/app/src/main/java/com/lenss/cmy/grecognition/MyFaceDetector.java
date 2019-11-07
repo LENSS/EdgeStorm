@@ -3,6 +3,7 @@ package com.lenss.cmy.grecognition;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.os.SystemClock;
 import android.util.SparseArray;
 
 import com.google.android.gms.vision.Frame;
@@ -88,15 +89,15 @@ public class MyFaceDetector extends Processor {
         // Some controllers to control the processing frequency
         int PicProcessController = 0;
         final int PROCESS_FREQ = 1;
-
+        int taskID = getTaskID();
         while(!Thread.currentThread().interrupted())
         {
-            InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
+            InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(taskID);
             // Logical code starts
             if(pktRecv!=null){
-                long enterTime = System.nanoTime();
+                long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
-                logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
+                logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ taskID);
                 FaceData[] qfaces = null;           // QFD
                 List<VisionDetRet> dfaces = null;   // For DFD
                 SparseArray<Face> afaces = null;    // For AFD
@@ -181,7 +182,7 @@ public class MyFaceDetector extends Processor {
                     PicProcessController = 0;
                 }
 
-                logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+System.nanoTime());
+                logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+SystemClock.elapsedRealtimeNanos());
 
                 int bmfaceNum = bmfaces.size();
                 if(bmfaceNum > 0){
@@ -194,23 +195,23 @@ public class MyFaceDetector extends Processor {
                         InternodePacket pktSend = new InternodePacket();
                         pktSend.ID = pktRecv.ID;
                         pktSend.type = InternodePacket.TYPE_DATA;
-                        pktSend.fromTask = getTaskID();
+                        pktSend.fromTask = taskID;
                         pktSend.complexContent = imageByteArray;
                         pktSend.traceTask = pktRecv.traceTask;
-                        pktSend.traceTask.add("MFD_"+getTaskID());
+                        pktSend.traceTask.add("MFD_"+taskID);
                         pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
-                        pktSend.traceTaskEnterTime.put("MFD_"+ getTaskID(), enterTime);
+                        pktSend.traceTaskEnterTime.put("MFD_"+ taskID, enterTime);
                         pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
-                        long exitTime = System.nanoTime();
-                        pktSend.traceTaskExitTime.put("MFD_"+ getTaskID(), exitTime);
+                        long exitTime = SystemClock.elapsedRealtimeNanos();
+                        pktSend.traceTaskExitTime.put("MFD_"+ taskID, exitTime);
                         String component = MyFaceRecognizer.class.getName();
                         try {
-                            MessageQueues.emit(pktSend, getTaskID(), component);
+                            MessageQueues.emit(pktSend, taskID, component);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
-                    logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+System.nanoTime());
+                    logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+SystemClock.elapsedRealtimeNanos());
                 }
             }
         }

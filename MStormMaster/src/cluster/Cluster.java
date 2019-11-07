@@ -134,7 +134,8 @@ public class Cluster {
 			Map.Entry<Integer, Node> entry = it.next();
 			String addr = entry.getValue().getAddress();
 			int status = entry.getValue().getAddrStatus();
-			String addrAndStatus = addr + ":" + status;
+			double availability = entry.getValue().getNodeAvailibility();
+			String addrAndStatus = addr + ":" + status + ":" + availability;
 			int nodeId = entry.getKey();
 			if(!children.contains(addrAndStatus)){
 				it.remove();
@@ -152,10 +153,11 @@ public class Cluster {
 			String[] nodeAddrAndStatusArray = nodeAddrAndStatus.split("\\:");
 			String nodeAddr = nodeAddrAndStatusArray[0];
 			int nodeStatus = new Integer(nodeAddrAndStatusArray[1]);
+			double availability = new Double(nodeAddrAndStatusArray[2]);
 			if(!previousNodeAddr.contains(nodeAddrAndStatus)){
 				int nodeId = getNextNodeId();
 				if(nodeId!=0){
-					Node newNode = new Node(nodeAddr, nodeStatus);
+					Node newNode = new Node(nodeAddr, nodeStatus, availability);
 					nodeAddr2Avail.put(newNode.getAddress(), true);
 					addr2nodeID.put(newNode.getAddress(), nodeId);
 					nodeID2node.put(nodeId, newNode);
@@ -245,7 +247,6 @@ public class Cluster {
 		}		
 	}
 
-
 	public void deleteAssignment(int topologyID) {
 		Assignment oldAssignment = getAssignmentByTopologyId(topologyID);
 
@@ -277,9 +278,13 @@ public class Cluster {
 		MasterNode.getInstance().mZkClient.getDM().deleteAssignment(oldAssignment.getAssignId(), getClusterId());
 	}
 
-
 	public Boolean meetConditionForReScheduling(int topologyID){
-		// check if receive the new status report from all nodes
+		// ensure that the topology is not being rescheduled currently
+		if(topologyID2BeingRescheduled.get(topologyID)){
+			return false;
+		}
+				
+		// check if having received the new status report from all nodes
 		HashSet<Node> nodes = new HashSet<Node>(nodeID2node.values());
 		for(Node node: nodes){
 			if (!node.isStatusReportUpdated()){
@@ -287,19 +292,14 @@ public class Cluster {
 			}
 		}
 
-		Assignment curAssignment = topologyID2assignment.get(topologyID);
 		// check all nodes belonging to the topology to see if they report the task execution report
+		Assignment curAssignment = topologyID2assignment.get(topologyID);
 		HashSet<String> nodesForTopology = new HashSet<String>(curAssignment.getTask2Node().values());
 		for(String str: nodesForTopology){
 			Node node = nodeID2node.get(addr2nodeID.get(str));
 			if (!node.isReportContainingTaskInfor()){
 				return false;
 			}
-		}
-
-		// ensure that the topology is not being rescheduled currently
-		if(topologyID2BeingRescheduled.get(topologyID)){
-			return false;
 		}
 
 		return true;	

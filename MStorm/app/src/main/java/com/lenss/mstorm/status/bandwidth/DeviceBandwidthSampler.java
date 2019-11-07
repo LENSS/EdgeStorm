@@ -43,7 +43,7 @@ public class DeviceBandwidthSampler {
     public void startSampling() {
         if (mSamplingCounter.getAndIncrement() == 0) {
             mHandler.startSamplingThread();
-            mLastTimeReading = SystemClock.elapsedRealtime();
+            mLastTimeReading = SystemClock.elapsedRealtimeNanos();
         }
     }
 
@@ -62,7 +62,7 @@ public class DeviceBandwidthSampler {
 
         if (sPreviousBytesDown >= 0) {
             synchronized (this) {
-                long curTimeReading = SystemClock.elapsedRealtime();
+                long curTimeReading = SystemClock.elapsedRealtimeNanos();
                 mConnectionClassManager.addDownBandwidth(byteDiffDown, curTimeReading - mLastTimeReading);
                 mConnectionClassManager.addUpBandwidth(byteDiffUp, curTimeReading - mLastTimeReading);
 
