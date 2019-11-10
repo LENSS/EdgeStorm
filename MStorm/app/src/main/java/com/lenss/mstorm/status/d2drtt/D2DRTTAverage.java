@@ -3,6 +3,7 @@ package com.lenss.mstorm.status.d2drtt;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.status.StatusReporter;
 import com.lenss.mstorm.utils.GNSServiceHelper;
+import com.lenss.mstorm.utils.StatisticsCalculator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,7 +14,7 @@ import java.io.InputStreamReader;
  */
 public class D2DRTTAverage implements Runnable {
 
-    private final int NUMBER_OF_PACKTETS = 20;
+    private final int NUMBER_OF_PACKTETS = 40;
     private final double interval = 0.2;  // 200ms
     private final int size = 1500;  // 1.5k
     private String address;
@@ -78,7 +79,7 @@ public class D2DRTTAverage implements Runnable {
             int received = Integer.parseInt(result[3]);
             linkQuality = 1.0 * received / transmitted;
         } else {
-            linkQuality = 0.01;
+            linkQuality = StatisticsCalculator.SMALL_VALUE;
         }
         // Comment out for March Exercise - LTE Case
         StatusReporter.addRTT2Device(address, avgRtt);

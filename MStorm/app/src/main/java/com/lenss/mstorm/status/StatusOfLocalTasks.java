@@ -2,6 +2,7 @@ package com.lenss.mstorm.status;
 
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.topology.Topology;
+import com.lenss.mstorm.utils.StatisticsCalculator;
 import com.lenss.mstorm.zookeeper.Assignment;
 
 import java.util.HashMap;
@@ -109,8 +110,8 @@ public class StatusOfLocalTasks {
             task2EntryTimesForFstComp.put(taskID,entryTimesFirstComp);
         }
 
-        task2InputRate.put(taskID, 1.0 / (StatusReporter.REPORT_PERIOD_TO_UPSTREAM) * 1000);
-        task2OutputRate.put(taskID, 1.0 / (StatusReporter.REPORT_PERIOD_TO_UPSTREAM) * 1000);
-        task2ProcRate.put(taskID, 1.0 / (StatusReporter.REPORT_PERIOD_TO_UPSTREAM) * 1000);
+        task2InputRate.put(taskID, StatisticsCalculator.SMALL_VALUE);
+        task2OutputRate.put(taskID, StatisticsCalculator.SMALL_VALUE);
+        task2ProcRate.put(taskID, StatisticsCalculator.SMALL_VALUE);
     }
 }

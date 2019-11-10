@@ -5,6 +5,9 @@ import com.lenss.mstorm.status.StatusReporter;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class StatisticsCalculator {
+    public static double LARGE_VALUE = 1000000;
+    public static double SMALL_VALUE = 0.001;
+
     public static double getAvg(double[] array){
         double sum = 0;
         for (int i=0;i<array.length;i++){
@@ -30,7 +33,7 @@ public class StatisticsCalculator {
 
         if(type == StatusReporter.UPSTREAM){
             if(size==0) {
-                averageTime = StatusReporter.REPORT_PERIOD_TO_UPSTREAM;   // ms
+                averageTime = LARGE_VALUE;   // ms
             } else {
                 double totalTime = 0.0;
                 for (int i = 0; i < size; i++){
@@ -40,7 +43,7 @@ public class StatisticsCalculator {
             }
         } else {
             if(size==0) {
-                averageTime = StatusReporter.REPORT_PERIOD_TO_NIMBUS;   // ms
+                averageTime = LARGE_VALUE;   // ms
             } else {
                 double totalTime = 0.0;
                 for (int i = 0; i < size; i++){
@@ -60,15 +63,15 @@ public class StatisticsCalculator {
 
         if(type == StatusReporter.UPSTREAM) {
             if(size == 0){
-                throughput = 1.0 / (StatusReporter.REPORT_PERIOD_TO_UPSTREAM) * 1000;
+                throughput = SMALL_VALUE; // tuple/s
             } else {
-                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_UPSTREAM * 1000;
+                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_UPSTREAM * 1000; // tuple/s
             }
         } else {
             if(size == 0){
-                throughput = 1.0 / (StatusReporter.REPORT_PERIOD_TO_NIMBUS) * 1000;
+                throughput = SMALL_VALUE; // tuple/s
             } else {
-                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_NIMBUS * 1000;
+                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_NIMBUS * 1000; // tuple/s
             }
         }
 

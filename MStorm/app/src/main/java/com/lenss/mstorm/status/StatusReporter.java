@@ -339,9 +339,7 @@ public class StatusReporter implements Runnable {
 
     // add RTT time in ms to devices
     public static void addRTT2Device(String address, double rtt){
-        double preRtt = rttMap.get(address)==null? rtt : rttMap.get(address);
-        double newRtt = preRtt * MOVING_AVERAGE_RATIO + rtt * (1-MOVING_AVERAGE_RATIO);
-        rttMap.put(address,newRtt);
+        rttMap.put(address,rtt);
     }
 
     public static  Map<String, Double> getRTT2Device(){
@@ -349,9 +347,7 @@ public class StatusReporter implements Runnable {
     }
 
     public static void addLinkQuality2Device(String address, double linkQuality){
-        double preLinkQuality = linkQualityMap.get(address)==null? linkQuality : linkQualityMap.get(address);
-        double newLinkQuality = preLinkQuality * MOVING_AVERAGE_RATIO + linkQuality * (1-MOVING_AVERAGE_RATIO);
-        linkQualityMap.put(address,newLinkQuality);
+        linkQualityMap.put(address,linkQuality);
     }
 
     public static  Map<String, Double> getLinkQuality2Device(){

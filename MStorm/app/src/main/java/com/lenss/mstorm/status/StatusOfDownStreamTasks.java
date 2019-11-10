@@ -5,7 +5,10 @@ import android.os.SystemClock;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.core.Supervisor;
+import com.lenss.mstorm.utils.StatisticsCalculator;
 import com.lenss.mstorm.zookeeper.Assignment;
+
+import org.apache.zookeeper.data.Stat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,19 +20,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 
 public class StatusOfDownStreamTasks {
-    // Fine grained status
+    // Status from downstream reports
     public static Map<Integer, Double> taskID2ProcRate = new ConcurrentHashMap<>();           // tuple/s
     public static Map<Integer, Double> taskID2InputRate = new ConcurrentHashMap<>();          // tuple/s
     public static Map<Integer, Double> taskID2OutputRate = new ConcurrentHashMap<>();         // tuple/s
     public static Map<Integer, Double> taskID2InQueueLength = new ConcurrentHashMap<>();
     public static Map<Integer, Double> taskID2OutQueueLength = new ConcurrentHashMap<>();
+    public static Map<Integer, Double> taskID2RSSI = new ConcurrentHashMap<>();
+    public static Map<Integer, Double> taskID2SojournTime = new ConcurrentHashMap<>();        // ms
+
+    // Status from local probing results
     public static Map<Integer, Double> taskID2LinkQuality = new ConcurrentHashMap<>();
     public static Map<Integer, Double> taskID2RTT = new ConcurrentHashMap<>();
-    public static Map<Integer, Integer> taskID2RSSI = new ConcurrentHashMap<>();
 
-
-    // Coarse grained status
-    public static Map<Integer, Double> taskID2SojournTime = new ConcurrentHashMap<>();        // ms
 
     public static Map<Integer, Long> taskID2LastReportTime = new ConcurrentHashMap<>();
 
@@ -38,81 +41,100 @@ public class StatusOfDownStreamTasks {
     public static void collectReport(int downStreamTaskID, InternodePacket pkt){
         HashMap<String, String> simpleContent = pkt.simpleContent;
 
-        // get status from report packet
-        String addrOfDownStreamTask = Supervisor.newAssignment.getTask2Node().get(downStreamTaskID);
-        double linkQuality = StatusReporter.getLinkQuality2Device().get(addrOfDownStreamTask);
-        double rtt = StatusReporter.getRTT2Device().get(addrOfDownStreamTask);
+        // get status from downstream reports
         double procRate = new Double(simpleContent.get("procRate"));
         double inputRate = new Double(simpleContent.get("inputRate"));
         double outputRate = new Double(simpleContent.get("outputRate"));
         double inQueueLength = new Double(simpleContent.get("inQueueLength"));
         double outQueueLength = new Double(simpleContent.get("outQueueLength"));
         double sojournTime = new Double(simpleContent.get("sojournTime"));
-        int rssi = new Integer(simpleContent.get("rssi"));
+        double rssi = new Double(simpleContent.get("rssi"));
 
+        // get status from probing results
+        String addrOfDownStreamTask = Supervisor.newAssignment.getTask2Node().get(downStreamTaskID);
+        double linkQuality = StatusReporter.getLinkQuality2Device().get(addrOfDownStreamTask);
+        double rtt = StatusReporter.getRTT2Device().get(addrOfDownStreamTask);
 
         // update linkQuality
-        taskID2LinkQuality.put(downStreamTaskID, linkQuality);
+        if(taskID2LinkQuality.containsKey(downStreamTaskID)){
+            double prevLinkQuality = taskID2LinkQuality.get(downStreamTaskID);
+            taskID2LinkQuality.put(downStreamTaskID, prevLinkQuality * MOVING_AVERAGE_WEIGHT + linkQuality * (1-MOVING_AVERAGE_WEIGHT));
+        } else {
+            taskID2LinkQuality.put(downStreamTaskID, linkQuality);
+        }
 
         // update rtt
-        taskID2RTT.put(downStreamTaskID, rtt);
+        if(taskID2RTT.containsKey(downStreamTaskID)){
+            double prevRtt = taskID2RTT.get(downStreamTaskID);
+            taskID2RTT.put(downStreamTaskID, prevRtt * MOVING_AVERAGE_WEIGHT + rtt * (1-MOVING_AVERAGE_WEIGHT));
+        } else {
+            taskID2RTT.put(downStreamTaskID, rtt);
+        }
 
         // update rssi
-        taskID2RSSI.put(downStreamTaskID, rssi);
+        if(taskID2RSSI.containsKey(downStreamTaskID)){
+            double preRssi = taskID2RSSI.get(downStreamTaskID);
+            taskID2RSSI.put(downStreamTaskID, preRssi * MOVING_AVERAGE_WEIGHT + rssi * (1-MOVING_AVERAGE_WEIGHT));
+        } else {
+            taskID2RSSI.put(downStreamTaskID, rssi);
+        }
 
         // update processing rate
-        double prevProcRate;
         if(taskID2ProcRate.containsKey(downStreamTaskID)) {
-            prevProcRate = taskID2ProcRate.get(downStreamTaskID);
+            if(procRate != StatisticsCalculator.SMALL_VALUE) {
+                double prevProcRate = taskID2ProcRate.get(downStreamTaskID);
+                taskID2ProcRate.put(downStreamTaskID, prevProcRate * MOVING_AVERAGE_WEIGHT + procRate * (1-MOVING_AVERAGE_WEIGHT));
+            }
         } else {
-            prevProcRate = procRate;
+            taskID2ProcRate.put(downStreamTaskID, procRate);
         }
-        taskID2ProcRate.put(downStreamTaskID, prevProcRate * MOVING_AVERAGE_WEIGHT + procRate * (1-MOVING_AVERAGE_WEIGHT));
 
         // update input rate
-        double prevInputRate;
         if(taskID2InputRate.containsKey(downStreamTaskID)) {
-            prevInputRate = taskID2InputRate.get(downStreamTaskID);
+            if(inputRate != StatisticsCalculator.SMALL_VALUE){
+                double prevInputRate = taskID2InputRate.get(downStreamTaskID);
+                taskID2InputRate.put(downStreamTaskID, prevInputRate * MOVING_AVERAGE_WEIGHT + inputRate * (1-MOVING_AVERAGE_WEIGHT));
+            }
         } else {
-            prevInputRate = inputRate;
+            taskID2InputRate.put(downStreamTaskID, inputRate);
         }
-        taskID2InputRate.put(downStreamTaskID, prevInputRate * MOVING_AVERAGE_WEIGHT + inputRate * (1-MOVING_AVERAGE_WEIGHT));
 
         // update output rate
-        double prevOutputRate;
         if(taskID2OutputRate.containsKey(downStreamTaskID)) {
-            prevOutputRate = taskID2OutputRate.get(downStreamTaskID);
+            if(outputRate != StatisticsCalculator.SMALL_VALUE){
+                double prevOutputRate = taskID2OutputRate.get(downStreamTaskID);
+                taskID2OutputRate.put(downStreamTaskID, prevOutputRate * MOVING_AVERAGE_WEIGHT + outputRate * (1-MOVING_AVERAGE_WEIGHT));
+            }
         } else {
-            prevOutputRate = outputRate;
+            taskID2OutputRate.put(downStreamTaskID, outputRate);
         }
-        taskID2OutputRate.put(downStreamTaskID, prevOutputRate * MOVING_AVERAGE_WEIGHT + outputRate * (1-MOVING_AVERAGE_WEIGHT));
 
         // update input queue length
-        double prevInQueueLength;
         if(taskID2InQueueLength.containsKey(downStreamTaskID)) {
-            prevInQueueLength = taskID2InQueueLength.get(downStreamTaskID);
+            double prevInQueueLength = taskID2InQueueLength.get(downStreamTaskID);
+            taskID2InQueueLength.put(downStreamTaskID, prevInQueueLength * MOVING_AVERAGE_WEIGHT + inQueueLength * (1-MOVING_AVERAGE_WEIGHT));
         } else {
-            prevInQueueLength = inQueueLength;
+            taskID2InQueueLength.put(downStreamTaskID, inQueueLength);
         }
-        taskID2InQueueLength.put(downStreamTaskID, prevInQueueLength * MOVING_AVERAGE_WEIGHT + inQueueLength * (1-MOVING_AVERAGE_WEIGHT));
 
-        // update output queue rate
-        double prevOutQueueLength = 0.0;
+        // update output queue length
         if(taskID2OutQueueLength.containsKey(downStreamTaskID)) {
-            prevOutQueueLength = taskID2OutQueueLength.get(downStreamTaskID);
+            double prevOutQueueLength = taskID2OutQueueLength.get(downStreamTaskID);
+            taskID2OutQueueLength.put(downStreamTaskID, prevOutQueueLength * MOVING_AVERAGE_WEIGHT + outQueueLength * (1-MOVING_AVERAGE_WEIGHT));
         } else {
-            prevOutQueueLength = outQueueLength;
+            taskID2OutQueueLength.put(downStreamTaskID, outQueueLength);
         }
-        taskID2OutQueueLength.put(downStreamTaskID, prevOutQueueLength * MOVING_AVERAGE_WEIGHT + outQueueLength * (1-MOVING_AVERAGE_WEIGHT));
 
         // update sojourn time
-        double prevSojournTime = 0.0;
         if(taskID2SojournTime.containsKey(downStreamTaskID)) {
-            prevSojournTime = taskID2SojournTime.get(downStreamTaskID);
+            if(sojournTime != StatisticsCalculator.LARGE_VALUE) {
+                double prevSojournTime = taskID2SojournTime.get(downStreamTaskID);
+                taskID2SojournTime.put(downStreamTaskID, prevSojournTime * MOVING_AVERAGE_WEIGHT + sojournTime * (1-MOVING_AVERAGE_WEIGHT));
+            }
         } else {
-            prevSojournTime = sojournTime;
+            taskID2SojournTime.put(downStreamTaskID, sojournTime);
         }
-        taskID2SojournTime.put(downStreamTaskID, prevSojournTime * MOVING_AVERAGE_WEIGHT + sojournTime * (1-MOVING_AVERAGE_WEIGHT));
+
 
         // get the time getting this report packet
         Long reportTime = SystemClock.elapsedRealtimeNanos();

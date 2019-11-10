@@ -181,7 +181,7 @@ public class Dispatcher implements Runnable {
 
     public void updateDownStreamTaskStatusOnFailure(int remoteTaskID){
         if(StatusOfDownStreamTasks.taskID2LinkQuality.containsKey(remoteTaskID)){
-            StatusOfDownStreamTasks.taskID2LinkQuality.put(remoteTaskID, 0.01);
+            StatusOfDownStreamTasks.taskID2LinkQuality.put(remoteTaskID, 0.001);
         }
     }
 

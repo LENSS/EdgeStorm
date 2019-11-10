@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -198,17 +199,21 @@ public class ChannelManager {
 
     public static Status sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt, boolean localRequired){
         Status status;
+        List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
 
-        if(StatusOfDownStreamTasks.taskID2SojournTime.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // no remote task status yet
+        if(availableTasksWithStatus.size()==0){  // no remote task status yet
             status = sendToRandomDownstreamTask(component, pkt);
         } else {
             status = new Status();
             double minSojournTime = Double.MAX_VALUE;
             int taskID = -1;
-            for(int availableTaskID: StatusOfDownStreamTasks.taskID2SojournTime.keySet()){
+            for(int availableTaskID: availableTasksWithStatus){
                 double sojounTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                 double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
                 sojounTime = sojounTime/linkQuality*(-rssi);
                 if(localRequired){
                     if((sojounTime < minSojournTime) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
@@ -242,22 +247,26 @@ public class ChannelManager {
      *******************************************************************************************/
     public static Status sendToDownstreamTaskSojournTimeProb(String component, InternodePacket pkt, boolean localRequired){
         Status status;
+        List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
 
-        if(StatusOfDownStreamTasks.taskID2SojournTime.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // no downstream task has report yet
+        if(availableTasksWithStatus.size()==0){  // no downstream task has report yet
             status = sendToRandomDownstreamTask(component, pkt);
         } else {
             status = new Status();
             // unify the sojourn time based on sojourn1 and added to a probability slot
             ArrayList<Pair<Integer,Double>> sojournTimeBasedProbSlots = new ArrayList<>();
-            ArrayList<Integer> availableTasks = new ArrayList<>(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
-            double sojourn1 = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTasks.get(0));
+            ArrayList<Integer> availableTaskListWithStatus = new ArrayList<>(availableTasksWithStatus);
+            double sojourn1 = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskListWithStatus.get(0));
             double maxBound = 0.0;
-            for(int availableTaskID: availableTasks){
+            for(int availableTaskID: availableTaskListWithStatus){
                 if(localRequired){
                     if(Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
                         double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                         double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                        int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                        double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
                         sojournTime = sojournTime / linkQuality * (-rssi);
                         double unifiedSojournTime = sojourn1/sojournTime;
                         sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
@@ -266,7 +275,7 @@ public class ChannelManager {
                 } else {
                     double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                     double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                    int rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
+                    double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
                     sojournTime = sojournTime / linkQuality * (-rssi);
                     double unifiedSojournTime = sojourn1/sojournTime;
                     sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
@@ -302,7 +311,12 @@ public class ChannelManager {
 
     public static Status sendToDownstreamTaskMinEWT(String component, InternodePacket pkt, boolean localRequired) {
         Status status;
-        if(StatusOfDownStreamTasks.taskID2InQueueLength.keySet().size()==0 || StatusOfDownStreamTasks.taskID2LinkQuality.keySet().size()==0){  // not every downstream task has report yet
+        List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
+        Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2InQueueLength.keySet());
+        availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
+
+        if(availableTasksWithStatus.size()==0){  // not every downstream task has report yet
             status = sendToRandomDownstreamTask(component, pkt);
         } else {
             status = new Status();
@@ -312,19 +326,20 @@ public class ChannelManager {
             logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
             logger.info("PKTID: " + pkt.ID);
 
-            for(int availableTaskID: StatusOfDownStreamTasks.taskID2InQueueLength.keySet()){
+            for(int availableTaskID: availableTasksWithStatus){
                 double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
                 double inQueueLength = StatusOfDownStreamTasks.taskID2InQueueLength.get(availableTaskID);
-                inQueueLength = (inQueueLength==0) ? 0.1 : inQueueLength;
+                inQueueLength = (inQueueLength==0) ? 0.001 : inQueueLength;
                 double outQueueLength = StatusOfDownStreamTasks.taskID2OutQueueLength.get(availableTaskID);
-                outQueueLength = (outQueueLength==0)? 0.1 : outQueueLength;
+                outQueueLength = (outQueueLength==0)? 0.001 : outQueueLength;
+                double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(availableTaskID);
                 double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
                 double outputRate = StatusOfDownStreamTasks.taskID2OutputRate.get(availableTaskID);
                 double WT = (inQueueLength/procRate > outQueueLength/outputRate) ? inQueueLength/procRate : outQueueLength/outputRate;
                 double EWT = WT /linkQuality;
 
-                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " INQL: " + inQueueLength + " OUTQL: " +
-                        outQueueLength + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
+                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +
+                        outQueueLength + " INR: " + inputRate + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
 
                 if(localRequired){
                     if((EWT < minEWT) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
