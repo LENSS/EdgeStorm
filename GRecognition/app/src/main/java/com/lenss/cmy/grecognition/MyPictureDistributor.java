@@ -101,7 +101,7 @@ public class MyPictureDistributor extends Distributor {
                             e.printStackTrace();
                         }
 
-                        logger.info("TIME STAMP, PULL A PICTURE INTO MSTORM " + file);
+                        //logger.info("TIME STAMP, PULL A PICTURE INTO MSTORM " + file);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

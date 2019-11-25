@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 public class CommunicationClient  {
     private ClientBootstrap mClientBootstrap;
     private NioClientSocketChannelFactory factory;
-    public final int TIMEOUT = 5000;
+    public final int TIMEOUT = 2000;
     public void setup() {
         factory = new NioClientSocketChannelFactory(
                 Executors.newCachedThreadPool(), Executors.newCachedThreadPool());

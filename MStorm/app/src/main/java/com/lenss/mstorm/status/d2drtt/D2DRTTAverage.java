@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
  */
 public class D2DRTTAverage implements Runnable {
 
-    private final int NUMBER_OF_PACKTETS = 40;
+    private final int NUMBER_OF_PACKTETS = 20;
     private final double interval = 0.2;  // 200ms
     private final int size = 1500;  // 1.5k
     private String address;

@@ -9,6 +9,8 @@ import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.topology.Processor;
+import com.lenss.mstorm.utils.MDFSClient;
+
 import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,6 +27,8 @@ import java.util.Calendar;
 public class MyFaceSaver extends Processor {
     private final String TAG="MyFaceSaver";
     private String PIC_URL = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/StreamFDPic/";
+    private String MDFS_PIC_URL = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/MDFSPic/";
+
     Logger logger;
     SimpleDateFormat formatter;
 
@@ -46,7 +50,7 @@ public class MyFaceSaver extends Processor {
                 String name = pktRecv.simpleContent.get("name");
                 saveFaceFileWithName(frame,name);
                 long exitTime = SystemClock.elapsedRealtimeNanos();
-                logger.info("TIME STAMP, SAVES RECOGNIZED FACES INTO FILE SYSTEM, " + exitTime);
+                //logger.info("TIME STAMP, SAVES RECOGNIZED FACES INTO FILE SYSTEM, " + exitTime);
 
                 // calculate processing and response time for the last task, because it does not
                 // call MessageQueue.emit() and MessageQueue.retrieveOutgoingQueue() in Dispatcher class
@@ -91,11 +95,16 @@ public class MyFaceSaver extends Processor {
 
     public void saveFaceFileWithName(byte[] jpgBytes, String name){
         try {
-            File file = new File(PIC_URL + formatter.format(Calendar.getInstance().getTimeInMillis()) + "_" + name + ".jpg");
+            // store to localFile System
+            String fileName = PIC_URL + formatter.format(Calendar.getInstance().getTimeInMillis()) + "_" + name + ".jpg";
+            File file = new File(fileName);
             FileOutputStream fOut = new FileOutputStream(file);
             fOut.write(jpgBytes);
             fOut.flush();
             fOut.close();
+
+            // store to MDFS
+            MDFSClient.put(fileName, MDFS_PIC_URL);
         } catch (IOException e) {
             logger.error("file not found for stream fd pictures");
         }

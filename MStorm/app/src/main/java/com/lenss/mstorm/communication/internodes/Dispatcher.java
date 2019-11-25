@@ -171,18 +171,17 @@ public class Dispatcher implements Runnable {
 
     public void updateDownStreamTaskStatusOnSuccess(int remoteTaskID){
         if(StatusOfDownStreamTasks.taskID2InQueueLength.containsKey(remoteTaskID)){
-            double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(remoteTaskID);
-            double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(remoteTaskID);
-            double deltaInputQueueLength = (inputRate > procRate) ? (inputRate-procRate)/inputRate : 0;
+            //double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(remoteTaskID);
+            //double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(remoteTaskID);
+            //double deltaInputQueueLength = (inputRate > procRate) ? (inputRate-procRate)/inputRate : 0;
+            double deltaInputQueueLength = 1;
             double inputQueueLength = StatusOfDownStreamTasks.taskID2InQueueLength.get(remoteTaskID) + deltaInputQueueLength;
             StatusOfDownStreamTasks.taskID2InQueueLength.put(remoteTaskID, inputQueueLength);
         }
     }
 
     public void updateDownStreamTaskStatusOnFailure(int remoteTaskID){
-        if(StatusOfDownStreamTasks.taskID2LinkQuality.containsKey(remoteTaskID)){
-            StatusOfDownStreamTasks.taskID2LinkQuality.put(remoteTaskID, 0.001);
-        }
+        StatusOfDownStreamTasks.setDownStreamTaskDisconnected(remoteTaskID);
     }
 
     public void stop(){

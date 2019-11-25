@@ -36,7 +36,7 @@ public class StatusOfDownStreamTasks {
 
     public static Map<Integer, Long> taskID2LastReportTime = new ConcurrentHashMap<>();
 
-    private static double MOVING_AVERAGE_WEIGHT = 0.2;
+    private static double MOVING_AVERAGE_WEIGHT = 0.0;
 
     public static void collectReport(int downStreamTaskID, InternodePacket pkt){
         HashMap<String, String> simpleContent = pkt.simpleContent;
@@ -81,7 +81,7 @@ public class StatusOfDownStreamTasks {
 
         // update processing rate
         if(taskID2ProcRate.containsKey(downStreamTaskID)) {
-            if(procRate != StatisticsCalculator.SMALL_VALUE) {
+            if(procRate > StatisticsCalculator.SMALL_VALUE) {
                 double prevProcRate = taskID2ProcRate.get(downStreamTaskID);
                 taskID2ProcRate.put(downStreamTaskID, prevProcRate * MOVING_AVERAGE_WEIGHT + procRate * (1-MOVING_AVERAGE_WEIGHT));
             }
@@ -91,7 +91,7 @@ public class StatusOfDownStreamTasks {
 
         // update input rate
         if(taskID2InputRate.containsKey(downStreamTaskID)) {
-            if(inputRate != StatisticsCalculator.SMALL_VALUE){
+            if(inputRate > StatisticsCalculator.SMALL_VALUE){
                 double prevInputRate = taskID2InputRate.get(downStreamTaskID);
                 taskID2InputRate.put(downStreamTaskID, prevInputRate * MOVING_AVERAGE_WEIGHT + inputRate * (1-MOVING_AVERAGE_WEIGHT));
             }
@@ -101,7 +101,7 @@ public class StatusOfDownStreamTasks {
 
         // update output rate
         if(taskID2OutputRate.containsKey(downStreamTaskID)) {
-            if(outputRate != StatisticsCalculator.SMALL_VALUE){
+            if(outputRate > StatisticsCalculator.SMALL_VALUE){
                 double prevOutputRate = taskID2OutputRate.get(downStreamTaskID);
                 taskID2OutputRate.put(downStreamTaskID, prevOutputRate * MOVING_AVERAGE_WEIGHT + outputRate * (1-MOVING_AVERAGE_WEIGHT));
             }
@@ -127,7 +127,7 @@ public class StatusOfDownStreamTasks {
 
         // update sojourn time
         if(taskID2SojournTime.containsKey(downStreamTaskID)) {
-            if(sojournTime != StatisticsCalculator.LARGE_VALUE) {
+            if(sojournTime < StatisticsCalculator.LARGE_VALUE) {
                 double prevSojournTime = taskID2SojournTime.get(downStreamTaskID);
                 taskID2SojournTime.put(downStreamTaskID, prevSojournTime * MOVING_AVERAGE_WEIGHT + sojournTime * (1-MOVING_AVERAGE_WEIGHT));
             }
@@ -165,5 +165,17 @@ public class StatusOfDownStreamTasks {
         taskID2OutQueueLength.clear();
         taskID2SojournTime.clear();
         taskID2LastReportTime.clear();
+    }
+
+    public static void setDownStreamTaskDisconnected(int downStreamTaskID){
+        taskID2LinkQuality.put(downStreamTaskID, StatisticsCalculator.SMALL_VALUE);
+        taskID2RTT.put(downStreamTaskID, StatisticsCalculator.LARGE_VALUE);
+
+    }
+
+    public static void setDownStreamTaskConnected(int downStreamTaskID){
+        taskID2LinkQuality.put(downStreamTaskID, 1.0);
+        taskID2RTT.put(downStreamTaskID, 100.0);
+
     }
 }

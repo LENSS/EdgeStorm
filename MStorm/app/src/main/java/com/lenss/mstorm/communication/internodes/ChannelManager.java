@@ -127,13 +127,15 @@ public class ChannelManager {
                 availRemoteTask2Channel.put(remoteTask, ch);
                 String comp = task2Comp.get(remoteTask);
                 if (comp2AvailRemoteTasks.containsKey(comp)) {
-                    if(!comp2AvailRemoteTasks.get(comp).contains(remoteTask))
+                    if(!comp2AvailRemoteTasks.get(comp).contains(remoteTask)) {
                         comp2AvailRemoteTasks.get(comp).add(remoteTask);
+                    }
                 } else {
                     CopyOnWriteArrayList<Integer> availTasks = new CopyOnWriteArrayList<>();
                     availTasks.add(remoteTask);
                     comp2AvailRemoteTasks.put(comp, availTasks);
                 }
+                StatusOfDownStreamTasks.setDownStreamTaskConnected(remoteTask);
             }
         }
     }
@@ -151,7 +153,7 @@ public class ChannelManager {
                 if(comp2AvailRemoteTasks.containsKey(comp)){
                     comp2AvailRemoteTasks.get(comp).remove(remoteTask);
                 }
-                StatusOfDownStreamTasks.removeReport(remoteTask);
+                StatusOfDownStreamTasks.setDownStreamTaskDisconnected(remoteTask);
             }
         }
         channel2RemoteGUID.remove(ch.getId());
@@ -332,14 +334,20 @@ public class ChannelManager {
                 inQueueLength = (inQueueLength==0) ? 0.001 : inQueueLength;
                 double outQueueLength = StatusOfDownStreamTasks.taskID2OutQueueLength.get(availableTaskID);
                 outQueueLength = (outQueueLength==0)? 0.001 : outQueueLength;
-                double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(availableTaskID);
-                double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
-                double outputRate = StatusOfDownStreamTasks.taskID2OutputRate.get(availableTaskID);
-                double WT = (inQueueLength/procRate > outQueueLength/outputRate) ? inQueueLength/procRate : outQueueLength/outputRate;
-                double EWT = WT /linkQuality;
 
+//                double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(availableTaskID);
+//                double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
+//                double outputRate = StatusOfDownStreamTasks.taskID2OutputRate.get(availableTaskID);
+//                double WT = (inQueueLength/procRate > outQueueLength/outputRate) ? inQueueLength/procRate : outQueueLength/outputRate;
+//                double EWT = WT /linkQuality;
+//                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +
+//                        outQueueLength + " INR: " + inputRate + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
+
+
+                double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
+                double EWT = inQueueLength * outQueueLength / linkQuality / procRate;
                 logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +
-                        outQueueLength + " INR: " + inputRate + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
+                        outQueueLength + " PROCR: " + procRate + " EWT:" + EWT);
 
                 if(localRequired){
                     if((EWT < minEWT) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){

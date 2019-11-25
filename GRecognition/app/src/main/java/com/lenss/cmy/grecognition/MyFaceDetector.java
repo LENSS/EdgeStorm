@@ -97,7 +97,7 @@ public class MyFaceDetector extends Processor {
             if(pktRecv!=null){
                 long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
-                logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ taskID);
+                //logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ taskID);
                 FaceData[] qfaces = null;           // QFD
                 List<VisionDetRet> dfaces = null;   // For DFD
                 SparseArray<Face> afaces = null;    // For AFD
@@ -182,7 +182,7 @@ public class MyFaceDetector extends Processor {
                     PicProcessController = 0;
                 }
 
-                logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+SystemClock.elapsedRealtimeNanos());
+                //logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+SystemClock.elapsedRealtimeNanos());
 
                 int bmfaceNum = bmfaces.size();
                 if(bmfaceNum > 0){
@@ -211,7 +211,7 @@ public class MyFaceDetector extends Processor {
                             e.printStackTrace();
                         }
                     }
-                    logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+SystemClock.elapsedRealtimeNanos());
+                    //logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+SystemClock.elapsedRealtimeNanos());
                 }
             }
         }

@@ -109,7 +109,7 @@ dependencies {
 //    implementation 'org.apache.zookeeper:zookeeper:3.4.6'
 //    implementation 'com.google.code.gson:gson:2.2.4'
 //    implementation 'com.esotericsoftware.kryo:kryo:2.24.0'
-//    implementation files('libs/EK-client.jar')
+//    implementation files('libs/EdgeKeeper-client.jar')
 //}
 //
 //
@@ -121,7 +121,7 @@ dependencies {
 //
 //task fatJar(type: Jar) {
 //    from (zipTree('build/intermediates/bundles/release/classes.jar'))
-//    from (zipTree('libs/EK-client.jar'))
+//    from (zipTree('libs/EdgeKeeper-client.jar'))
 //    archiveName = 'mstorm.jar'
 //}
 //

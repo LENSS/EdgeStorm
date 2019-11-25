@@ -112,8 +112,7 @@ public class StatusReporter implements Runnable {
 
     private static int periodCounter = 0;
 
-    private static double MOVING_AVERAGE_RATIO = 0.2;
-
+    private static int startToReportToUpstreamCounter = 0;
 
     private static class StatusReporterHolder {
         public static final StatusReporter instance = new StatusReporter();
@@ -363,8 +362,8 @@ public class StatusReporter implements Runnable {
 
 
     public void updateLinkQuality2Device(){
-        for(Map.Entry<String, Double> rttEntry: linkQualityMap.entrySet()){
-            report2Nimbus.linkQualityMap.put(rttEntry.getKey(),rttEntry.getValue());
+        for(Map.Entry<String, Double> linkQualityEntry: linkQualityMap.entrySet()){
+            report2Nimbus.linkQualityMap.put(linkQualityEntry.getKey(),linkQualityEntry.getValue());
         }
     }
 
@@ -388,7 +387,6 @@ public class StatusReporter implements Runnable {
         int rSSI = myWifiInfo.getRssi();
         return rSSI;
     }
-
 
     //// METHODS FOR BATTERY POWER
     // update the battery capacity
@@ -505,7 +503,7 @@ public class StatusReporter implements Runnable {
                                 + "InQueueLength: " + String.format("%.2f", inQueueLength) + ","
                                 + "OutQueueLength: " + String.format("%.2f", outQueueLength) + ","
                                 + "rssi: " + rssi + "\n";
-                System.out.println(report);
+                //System.out.println(report);
                 try {
                     FileWriter fw = new FileWriter(ComputingNode.REPORT_ADDRESSES, true);
                     fw.write(report);
@@ -683,8 +681,11 @@ public class StatusReporter implements Runnable {
                 logger.error("The report thread has stopped because of [interruption] ...");
                 break;
             }
-            updateTaskTrafficReportToUpstream();
+            startToReportToUpstreamCounter++;
             periodCounter++;
+
+            if(startToReportToUpstreamCounter >=PERIOD_RATIO)
+                updateTaskTrafficReportToUpstream();
 
             if(periodCounter==PERIOD_RATIO) {
                 updateTaskTrafficReportToNimbus();
@@ -692,16 +693,13 @@ public class StatusReporter implements Runnable {
                 lastTimePointNimbus = SystemClock.elapsedRealtimeNanos();
                 String phoneStatusToNimbus = getPhoneStatusToNimbus();
                 logger.info("PERIODICAL REPORT TO NIMBUS: " + phoneStatusToNimbus);
-
                 if(masterNodeClient.getChannel()!=null) {
                     submitPhoneStatusToNimbus(phoneStatusToNimbus);
                     Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "[" + sdf.format(new Date()) + "]" + " A Status Report Sent to Master").sendToTarget();
                 }
-
                 // Report phone status to device screen for debugging
                 String phoneStatusDebug = getPhoneStatusForDebug();
                 mHandler.obtainMessage(MStorm.Message_PERIOD_REPORT, phoneStatusDebug).sendToTarget();
-
                 periodCounter = 0;
             }
         }

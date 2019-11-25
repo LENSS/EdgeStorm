@@ -59,7 +59,7 @@ public class D2DRTTSampler {
     }
 
     private class SamplingHandler extends Handler {
-        static final long SAMPLE_TIME = 9000;     // sampling every 9s
+        static final long SAMPLE_TIME = 5000;     // sampling every 5s
         static private final int MSG_START = 1;
 
         public SamplingHandler(Looper looper) {

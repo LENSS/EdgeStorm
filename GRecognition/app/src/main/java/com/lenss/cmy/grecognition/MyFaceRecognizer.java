@@ -41,7 +41,7 @@ public class MyFaceRecognizer extends Processor {
             if(pktRecv != null){
                 long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
-                logger.info("TIME STAMP 8, FACE RECOGNIZER RECEIVES A FRAME, "+ taskID);
+                //logger.info("TIME STAMP 8, FACE RECOGNIZER RECEIVES A FRAME, "+ taskID);
                 BitmapFactory.Options bitmapFatoryOptions = new BitmapFactory.Options();
                 Bitmap bitmap = BitmapFactory.decodeByteArray(frame,0,frame.length,bitmapFatoryOptions);
 
@@ -83,7 +83,7 @@ public class MyFaceRecognizer extends Processor {
                         pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
                         long exitTime = SystemClock.elapsedRealtimeNanos();
                         pktSend.traceTaskExitTime.put("MFR_"+taskID, exitTime);
-                        logger.info("TIME STAMP 9, FACE RECOGNIZER SAVES A FACE, "+ taskID);
+                        //logger.info("TIME STAMP 9, FACE RECOGNIZER SAVES A FACE, "+ taskID);
                         String component = MyFaceSaver.class.getName();
                         try {
                             MessageQueues.emit(pktSend, taskID, component);

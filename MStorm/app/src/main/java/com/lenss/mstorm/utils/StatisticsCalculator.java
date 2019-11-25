@@ -5,7 +5,7 @@ import com.lenss.mstorm.status.StatusReporter;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class StatisticsCalculator {
-    public static double LARGE_VALUE = 1000000;
+    public static double LARGE_VALUE = 1000000.0;
     public static double SMALL_VALUE = 0.001;
 
     public static double getAvg(double[] array){
@@ -28,7 +28,6 @@ public class StatisticsCalculator {
 
     public static double getAvgTime(CopyOnWriteArrayList<Long> timeRecord, int type){
         double averageTime;
-
         int size = timeRecord.size();
 
         if(type == StatusReporter.UPSTREAM){
@@ -58,23 +57,21 @@ public class StatisticsCalculator {
 
     public static double getThroughput(CopyOnWriteArrayList<Long> entryTimeRecord, int type) {
         double throughput;
-
         int size = entryTimeRecord.size();
 
         if(type == StatusReporter.UPSTREAM) {
             if(size == 0){
                 throughput = SMALL_VALUE; // tuple/s
             } else {
-                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_UPSTREAM * 1000; // tuple/s
+                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_UPSTREAM * 1000.0;
             }
         } else {
             if(size == 0){
                 throughput = SMALL_VALUE; // tuple/s
             } else {
-                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_NIMBUS * 1000; // tuple/s
+                throughput = 1.0 * size / StatusReporter.REPORT_PERIOD_TO_NIMBUS * 1000.0;
             }
         }
-
         return throughput;
     }
 }
