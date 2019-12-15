@@ -10,6 +10,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.log4j.Logger;
+
 import masternode.MasterNode;
 import topology.Topology;
 import utils.Serialization;
@@ -18,6 +20,8 @@ import zookeeper.Assignment;
 
 
 public class Cluster {
+	Logger logger = Logger.getLogger("Cluster");
+	
 	//// FOR ALL CLUSTERS
 	public static HashMap<Integer,Cluster> clusters = new HashMap<Integer, Cluster>();
 	private static int MAX_CLUSTERS_ID =100;
@@ -163,7 +167,7 @@ public class Cluster {
 					nodeID2node.put(nodeId, newNode);
 				}
 				else{
-					System.out.println("More than " + MAX_NODES_PER_CLUSTER + "nodes in cluster " + clusterId);
+					logger.info("More than " + MAX_NODES_PER_CLUSTER + "nodes in cluster " + clusterId);
 				}
 			}
 		}

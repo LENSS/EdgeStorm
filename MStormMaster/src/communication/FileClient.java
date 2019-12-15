@@ -9,6 +9,7 @@ import static org.jboss.netty.channel.Channels.pipeline;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
@@ -25,6 +26,7 @@ import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
 public class FileClient extends Thread
 {
+	Logger logger = Logger.getLogger("FileClient");
     private String apkFileDirectory;
     private ChannelFactory factory;
     private ClientBootstrap bootstrap;
@@ -64,7 +66,7 @@ public class FileClient extends Thread
     
     public void run(){
     	
-    	System.out.println("remote ip address is :"+ fileAddress);
+    	logger.info("remote ip address is :"+ fileAddress);
     	ChannelFuture future = bootstrap.connect(new InetSocketAddress(fileAddress, 8080));
 
         try

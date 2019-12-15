@@ -2,27 +2,38 @@ package com.lenss.mstorm.status;
 
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.utils.StatisticsCalculator;
 import com.lenss.mstorm.zookeeper.Assignment;
+
+import edu.tamu.cse.lenss.edgeKeeper.topology.TopoGraph;
+import edu.tamu.cse.lenss.edgeKeeper.topology.TopoLink;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.apache.log4j.Logger;
 
 /**
  * Created by cmy on 8/17/19.
  */
 
 public class StatusOfDownStreamTasks {
-    // Fine grained status
-    public static Map<Integer, Double> taskID2ProcRate = new ConcurrentHashMap<>();           // tuple/s
+    private static final String TAG="StatusOfDownStreamTasks";
+    private static Logger logger = Logger.getLogger(TAG);
+    
+    // DispatchStatus from downstream reports
     public static Map<Integer, Double> taskID2InputRate = new ConcurrentHashMap<>();          // tuple/s
     public static Map<Integer, Double> taskID2OutputRate = new ConcurrentHashMap<>();         // tuple/s
+    public static Map<Integer, Double> taskID2ProcRate = new ConcurrentHashMap<>();           // tuple/s
+    public static Map<Integer, Double> taskID2SojournTime = new ConcurrentHashMap<>();        // ms
     public static Map<Integer, Double> taskID2InQueueLength = new ConcurrentHashMap<>();
     public static Map<Integer, Double> taskID2OutQueueLength = new ConcurrentHashMap<>();
-
-    // Coarse grained status
-    public static Map<Integer, Double> taskID2SojournTime = new ConcurrentHashMap<>();        // ms
+    
+    // DispatchStatus from local probing results
+    public static Map<Integer, Double> taskID2LinkQuality = new ConcurrentHashMap<>();
+    public static Map<Integer, Double> taskID2RTT = new ConcurrentHashMap<>();
 
     public static Map<Integer, Long> taskID2LastReportTime = new ConcurrentHashMap<>();
 
@@ -86,7 +97,67 @@ public class StatusOfDownStreamTasks {
         taskID2LastReportTime.put(downStreamTaskID, reportTime);
     }
 
+    public static void collectAppStatusOfDownStreamTasks(Set<Integer> downStreamTasksAll, ReportToUpstreamWithStatusOfLocalTasks reportFromDownStreamNode){
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2InputRate.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2InputRate.put(entry.getKey(),entry.getValue());
+            }
+        }
+
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2OutputRate.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2OutputRate.put(entry.getKey(),entry.getValue());
+            }
+        }
+
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2ProcRate.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2ProcRate.put(entry.getKey(),entry.getValue());
+            }
+        }
+
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2SojournTime.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2SojournTime.put(entry.getKey(),entry.getValue());
+            }
+        }
+
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2InQueueLength.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2InQueueLength.put(entry.getKey(),entry.getValue());
+            }
+        }
+
+        for(Map.Entry<Integer, Double> entry: reportFromDownStreamNode.task2OutQueueLength.entrySet()){
+            if(downStreamTasksAll.contains(entry.getKey())){
+                taskID2OutQueueLength.put(entry.getKey(),entry.getValue());
+            }
+        }
+    }
+
+    public static void collectNetStatusOfDownStreamTasks(Set<Integer> downStreamTasksAll, TopoGraph networkInfo){
+        Assignment assign = ComputingNode.getAssignment();
+        Map<Integer, String> task2Node = assign.getTask2Node();
+
+        for(Integer downStreamTask: downStreamTasksAll){
+            String downStreamNode = task2Node.get(downStreamTask);
+            TopoLink link = networkInfo.getEdge(networkInfo.ownNode, networkInfo.getVertexByGuid(downStreamNode));
+            if(link!=null){
+                double linkQuality = 1.0/link.getEtx();
+                taskID2LinkQuality.put(downStreamTask, linkQuality);
+                if(link.rtt!=null) {
+	                double rtt = link.rtt;
+	                taskID2RTT.put(downStreamTask, rtt);
+                }
+            } else {
+                logger.info("No link found from " + networkInfo.ownNode.guid + " to " + downStreamNode);
+            }
+        }
+    }
+    
     public static void removeReport(int downStreamTaskID){
+        taskID2RTT.remove(downStreamTaskID);
+        taskID2LinkQuality.remove(downStreamTaskID);
         taskID2ProcRate.remove(downStreamTaskID);
         taskID2InputRate.remove(downStreamTaskID);
         taskID2OutputRate.remove(downStreamTaskID);
@@ -97,6 +168,8 @@ public class StatusOfDownStreamTasks {
     }
 
     public static void removeAllStatus(){
+        taskID2RTT.clear();
+        taskID2LinkQuality.clear();
         taskID2ProcRate.clear();
         taskID2InputRate.clear();
         taskID2OutputRate.clear();
@@ -104,5 +177,19 @@ public class StatusOfDownStreamTasks {
         taskID2OutQueueLength.clear();
         taskID2SojournTime.clear();
         taskID2LastReportTime.clear();
+    }
+    
+    public static void updateDownStreamTaskLink(int downStreamTaskID){
+        double preLinkQuality = taskID2LinkQuality.get(downStreamTaskID);
+        taskID2LinkQuality.put(downStreamTaskID, preLinkQuality/2);
+        double preRTT = taskID2RTT.get(downStreamTaskID);
+        taskID2RTT.put(downStreamTaskID, preRTT/2);
+
+    }
+
+    public static void initDownStreamTaskLink(int downStreamTaskID){
+        taskID2LinkQuality.put(downStreamTaskID, 1.0);
+        taskID2RTT.put(downStreamTaskID, 100.0);
+
     }
 }

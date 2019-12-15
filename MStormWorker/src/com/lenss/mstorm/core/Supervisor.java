@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.imageio.spi.RegisterableService;
+
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.junit.validator.PublicClassValidator;
@@ -18,6 +20,8 @@ import com.lenss.mstorm.zookeeper.ZookeeperClient;
 import sun.java2d.pipe.SpanClipRenderer;
 
 public class Supervisor{
+	Logger logger = Logger.getLogger("Supervisor");
+	
 	public static final int Message_LOG = 0;
     public static final int Message_GOP_RECVD = 1;
     public static final int Message_GOP_SEND = 2;
@@ -29,7 +33,7 @@ public class Supervisor{
 	private boolean isRuning =false;
 	public static MasterNodeClient masterNodeClient;
 	public static String cluster_id;
-	public Assignment newAssignment;
+	public static Assignment newAssignment;
 	public ComputingNode computingNode;
 	
 	public static Handler mHandler;
@@ -42,22 +46,49 @@ public class Supervisor{
 			public void handleMessage(int msg_t, String msg_c ) {
 				switch(msg_t) {
 					case Message_LOG:
-						System.out.println(msg_c);
+						logger.info(msg_c);
 						break;
 					case CLUSTER_ID:
 						register(msg_c);
-					    System.out.println("Have registered to MStormMaster");
+						logger.info("Have registered to MStormMaster");
 						break;
 					case Message_GOP_RECVD:
-						System.out.println("Received "+ msg_c + "bytes!");
+						logger.info("Received "+ msg_c + "bytes!");
 						break;
 					case Message_GOP_SEND:
-						System.out.println("Sent "+ msg_c + "bytes!");
+						logger.info("Sent "+ msg_c + "bytes!");
 						break;		
 				}
 			}
 		};
 		
+		// Start master node client
+		masterNodeClient = new MasterNodeClient(MStormWorker.MASTER_NODE_GUID);
+		masterNodeClient.connect();
+		// waiting for connection
+        while(!masterNodeClient.isConnected()){
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info("=================MStorm Master is connected=========================");
+        
+        // get zookeeper address
+        requestZooKeeperAddrFromMaster();
+        
+        // wait for getting Zookeeper address
+        while(MStormWorker.ZK_ADDRESS_IP==null){
+        	logger.info("=================Wait for getting Zookeeper address from MStorm master=========================");
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info("=================Get Zookeeper address from MStorm master already=========================");
+     
 		// Start zookeeper client
 		try {
 			mZKClient = new ZookeeperClient(this, MStormWorker.ZK_ADDRESS_IP);
@@ -68,18 +99,15 @@ public class Supervisor{
 			e.printStackTrace();
 		}
 		
-		// Start master node client
-		masterNodeClient = new MasterNodeClient(MStormWorker.MASTER_NODE_GUID);
-		masterNodeClient.connect();
-		
-        // join MStorm cluster
-        while(!masterNodeClient.isConnected()){
+        // wait for zookeeper connection
+        while(!mZKClient.isConnected()){
             try {
-                Thread.sleep(500);
+                Thread.sleep(200L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        logger.info("=================Zookeeper is connected=========================");
 		
         // join cluster
 		joinCluster();
@@ -106,6 +134,13 @@ public class Supervisor{
         masterNodeClient.sendRequest(req);
     }
 	
+    public void requestZooKeeperAddrFromMaster(){
+        Request req=new Request();
+        req.setReqType(Request.GETZOOKEEPER);
+        req.setIP(MStormWorker.localAddress);
+        masterNodeClient.sendRequest(req);
+    }
+    
     public void register(String cluster_id){
         this.cluster_id=cluster_id;
         mZKClient.register(cluster_id);

@@ -8,6 +8,7 @@ import java.util.HashSet;
 
 import nimbusscheduler.NimbusScheduler;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import cluster.Cluster;
@@ -17,8 +18,12 @@ import edu.tamu.cse.lenss.edgeKeeper.client.EKClient;
 
 public class MasterNode {
 	public static ZookeeperClient mZkClient;
+	public static String zooKeeperConnectionString;
+	Logger logger = Logger.getLogger("MasterNode");
+
 	public CommunicationServer mServer;
 	public NimbusScheduler mNimbusScheduler;
+
 
 	public static class MasterNodeHolder{
 		public static final MasterNode instance = new MasterNode();
@@ -31,12 +36,15 @@ public class MasterNode {
 	public void setup(){
 		// establish a zooKeeper client
 		try {
-			mZkClient = new ZookeeperClient(EKClient.getZooKeeperConnectionString());
+			zooKeeperConnectionString = EKClient.getZooKeeperConnectionString();
+			mZkClient = new ZookeeperClient(zooKeeperConnectionString);
+			logger.info("Get Zookeeper Connection String ... ");
 		} catch (KeeperException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		new Thread(mZkClient).start();
 		
 		// establish a communication server
@@ -48,9 +56,9 @@ public class MasterNode {
 		
 		// register as a service to GNS server
 		if(EKClient.addService("MStorm", "master")) {
-			System.out.println("MStorm master successfully register to GNS server ... ");
+			logger.info("MStorm master successfully register to GNS server ... ");
 		} else {
-			System.out.println("MStorm master can NOT register to GNS server ... ");
+			logger.info("MStorm master can NOT register to GNS server ... ");
 		}
 	}
 	

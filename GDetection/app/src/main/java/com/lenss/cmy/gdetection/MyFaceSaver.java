@@ -1,11 +1,15 @@
 package com.lenss.cmy.gdetection;
 
 import android.os.Environment;
+import android.os.SystemClock;
 
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.core.ComputingNode;
+import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.topology.Processor;
+import com.lenss.mstorm.utils.MDFSClient;
+
 import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,6 +26,8 @@ import java.util.Calendar;
 public class MyFaceSaver extends Processor {
     private final String TAG="MyFaceSaver";
     private String PIC_URL = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/StreamFDPic/";
+    private String MDFS_PIC_URL = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/MDFSPic/";
+
     Logger logger;
     SimpleDateFormat formatter;
 
@@ -33,21 +39,43 @@ public class MyFaceSaver extends Processor {
 
     @Override
     public void execute() {
+        int taskID = getTaskID();
         while (!Thread.currentThread().isInterrupted()) {
-            InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
+            InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(taskID);
             if(pktRecv!=null) {
-                long enterTime = System.nanoTime();
+                logger.debug("Pkt received at MyFaceSaver!");
+                long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
                 saveFaceFileWithName(frame);
-                logger.info("TIME STAMP, SAVES RECOGNIZED FACES INTO FILE SYSTEM, " + System.nanoTime());
-                long exitTime = System.nanoTime();
+                long exitTime = SystemClock.elapsedRealtimeNanos();
+
+                // calculate processing and response time for the last task, because it does not
+                // call MessageQueue.emit() and MessageQueue.retrieveOutgoingQueue() in Dispatcher class
+                if(StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).size()>0) {
+                    long startProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskID).remove(0);
+                    long processingTime = exitTime - startProcessingTime;
+                    StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskID).add(processingTime);
+                }
+
+                StatusOfLocalTasks.task2EmitTimesUpStream.get(taskID).add(exitTime);
+                StatusOfLocalTasks.task2EmitTimesNimbus.get(taskID).add(exitTime);
+
+                if(StatusOfLocalTasks.task2EntryTimes.get(taskID).size()>0) {
+                    long entryTime = StatusOfLocalTasks.task2EntryTimes.get(taskID).remove(0);
+                    long responseTime = exitTime - entryTime;
+                    StatusOfLocalTasks.task2ResponseTimesUpStream.get(taskID).add(responseTime);
+                    StatusOfLocalTasks.task2ResponseTimesNimbus.get(taskID).add(responseTime);
+                }
+
 
                 // performance log
                 String report = "RECV:" + "ID:" +pktRecv.ID + "--";
                 for(String task: pktRecv.traceTask){
-                    report += task + ":" + "(" + pktRecv.traceTaskEnterTime.get(task) + "," + pktRecv.traceTaskExitTime.get(task) + ")" + "--";
+                    report += task + ":" + "(" + pktRecv.traceTaskEnterTime.get(task) + "," + pktRecv.traceTaskExitTime.get(task) + ")" + ",";
                 }
-                report += "MFS_" + getTaskID() + ":" + "(" + enterTime + ","  + exitTime + ")" + "\n";
+                report += "MFS_" + getTaskID() + ":" + "(" + enterTime + ","  + exitTime + ")" + ","
+                        + "ResponseTime:" + (exitTime-pktRecv.ID)/1000000.0 + "\n";
+
                 try {
                     FileWriter fw = new FileWriter(ComputingNode.EXEREC_ADDRESSES, true);
                     fw.write(report);
@@ -66,11 +94,15 @@ public class MyFaceSaver extends Processor {
 
     public void saveFaceFileWithName(byte[] jpgBytes){
         try {
-            File file = new File(PIC_URL + formatter.format(Calendar.getInstance().getTimeInMillis()) + ".jpg");
+            String fileName = PIC_URL + formatter.format(Calendar.getInstance().getTimeInMillis())+ ".jpg";
+            File file = new File(fileName);
             FileOutputStream fOut = new FileOutputStream(file);
             fOut.write(jpgBytes);
             fOut.flush();
             fOut.close();
+
+            // store to MDFS
+            MDFSClient.put(fileName, MDFS_PIC_URL);
         } catch (IOException e) {
             logger.error("file not found for stream fd pictures");
         }

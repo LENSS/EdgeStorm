@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -24,6 +25,7 @@ import com.google.gson.Gson;
 
 public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, StringCallback, DataCallback{
 
+    Logger logger = Logger.getLogger("DataMonitor");
     
     private static final String CLUSTER_ZNODE="/clusters";
     private static final String ASSIGN_ZNODE="/assignments";
@@ -96,7 +98,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
             // connection has changed
             switch (event.getState()) {
             	case SyncConnected:
-            		System.out.println("Connectted to the Zookeeper server!\n");
+            		logger.info("Connectted to the Zookeeper server!\n");
             		break;
             	case Expired:
             		// It's all over
@@ -108,7 +110,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
             }
         } else {
             if (path != null && path.matches(NODE_CHANGE_PARTERN)) {
-            	System.out.println("processevent,getChildren ************************" + path);
+            	logger.info("processevent,getChildren ************************" + path);
              	zk.getChildren(path, true, this, null);
             }
         }
@@ -170,7 +172,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
         	}
        
         	if(path.matches(NODE_CHANGE_PARTERN)) {
-        		System.out.println("Cluster changed! Current Cluster size:"+children.size());       
+        		logger.info("Cluster changed! Current Cluster size:"+children.size());       
         		Cluster.getClusterById(getClusterIdFromPath(path)).updateComputingNodes(children);	
         	}
 
@@ -198,7 +200,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
     		return;
     	default:
     		// Retry errors
-    		System.err.println("Create to directory "+path+"Error");
+    		logger.info("Create to directory "+path+"Error");
     		zk.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT, this, null);
     		return; 	
         }

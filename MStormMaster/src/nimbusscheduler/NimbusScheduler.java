@@ -3,6 +3,8 @@ package nimbusscheduler;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.Logger;
+
 import topology.Topology;
 import utils.Serialization;
 import zookeeper.Assignment;
@@ -13,6 +15,8 @@ import masternode.MasterNode;
 import communication.Request;
 
 public class NimbusScheduler {
+	
+	Logger logger = Logger.getLogger("NimbusScheduler");
 
 	public NimbusScheduler() {
 	}
@@ -40,7 +44,7 @@ public class NimbusScheduler {
 			MasterNode.getInstance().mZkClient.getDM().addNewAssignment(newAssign,cluster.getClusterId());
 			return newAssign;
 		} else{		// cannot be scheduled
-			System.out.println("The topology from GUID: " + submitterAddress + "cannot be schduled!\n");
+			logger.info("The topology from GUID: " + submitterAddress + "cannot be schduled!\n");
 			return null;
 		}
 	}
@@ -48,7 +52,7 @@ public class NimbusScheduler {
 	public void reSchedule(int topologyId, Cluster cluster) {
 		AdvancedScheduling as = new AdvancedScheduling(topologyId, cluster, AdvancedScheduling.RESOURCE_S);
 		double[] oldAssignMetricsInCurrentEnvironment = as.getMetricsOfPreAllocation();
-		System.out.println("Time: " + "\t" + System.nanoTime() + "\t" +
+		logger.info("Time: " + "\t" + System.nanoTime() + "\t" +
 		                   "delayMetric: " + "\t" + oldAssignMetricsInCurrentEnvironment[0] + "\t" +
 						   "energyMetric: " + "\t" + oldAssignMetricsInCurrentEnvironment[1]);
 		

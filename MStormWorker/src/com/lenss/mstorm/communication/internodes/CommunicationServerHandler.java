@@ -40,7 +40,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		if(pkt!=null) {
 			if (pkt.type == InternodePacket.TYPE_INIT){
 				ChannelManager.addChannelToRemote(ctx.getChannel(), pkt.simpleContent.get("GUID"));
-				System.out.println("***************************" + pkt.simpleContent.get("GUID"));
+				logger.info("***************************" + pkt.simpleContent.get("GUID"));
 			} else if (pkt.type == InternodePacket.TYPE_DATA){
 				int taskID = pkt.toTask;
 				MessageQueues.collect(taskID, pkt);
@@ -59,9 +59,9 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 		super.exceptionCaught(ctx, e);
 		Channel ch = ctx.getChannel();
-		System.out.println("******************************");
-		System.out.println(e);
-		System.out.println("******************************");
+		logger.info("******************************");
+		logger.info(e);
+		logger.info("******************************");
 		// a connected channel gets disconnected
 		if(ch!=null && ch.getRemoteAddress()!=null) {
 			String channelClosedMSG = "P-server " + ((InetSocketAddress)ch.getLocalAddress()).getAddress().getHostAddress()

@@ -15,6 +15,7 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -105,8 +106,6 @@ public class FileServerHandler extends SimpleChannelUpstreamHandler {
 
                 public void operationProgressed(ChannelFuture future,
                                                 long amount, long current, long total) {
-                    System.out.printf("%s: %d / %d (+%d)%n", path, current,
-                            total, amount);
                 }
             });
         }

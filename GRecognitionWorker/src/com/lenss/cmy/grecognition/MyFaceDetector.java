@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 
 import org.opencv.core.Rect;
 import org.opencv.highgui.HighGui;
+import org.apache.log4j.Logger;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
@@ -29,6 +30,9 @@ import com.lenss.mstorm.topology.Processor;
 
 
 public class MyFaceDetector extends Processor {
+	
+	Logger logger = Logger.getLogger("MyFaceDetector");
+	
 	private final int openImajFD = 1;
 	private HaarCascadeDetector openImajFaceDet = null;
 	
@@ -41,11 +45,11 @@ public class MyFaceDetector extends Processor {
     	if(faceDectLib == openImajFD) {
     		openImajFaceDet = new HaarCascadeDetector();
     	} else {
-    	    System.out.println("Loading OpenCV and FaceDetector");
+    		logger.info("Loading OpenCV and FaceDetector");
     	    nu.pattern.OpenCV.loadShared();
     		File haarFile = new File("haarcascade_frontalface_alt.xml");
     		openCVFaceDet = new CascadeClassifier(haarFile.getAbsolutePath());
-    		System.out.println("Loaded OpenCV and FaceDetector");
+    		logger.info("Loaded OpenCV and FaceDetector");
     	}
     	choosenFD = faceDectLib;
     }
@@ -59,12 +63,14 @@ public class MyFaceDetector extends Processor {
 	public void execute() {
 		int PicProcessController = 0;
 	    final int PROCESS_FREQ = 1;
-		
+	    int taskID = getTaskID();
+	    
 	    while (!Thread.currentThread().isInterrupted()) {
 			InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
 	        if(pktRecv!=null){
+	        	long enterTime = System.nanoTime();
 	            byte[] frame = pktRecv.complexContent;
-	            System.out.println("FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
+	            logger.info("FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
 	            
 	            PicProcessController++;
 	            if(PicProcessController == PROCESS_FREQ) {
@@ -84,7 +90,7 @@ public class MyFaceDetector extends Processor {
 			            	long startTime1 = System.nanoTime();
 			            	List <DetectedFace> detFaces = openImajFaceDet.detectFaces(fimage);
 			            	long endTime1 = System.nanoTime();
-			            	System.out.println("Time:" + (endTime1 - startTime1)/1000000000.0);
+			            	logger.info("Time:" + (endTime1 - startTime1)/1000000000.0);
 			            	for (DetectedFace detFace: detFaces) {
 		                    	BufferedImage face = ImageUtilities.createBufferedImage(detFace.getFacePatch());
 		                    	faces.add(face);
@@ -97,7 +103,7 @@ public class MyFaceDetector extends Processor {
 	            			long startTime2 = System.nanoTime();
 	            			openCVFaceDet.detectMultiScale(matImage, matFaceList);
 	            			long endTime2 = System.nanoTime();	            			
-	            			System.out.println("Time:" + (endTime2 - startTime2)/1000000000.0);
+	            			logger.info("Time:" + (endTime2 - startTime2)/1000000000.0);
 	            			for(Rect faceRectangle: matFaceList.toList()) {
 	            				Mat faceImage = matImage.submat(faceRectangle);
 	            				BufferedImage face = (BufferedImage) HighGui.toBufferedImage(faceImage);
@@ -116,9 +122,17 @@ public class MyFaceDetector extends Processor {
 						}
                         byte[] imageByteArray = outputStream.toByteArray();          
                         InternodePacket pktSend = new InternodePacket();
+                        pktSend.ID = pktRecv.ID;
                         pktSend.type = InternodePacket.TYPE_DATA;
                         pktSend.fromTask = getTaskID();
                         pktSend.complexContent = imageByteArray;
+                        pktSend.traceTask = pktRecv.traceTask;
+                        pktSend.traceTask.add("MFD_"+taskID);
+                        pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                        pktSend.traceTaskEnterTime.put("MFD_"+ taskID, enterTime);
+                        pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                        long exitTime = System.nanoTime();
+                        pktSend.traceTaskExitTime.put("MFD_"+ taskID, exitTime);
                         String component = MyFaceRecognizer.class.getName();
                         try {
                             MessageQueues.emit(pktSend, getTaskID(), component);
@@ -126,7 +140,7 @@ public class MyFaceDetector extends Processor {
                             e.printStackTrace();
                         }
                     }
-                    System.out.println("Faces detected and sent to face recognizer, " + System.nanoTime());
+                    logger.info("Faces detected and sent to face recognizer, " + System.nanoTime());
    
                     PicProcessController = 0;
 	            }

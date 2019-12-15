@@ -49,10 +49,13 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 		InternodePacket pkt=(InternodePacket) e.getMessage();
 		if(pkt!=null) {
 			if(pkt.type == InternodePacket.TYPE_INIT){
+				logger.debug("Init pkt received from:"+ctx.getChannel().getRemoteAddress());
 				ChannelManager.addChannelToRemote(ctx.getChannel(), pkt.simpleContent.get("GUID"));
 			} else if(pkt.type == InternodePacket.TYPE_DATA){
+				logger.debug("Data pkt received from:"+ctx.getChannel().getRemoteAddress());
 				int taskID = pkt.toTask;
 				if(StreamSelector.select(taskID)==StreamSelector.KEEP) {
+					logger.debug("Data pkt kept!");
 					MessageQueues.collect(taskID, pkt);
 				}
 			} else if (pkt.type == InternodePacket.TYPE_REPORT) {

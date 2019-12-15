@@ -4,13 +4,10 @@ package com.lenss.mstorm.executor;
  *
  */
 
-import com.lenss.mstorm.status.StatusReporter;
-import com.lenss.mstorm.topology.BTask;
-import com.lenss.mstorm.utils.TAGs;
 
-import android.os.Debug;
+import com.lenss.mstorm.status.StatusReporterEKBased;
+import com.lenss.mstorm.topology.BTask;
 import android.os.Process;
-import android.util.Log;
 
 import org.apache.log4j.Logger;
 
@@ -25,12 +22,13 @@ public class Executor implements Runnable {
 
 	@Override
 	public void run() {
-		StatusReporter reporter = StatusReporter.getInstance();
-		reporter.addTaskForMonitoring(Process.myTid(), task.getTaskID(), task.getComponent());
+		// StatusReporter reporter = StatusReporter.getInstance();
+		StatusReporterEKBased reporter = StatusReporterEKBased.getInstance();
+		reporter.addTaskForMonitoring(Process.myTid(), task);
 		task.prepare();
 		task.execute();
 		if (Thread.currentThread().isInterrupted()) {
-			logger.info( "Task "+task.getTaskID()+" for component "+ task.getComponent() + "has been canceled!");
+			logger.info( "Task "+task.getTaskID()+" for component "+ task.getComponent() + "is canceled!");
 			task.postExecute();
 		}
 	}

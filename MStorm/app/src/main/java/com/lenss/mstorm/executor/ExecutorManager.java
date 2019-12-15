@@ -1,6 +1,5 @@
 package com.lenss.mstorm.executor;
 
-
 import java.util.HashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -34,8 +33,10 @@ public class ExecutorManager extends ThreadPoolExecutor {
                 Thread.currentThread().interrupt(); // ignore/reset
             }
         }
-        if (t != null)
-            System.out.println(t);
+        if (t != null){
+            t.printStackTrace();
+        }
+
     }
 
     public void submitTask(Integer taskID, Runnable runnableTask){

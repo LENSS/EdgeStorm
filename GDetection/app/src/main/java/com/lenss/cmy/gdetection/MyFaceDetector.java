@@ -3,6 +3,7 @@ package com.lenss.cmy.gdetection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.os.SystemClock;
 import android.util.SparseArray;
 
 import com.google.android.gms.vision.Frame;
@@ -98,7 +99,7 @@ public class MyFaceDetector extends Processor {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
             // Logical code starts
             if(pktRecv!=null){
-                long enterTime = System.nanoTime();
+                long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
                 logger.info("TIME STAMP 5, FACE DETECTOR RECEIVES A FRAME, "+ getTaskID());
 
@@ -186,7 +187,7 @@ public class MyFaceDetector extends Processor {
                     PicProcessController = 0;
                 }
 
-                logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+System.nanoTime());
+                //logger.info("TIME STAMP 6, FACE DETECTOR FINISHES PROCESSING A FRAME, "+System.nanoTime());
 
                 int bmfaceNum = bmfaces.size();
                 if(bmfaceNum > 0){
@@ -206,7 +207,7 @@ public class MyFaceDetector extends Processor {
                         pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
                         pktSend.traceTaskEnterTime.put("MFD_"+ getTaskID(), enterTime);
                         pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
-                        long exitTime = System.nanoTime();
+                        long exitTime = SystemClock.elapsedRealtimeNanos();
                         pktSend.traceTaskExitTime.put("MFD_"+ getTaskID(), exitTime);
                         String component = MyFaceSaver.class.getName();
                         try {
@@ -215,7 +216,7 @@ public class MyFaceDetector extends Processor {
                             e.printStackTrace();
                         }
                     }
-                    logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+System.nanoTime());
+                    //logger.info("TIME STAMP 7, FACE DETECTOR CATCHES FACES, "+System.nanoTime());
                 }
             }
         }

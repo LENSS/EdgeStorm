@@ -45,6 +45,7 @@ public class MyFaceSaver extends Processor {
         while (!Thread.currentThread().isInterrupted()) {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(taskID);
             if(pktRecv!=null) {
+                logger.debug("Pkt received at MyFaceSaver!");
                 long enterTime = SystemClock.elapsedRealtimeNanos();
                 byte[] frame = pktRecv.complexContent;
                 String name = pktRecv.simpleContent.get("name");

@@ -5,10 +5,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import utils.RandomNumGenerator;
 import Jama.Matrix;
 
 public class FBMStormAdvancedGeneticSearch {
+	
+	Logger logger = Logger.getLogger("FBMStormAdvancedGeneticSearch");
 
 	public static final int initialPopulationSize = 20;	
 	public static final int parentMax = 10;				// parent size should not larger than 5
@@ -65,14 +69,14 @@ public class FBMStormAdvancedGeneticSearch {
 		gs1.search();
 		maxDelay = gs1.getBestMetric();
 		
-		System.out.println("maxDelay:"+maxDelay);
+		logger.info("maxDelay:"+maxDelay);
 		
 		FBMStormGeneticSearch gs2 = new FBMStormGeneticSearch();
 		gs2.InitForMaxEnergy(devEnergyPerbitGraph, topOutputRateGraph, topPktAvgSizeGraph, constraints, FBMStormGeneticSearch.MAXENERGY);
 		gs2.search();
 		maxEnergy = gs2.getBestMetric();
 		
-		System.out.println("maxEnergy:"+maxEnergy);
+		logger.info("maxEnergy:"+maxEnergy);
 		
 		List<Matrix> population = initialSchedulePopulation(initialPopulationSize);
 		bestSchedule = selectMinMetricSchedule(population);

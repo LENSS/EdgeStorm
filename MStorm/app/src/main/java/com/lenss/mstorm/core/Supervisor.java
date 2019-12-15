@@ -17,9 +17,14 @@ import com.lenss.mstorm.utils.Intents;
 import com.lenss.mstorm.zookeeper.Assignment;
 import com.lenss.mstorm.zookeeper.AssignmentProcessor;
 import com.lenss.mstorm.zookeeper.ZookeeperClient;
+
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.client.ZooKeeperSaslClient;
 
 public class Supervisor extends Service implements AssignmentProcessor {
+    private final String TAG="Supervisor";
+    Logger logger = Logger.getLogger(TAG);
+
     private ZookeeperClient mZKClient=null;
     private boolean isRuning =false;
     private final IBinder mBinder = new LocalBinder();
@@ -27,6 +32,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
     public static Handler mHandler;
     public static String cluster_id;
     public static Assignment newAssignment;
+
     Intent comptuingIntent;
 
     // PROCESS ID
@@ -39,6 +45,34 @@ public class Supervisor extends Service implements AssignmentProcessor {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Toast.makeText(this, "Supervisor Starting", Toast.LENGTH_SHORT).show();
         processID = android.os.Process.myPid();
+        // connect to MStorm master
+        if(masterNodeClient==null) {
+            masterNodeClient = new MasterNodeClient(MStorm.MASTER_NODE_GUID);
+            masterNodeClient.connect();
+        }
+        // waiting for connection
+        while(!masterNodeClient.isConnected()){
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info("==== MStorm Master is connected ====");
+
+        // get zookeeper address
+        requestZooKeeperAddrFromMaster();
+        // wait for getting Zookeeper address
+        while(MStorm.ZK_ADDRESS_IP==null){
+            logger.info("==== Wait for getting Zookeeper address from MStorm master ====");
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info("==== Get Zookeeper address from MStorm master successfully ====");
+
         // connect to zookeeper
         if(mZKClient==null)
         {
@@ -46,19 +80,17 @@ public class Supervisor extends Service implements AssignmentProcessor {
             mZKClient = new ZookeeperClient(this, MStorm.ZK_ADDRESS_IP);
             mZKClient.connect();
         }
-        // connect to MStorm master
-        if(masterNodeClient==null) {
-            masterNodeClient = new MasterNodeClient(MStorm.MASTER_NODE_GUID);
-            masterNodeClient.connect();
-        }
-        // join MStorm cluster
-        while(!masterNodeClient.isConnected()){
+        // wait for zookeeper connection
+        while(!mZKClient.isConnected()){
             try {
-                Thread.sleep(500);
+                Thread.sleep(200L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        logger.info("==== Zookeeper is connected ====");
+
+        // join MStorm cluster
         joinCluster();
 
         // Start this service as foreground service
@@ -126,6 +158,13 @@ public class Supervisor extends Service implements AssignmentProcessor {
         masterNodeClient.sendRequest(req);
     }
 
+    public void requestZooKeeperAddrFromMaster(){
+        Request req=new Request();
+        req.setReqType(Request.GETZOOKEEPER);
+        req.setIP(MStorm.getLocalAddress());
+        masterNodeClient.sendRequest(req);
+    }
+
     public void register(String cluster_id){
         this.cluster_id=cluster_id;
         mZKClient.register(cluster_id);
@@ -157,7 +196,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
 //            // Wait apk file to be downloaded
 //            while (!FileClientHandler.FileOnMachine) {
 //                try {
-//                    System.out.println("File not download yet!");
+//                    logger.info("File not download yet!");
 //                    Thread.sleep(1000);
 //                } catch (InterruptedException e1) {
 //                    e1.printStackTrace();
@@ -185,7 +224,6 @@ public class Supervisor extends Service implements AssignmentProcessor {
                     if(ComputingNode.noMoreTupleInMStorm())
                         noMoreTuplesFlag++;
                     try {
-                        System.out.println("There are still tuples in MStorm!");
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -193,7 +231,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
                 }*/
 
                 try {
-                    System.out.println("Wait the remaining tuples to be processed!");
+                    logger.info("Wait the remaining tuples to be processed!");
                     Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();

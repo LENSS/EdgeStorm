@@ -2,7 +2,6 @@ package com.lenss.mstorm.status;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -23,63 +22,39 @@ import android.net.TrafficStats;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.*;
-import android.os.Process;
 
 import com.lenss.mstorm.communication.internodes.ChannelManager;
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.core.Supervisor;
-import com.lenss.mstorm.executor.Executor;
-import com.lenss.mstorm.utils.Helper;
-import com.lenss.mstorm.communication.masternode.MasterNodeClient;
+import com.lenss.mstorm.topology.BTask;
 import com.lenss.mstorm.communication.masternode.Request;
 import com.lenss.mstorm.core.ComputingNode;
 import com.lenss.mstorm.core.MStorm;
-import com.lenss.mstorm.status.bandwidth.ConnectionClassManager;
-import com.lenss.mstorm.status.bandwidth.DeviceBandwidthSampler;
 import com.lenss.mstorm.status.d2drtt.D2DRTTSampler;
 import com.lenss.mstorm.utils.Serialization;
 import com.lenss.mstorm.utils.StatisticsCalculator;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
-
 
 /**
  * Created by cmy on 8/3/16.
  */
+
 public class StatusReporter implements Runnable {
-    /// LOGGER
     private final String TAG="StatusReporter";
     Logger logger = Logger.getLogger(TAG);
 
-    //// PARAMETERS FOR DEBUGGING AND REPORTING
-    private Handler mHandler;
-    private Context context;
-    private MasterNodeClient masterNodeClient;
-    private String cluster_id;
+    private boolean finished = false;
+
     private ReportToNimbus report2Nimbus;
-    //private boolean finished;
 
-    //// AUXILIARY PARAMETERS FOR CALCULATING CPU WORKLOAD STATUS
-    // Task ID to component
-    private Map<Integer,String> task2Component;
-    // Task ID to thread ID
-    private Map<Integer,Integer> task2Thread;
-    // Thread ID to task ID
-    private Map<Integer, Integer> thread2Task;
-
-    /*MStorm platform threads, such as Dispatcher, StatusReporter...*/
-    // private static Map<Integer, String> threadID2PFThreadName= new HashMap<Integer, String>();
-
-    // Map<threadID, last CPU time (jiffies)>
-    private Map<Integer, Long> threadID2LastCPUTime;
     // Current CPU time (jiffies) in user, system or nice modes
     private long curBusyCPUTime = 0;
     // Current CPU time (jiffies) in all modes
     private long curTotalCPUTime = 0;
-    // Total CPU usage (jiffies) in this sampling period
-    private long sampledTotalCPUUsage = 0;
+    // Total CPU time (jiffies) in this sampling period
+    private long sampledTotalCPUTime = 0;
 
     //// AUXILIARY PARAMETERS FOR CALCULATING NETWORK STATUS
     //private ConnectionClassManager mConnectionClassManager;
@@ -92,7 +67,7 @@ public class StatusReporter implements Runnable {
     private long lastTxBytes;
     private long lastRxBytes;
     private static final int BYTES_TO_BITS = 8;
-    /* NOTE: Eb = alpha/throughPut + beta (nJ/bit), Following model is universal model*/
+    // NOTE: following a universal energy model where, Eb = alpha / throughPut + beta,  unit: nJ/bit,
     private static final double TX_ENERGY_THROUGHPUT_ALPHA = 229.4;
     private static final double TX_ENERGY_THROUGHPUT_BETA  = 23.5;
     private static final double RX_ENERGY_THROUGHPUT_ALPHA = 229.4;
@@ -100,45 +75,33 @@ public class StatusReporter implements Runnable {
 
     //// AUXILIARY PARAMETERS FOR REPORTING
     public static final double END2ENDDELAY_THRESHOLD = 1000.0;
-    // Two report type
-    public static final int NIMBUS = 1;
-    public static final int UPSTREAM = 2;
+
     // Report period to Nimbus
     public static final int REPORT_PERIOD_TO_NIMBUS = 30000;   // 30s
     // Report period to upstream tasks
     public static final int REPORT_PERIOD_TO_UPSTREAM = 10000;  //10s
     // Report period ratio
     public static final int PERIOD_RATIO = REPORT_PERIOD_TO_NIMBUS/REPORT_PERIOD_TO_UPSTREAM;
-
+    // How many periods have passed
     private static int periodCounter = 0;
-
+    // Indicate whether starting to report to upstream
     private static int startToReportToUpstreamCounter = 0;
 
+    // singleton pattern to ensure there is only one status reporter per node
     private static class StatusReporterHolder {
         public static final StatusReporter instance = new StatusReporter();
     }
-
-    private StatusReporter(){}
 
     public static StatusReporter getInstance() {
         return StatusReporterHolder.instance;
     }
 
-    public void initializeStatusReporter(Handler mHandler, Context context, MasterNodeClient masterNodeClient, String cluster_id) {
-        this.mHandler = mHandler;
-        this.context = context;
-        this.masterNodeClient = masterNodeClient;
-        this.cluster_id = cluster_id;
-        //finished = false;
+    private StatusReporter(){}
+
+    public void initializeStatusReporter() {
         report2Nimbus = new ReportToNimbus();
-        task2Component = new HashMap<Integer,String>();
-        task2Thread = new HashMap<Integer,Integer>();
-        thread2Task = new HashMap<Integer, Integer>();
-        threadID2LastCPUTime= new HashMap<Integer, Long>();
     }
 
-
-    //// METHODS FOR CPU STATUS
     // Get the cpu frequency in MHz
     private void updateCPUMaxFrequency(){
         double cpuMaxFreq = 0;
@@ -193,7 +156,7 @@ public class StatusReporter implements Runnable {
                     workingCPU += maxCPUID-minCPUID+1;
                 }
                 else
-                    workingCPU ++;
+                    workingCPU++;
             }
             reader.close();
         } catch (IOException e) {
@@ -218,27 +181,29 @@ public class StatusReporter implements Runnable {
     }
 
     // Update the thread CPU time from file /proc/pid/tasks/tid/stat
-    public void updateThreadCPUTimeFromFile(int processID, int threadID){
-        long curThreadCPUTime = 0;
+    public void updateTaskCPUTimeFromFile(int taskID){
+        long curTaskCPUTime = 0L;
+        int processID = ComputingNode.getProcessID();
+        int threadID = StatusOfLocalTasks.task2Thread.get(taskID);
         try {
             RandomAccessFile reader = new RandomAccessFile("/proc/" + processID + "/task/" + threadID + "/stat", "r");
             String threadUsageInfo = reader.readLine();
             String[] threadUsageTokens = threadUsageInfo.split(" +");  // Split on one or more spaces
-            curThreadCPUTime = Long.parseLong(threadUsageTokens[13]) + Long.parseLong(threadUsageTokens[14]);
+            curTaskCPUTime = Long.parseLong(threadUsageTokens[13]) + Long.parseLong(threadUsageTokens[14]);
         } catch (IOException e ){
             e.printStackTrace();
         }
-        System.out.println("thread:"+threadID+",\t"+"curThreadCPUTime:"+curThreadCPUTime);
-        threadID2LastCPUTime.put(threadID, curThreadCPUTime);
+        logger.info("taskID:" + taskID + ",\t" + "curTaskCPUTime:" + curTaskCPUTime);
+        StatusOfLocalTasks.task2LastCPUTime.put(threadID, curTaskCPUTime);
     }
 
-
     // Add MStorm Executors (Tasks) for monitoring
-    public void addTaskForMonitoring(int threadID, Integer taskID, String componentName){
-        task2Component.put(taskID,componentName);
-        thread2Task.put(threadID, taskID);
-        task2Thread.put(taskID,threadID);
-        //threadID2LastCPUTime.put(threadID, new Long(0));
+    public void addTaskForMonitoring(int threadID, BTask task){
+        int taskID = task.getTaskID();
+        String componentName = task.getComponent();
+        StatusOfLocalTasks.task2Component.put(taskID,componentName);
+        StatusOfLocalTasks.task2Thread.put(taskID, threadID);
+        StatusOfLocalTasks.task2LastCPUTime.put(taskID, new Long(0));
         HashMap<Integer, Double> task2TupleRate = new HashMap<Integer, Double>();
         report2Nimbus.task2TaskTupleRate.put(taskID, task2TupleRate);
         HashMap<Integer, Double> task2TupleAvgSize = new HashMap<Integer, Double>();
@@ -246,14 +211,14 @@ public class StatusReporter implements Runnable {
     }
 
     public static void removeTaskForMonitoring(){
-                //TODO: remove tasks
+        //TODO: remove tasks
     }
 
     // Add MStorm Platform Threads for monitoring
-/*    public static void addPFThreadForMonitoring(int threadID, String threadName){
-        threadID2PFThreadName.put(threadID, threadName);
-        threadID2LastCPUTime.put(threadID, new Long(0));
-    }*/
+//    public static void addPFThreadForMonitoring(int threadID, String threadName){
+//        threadID2PFThreadName.put(threadID, threadName);
+//        threadID2LastCPUTime.put(threadID, new Long(0));
+//    }
 
     // Get Total CPU usage in MHz
     private void updateTotalCPUUsage() {
@@ -261,58 +226,58 @@ public class StatusReporter implements Runnable {
         long oldBusyCPUTime = curBusyCPUTime;
         updateCPUTimeFromFile();   // update CPU time
         long busyCPUUsage = curBusyCPUTime-oldBusyCPUTime;
-        sampledTotalCPUUsage = curTotalCPUTime-oldTotalCPUTime;
+        sampledTotalCPUTime = curTotalCPUTime-oldTotalCPUTime;
         double cpuFrequency = report2Nimbus.cpuFrequency;
         int cpuCoreNum = report2Nimbus.cpuCoreNum;
-        if(sampledTotalCPUUsage!=0.0)
-            report2Nimbus.cpuUsage = Math.round(1.0*busyCPUUsage/sampledTotalCPUUsage*cpuFrequency*cpuCoreNum * 10) / 10.0;
+        if(sampledTotalCPUTime !=0.0)
+            report2Nimbus.cpuUsage = Math.round(1.0*busyCPUUsage/ sampledTotalCPUTime *cpuFrequency*cpuCoreNum * 10) / 10.0;
         else
             report2Nimbus.cpuUsage = -1.0;
     }
 
     // Update the CPU usage of all tasks
     public void updateCPUUsageOfTasks(){
-        int processID = ComputingNode.getProcessID();   // Get the processID for executor threads
-
         double totalUsageOfmStormTasks = 0.0;
         double cpuFrequency = report2Nimbus.cpuFrequency;
         int cpuCoreNum = report2Nimbus.cpuCoreNum;
-        for (Map.Entry<Integer,Integer> thread2TaskEntry: thread2Task.entrySet()) {
-            int threadID = thread2TaskEntry.getKey();
-            long lastThreadCPUTime = threadID2LastCPUTime.get(threadID);
-            updateThreadCPUTimeFromFile(processID, threadID);
-            long currentThreadCPUTime = threadID2LastCPUTime.get(threadID);
-            long threadCPUUsage = currentThreadCPUTime-lastThreadCPUTime;
-            double threadUsage;
-            if(sampledTotalCPUUsage!=0.0)
-                threadUsage = 1.0*threadCPUUsage/sampledTotalCPUUsage*cpuFrequency*cpuCoreNum;
+
+        for (Map.Entry<Integer,Integer> entry: StatusOfLocalTasks.task2Thread.entrySet()) {
+            int taskID = entry.getKey();
+            long lastTaskCPUTime = StatusOfLocalTasks.task2LastCPUTime.get(taskID);
+            updateTaskCPUTimeFromFile(taskID);
+            long currentTaskCPUTime = StatusOfLocalTasks.task2LastCPUTime.get(taskID);
+            long taskCPUTime = currentTaskCPUTime-lastTaskCPUTime;
+
+            double taskUsage = 0.0;
+            if(sampledTotalCPUTime !=0.0)
+                taskUsage = 1.0 * taskCPUTime / sampledTotalCPUTime * cpuFrequency * cpuCoreNum;
             else
-                threadUsage = -1.0;
-            int taskID = thread2TaskEntry.getValue();
-            report2Nimbus.taskID2CPUUsage.put(taskID,threadUsage);
-            totalUsageOfmStormTasks+=threadUsage;
+                taskUsage = -1.0;
+
+            report2Nimbus.taskID2CPUUsage.put(taskID,taskUsage);
+            totalUsageOfmStormTasks += taskUsage;
         }
         report2Nimbus.availCPUForMStormTasks = Math.round((cpuFrequency * cpuCoreNum - report2Nimbus.cpuUsage  + totalUsageOfmStormTasks) * 10) / 10.0;
     }
 
     // update the CPU usage of MStorm platform threads
-/*    public void updateCPUUsageOfPFThreads(){
-        int processID = Supervisor.getProcessID();   // Get the processID for mstorm platform threads
-        Iterator<Map.Entry<Integer,String>> it = threadID2PFThreadName.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, String> threadID2PFThreadNameEntry = it.next();
-            int threadID = threadID2PFThreadNameEntry.getKey();
-            long previousThreadCPUTime = threadID2LastCPUTime.get(threadID);
-            updateThreadCPUTimeFromFile(processID, threadID);
-            long currentThreadCPUTime = threadID2LastCPUTime.get(threadID);
-            long threadCPUUsage = currentThreadCPUTime-previousThreadCPUTime;
-            double cpuFrequency = report2Nimbus.cpuFrequency;
-            int cpuCoreNum = report2Nimbus.cpuCoreNum;
-            double threadUsage = 1.0*threadCPUUsage/sampledTotalCPUUsage*cpuFrequency*cpuCoreNum;
-            String threadName = threadID2PFThreadNameEntry.getValue();
-            report2Nimbus.pfThreadName2CPUUsage.put(threadName,threadUsage);
-        }
-    }*/
+//    public void updateCPUUsageOfPFThreads(){
+//        int processID = Supervisor.getProcessID();   // Get the processID for mstorm platform threads
+//        Iterator<Map.Entry<Integer,String>> it = threadID2PFThreadName.entrySet().iterator();
+//        while (it.hasNext()) {
+//            Map.Entry<Integer, String> threadID2PFThreadNameEntry = it.next();
+//            int threadID = threadID2PFThreadNameEntry.getKey();
+//            long previousThreadCPUTime = threadID2LastCPUTime.get(threadID);
+//            updateThreadCPUTimeFromFile(processID, threadID);
+//            long currentThreadCPUTime = threadID2LastCPUTime.get(threadID);
+//            long threadCPUUsage = currentThreadCPUTime-previousThreadCPUTime;
+//            double cpuFrequency = report2Nimbus.cpuFrequency;
+//            int cpuCoreNum = report2Nimbus.cpuCoreNum;
+//            double threadUsage = 1.0*threadCPUUsage/sampledTotalCPUTime*cpuFrequency*cpuCoreNum;
+//            String threadName = threadID2PFThreadNameEntry.getValue();
+//            report2Nimbus.pfThreadName2CPUUsage.put(threadName,threadUsage);
+//        }
+//    }
 
 
     //// METHODS FOR MEMORY STATUS
@@ -327,14 +292,14 @@ public class StatusReporter implements Runnable {
 
     //// METHODS FOR NETWORK
     // update the RX Bandwidth
-    /*public void updateRxBandwidth(){
-        report2Nimbus.rxBandwidth = Math.round(mConnectionClassManager.getDownloadKBitsPerSecond() * 10) / 10.0;
-    }*/
+//    public void updateRxBandwidth(){
+//        report2Nimbus.rxBandwidth = Math.round(mConnectionClassManager.getDownloadKBitsPerSecond() * 10) / 10.0;
+//    }
 
     // update the TX Bandwidth
-    /*public void updateTxBandwidth(){
-        report2Nimbus.txBandwidth = Math.round(mConnectionClassManager.getUploadKBitsPerSecond() * 10) / 10.0;
-    }*/
+//    public void updateTxBandwidth(){
+//        report2Nimbus.txBandwidth = Math.round(mConnectionClassManager.getUploadKBitsPerSecond() * 10) / 10.0;
+//    }
 
     // add RTT time in ms to devices
     public static void addRTT2Device(String address, double rtt){
@@ -360,7 +325,6 @@ public class StatusReporter implements Runnable {
         }
     }
 
-
     public void updateLinkQuality2Device(){
         for(Map.Entry<String, Double> linkQualityEntry: linkQualityMap.entrySet()){
             report2Nimbus.linkQualityMap.put(linkQualityEntry.getKey(),linkQualityEntry.getValue());
@@ -379,13 +343,6 @@ public class StatusReporter implements Runnable {
         WifiManager myWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
         report2Nimbus.rSSI = myWifiInfo.getRssi();
-    }
-
-    public int getRSSI(Context context) {
-        WifiManager myWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
-        int rSSI = myWifiInfo.getRssi();
-        return rSSI;
     }
 
     //// METHODS FOR BATTERY POWER
@@ -422,7 +379,7 @@ public class StatusReporter implements Runnable {
     //// METHODS FOR ENERGY PER BIT
     public void updateEnergyPerBitTx(){
         long curTime = SystemClock.elapsedRealtimeNanos();
-        double TimeDiff = (curTime-lastTimePointNimbus);  // ns
+        long TimeDiff = (curTime-lastTimePointNimbus);  // ns
         long curTxBytes = TrafficStats.getTotalTxBytes();
         long TxDiff = (curTxBytes - lastTxBytes);
         lastTxBytes = curTxBytes;
@@ -436,7 +393,7 @@ public class StatusReporter implements Runnable {
 
     public void updateEnergyPerBitRx(){
         long curTime = SystemClock.elapsedRealtimeNanos();
-        double TimeDiff = (curTime-lastTimePointNimbus);  // ns
+        long TimeDiff = (curTime-lastTimePointNimbus);  // ns
         long curRxBytes = TrafficStats.getTotalRxBytes();
         long RxDiff = (curRxBytes - lastRxBytes);
         lastRxBytes = curRxBytes;
@@ -448,35 +405,36 @@ public class StatusReporter implements Runnable {
             report2Nimbus.energyPerBitRx = -1.0;
     }
 
-    //// METHODS FOR TRAFFICS
     // update tuple throughput and delay (For upstream)
-    private void updateTaskTrafficReportToUpstream(){
-        for (Map.Entry<Integer,String> taskEntry: task2Component.entrySet()) {
+    private void updateLocalStatusToUpstream(){
+        for (Map.Entry<Integer,String> taskEntry: StatusOfLocalTasks.task2Component.entrySet()) {
             int tid = taskEntry.getKey();
             String component = taskEntry.getValue();
 
             if(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid)!=null &&
                     StatusOfLocalTasks.task2EmitTimesUpStream.get(tid).size()!=0){
-                double inputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesUpStream.get(tid), UPSTREAM);          // tuple/s
-                double outputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid), UPSTREAM);          // tuple/s
-                double processingTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid), UPSTREAM);   // ms
-                double procRate = 1.0 / processingTime * 1000.0; // tuple/s
-                double sojournTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid), UPSTREAM);        // ms
+                double inputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesUpStream.get(tid), REPORT_PERIOD_TO_UPSTREAM);  // tuple/s
+                double outputRate = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesUpStream.get(tid), REPORT_PERIOD_TO_UPSTREAM);  // tuple/s
+                double procRate = 1.0 / StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid)) * 1000.0;             // tuple/s
+                double sojournTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid));                           // ms
+                double inQueueLength = MessageQueues.incomingQueues.get(tid).size();
+                double outQueueLength = MessageQueues.outgoingQueues.get(tid).size();
 
-                StatusOfLocalTasks.task2InputRate.put(tid,inputRate);
-                StatusOfLocalTasks.task2OutputRate.put(tid,outputRate);
-                StatusOfLocalTasks.task2ProcRate.put(tid,procRate);
-
+                // clear old status information
                 StatusOfLocalTasks.task2EntryTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2EmitTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2ResponseTimesUpStream.get(tid).clear();
                 StatusOfLocalTasks.task2ProcessingTimesUpStream.get(tid).clear();
 
-                double inQueueLength = MessageQueues.incomingQueues.get(tid).size();
-                double outQueueLength = MessageQueues.outgoingQueues.get(tid).size();
+                // update input, output, process rate for stream selector
+                StatusOfLocalTasks.task2InputRate.put(tid, inputRate);
+                StatusOfLocalTasks.task2OutputRate.put(tid, outputRate);
+                StatusOfLocalTasks.task2ProcRate.put(tid, procRate);
+                StatusOfLocalTasks.task2SojournTime.put(tid, sojournTime);
+                StatusOfLocalTasks.task2InQueueLength.put(tid, inQueueLength);
+                StatusOfLocalTasks.task2OutQueueLength.put(tid, outQueueLength);
 
-                int rssi = getRSSI(context);
-
+                // send updated local status to upstream tasks
                 InternodePacket pkt = new InternodePacket();
                 pkt.type = InternodePacket.TYPE_REPORT;
                 pkt.fromTask = tid;
@@ -487,23 +445,19 @@ public class StatusReporter implements Runnable {
                 pkt.simpleContent.put("sojournTime", String.format("%.2f", sojournTime));
                 pkt.simpleContent.put("inQueueLength", String.format("%.2f", inQueueLength));
                 pkt.simpleContent.put("outQueueLength", String.format("%.2f", outQueueLength));
-                pkt.simpleContent.put("rssi", String.valueOf(rssi));
-
                 ChannelManager.broadcastToUpstreamTasks(tid, pkt);
 
-                // record execution information for file
-                long curTime = SystemClock.elapsedRealtimeNanos();
-                String report = "Time: " + String.format("%.0f", curTime / 1000000000.0) + ","
-                                + "TaskID: " + tid + ","
-                                + "Component: " + component + ","
-                                + "InputRate: " + String.format("%.2f", inputRate) + ","
-                                + "OutputRate: " + String.format("%.2f", outputRate) + ","
-                                + "ProcRate: " + String.format("%.2f", procRate) + ","
-                                + "SojournTime: " + String.format("%.2f", sojournTime) + ","
-                                + "InQueueLength: " + String.format("%.2f", inQueueLength) + ","
-                                + "OutQueueLength: " + String.format("%.2f", outQueueLength) + ","
-                                + "rssi: " + rssi + "\n";
-                //System.out.println(report);
+                // record execution information for performance evaluation
+                double curTime = SystemClock.elapsedRealtimeNanos()/ 1000000000.0;
+                String report = "Time: "     + String.format("%.0f", curTime)        + ","
+                        + "TaskID: "         + tid                                   + ","
+                        + "Component: "      + component                             + ","
+                        + "InputRate: "      + String.format("%.2f", inputRate)      + ","
+                        + "OutputRate: "     + String.format("%.2f", outputRate)     + ","
+                        + "ProcRate: "       + String.format("%.2f", procRate)       + ","
+                        + "SojournTime: "    + String.format("%.2f", sojournTime)    + ","
+                        + "InQueueLength: "  + String.format("%.2f", inQueueLength)  + ","
+                        + "OutQueueLength: " + String.format("%.2f", outQueueLength) + "\n";
                 try {
                     FileWriter fw = new FileWriter(ComputingNode.REPORT_ADDRESSES, true);
                     fw.write(report);
@@ -511,19 +465,22 @@ public class StatusReporter implements Runnable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                // debug
+                logger.debug(report);
             }
         }
     }
 
     // update the traffics from task to task (For Nimbus)
-    private void updateTaskTrafficReportToNimbus(){
-        for (Map.Entry<Integer,String> taskEntry: task2Component.entrySet()) {
+    private void updateLocalStatusToNimbus(){
+        for (Map.Entry<Integer,String> taskEntry: StatusOfLocalTasks.task2Component.entrySet()) {
             int tid = taskEntry.getKey();
 
             // Get the input speed of app
             if(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid)!=null &&
                     StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid).size()!=0){ // this is a task of the first component
-                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid), NIMBUS);  // tuple/s
+                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid), REPORT_PERIOD_TO_NIMBUS);  // tuple/s
                 report2Nimbus.task2StreamInput.put(tid,input);
                 StatusOfLocalTasks.task2EntryTimesForFstComp.get(tid).clear(); // start from the beginning
             }
@@ -531,9 +488,9 @@ public class StatusReporter implements Runnable {
             // Get the status for task
             if(StatusOfLocalTasks.task2EmitTimesNimbus.get(tid)!=null &&
                     StatusOfLocalTasks.task2EmitTimesNimbus.get(tid).size()!=0) {
-                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesNimbus.get(tid), NIMBUS);  // tuple/s
-                double output = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesNimbus.get(tid), NIMBUS); // tuple/s
-                double avgResponseTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesNimbus.get(tid), NIMBUS);  // ms
+                double input = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EntryTimesNimbus.get(tid), REPORT_PERIOD_TO_NIMBUS);  // tuple/s
+                double output = StatisticsCalculator.getThroughput(StatusOfLocalTasks.task2EmitTimesNimbus.get(tid), REPORT_PERIOD_TO_NIMBUS); // tuple/s
+                double avgResponseTime = StatisticsCalculator.getAvgTime(StatusOfLocalTasks.task2ResponseTimesNimbus.get(tid));  // ms
                 report2Nimbus.task2Input.put(tid,input);
                 report2Nimbus.task2Output.put(tid, output);
                 report2Nimbus.task2Delay.put(tid, avgResponseTime);
@@ -584,7 +541,7 @@ public class StatusReporter implements Runnable {
         //updateCPUUsageOfPFThreads();
 
         //// update memory
-        updateAvailableMemory(context);
+        updateAvailableMemory(ComputingNode.context);
 
         //// update network
         //updateTxBandwidth();
@@ -592,12 +549,12 @@ public class StatusReporter implements Runnable {
         //mConnectionClassManager.reset();
         updateRTT2Device();
         updateLinkQuality2Device();
-        updateWifiLinkSpeed(context);
-        updateRSSI(context);
+        updateWifiLinkSpeed(ComputingNode.context);
+        updateRSSI(ComputingNode.context);
 
         //// update battery
-        updateBatteryCapacity(context);
-        updateBatteryLevel(context);
+        updateBatteryCapacity(ComputingNode.context);
+        updateBatteryLevel(ComputingNode.context);
 
         //// update energy per bit
         updateEnergyPerBitTx();
@@ -605,12 +562,12 @@ public class StatusReporter implements Runnable {
     }
 
     public String getPhoneStatusForDebug() {
-        String phoneStatus = "CU(MHz):"+report2Nimbus.cpuUsage + ",\n" +
-                             "ACM(MHz):"+report2Nimbus.availCPUForMStormTasks + ",\n" +
-                             "RX:"+report2Nimbus.rxBandwidth + ",\n" +
-                             "TX:"+report2Nimbus.txBandwidth + ",\n" +
-                             "EBR:"+report2Nimbus.energyPerBitRx + ",\n" +
-                             "EBT:"+report2Nimbus.energyPerBitTx;
+        String phoneStatus = "CPU(MHz):"       +report2Nimbus.cpuUsage               + ",\n" +
+                             "CPU4MStorm(MHz):"+report2Nimbus.availCPUForMStormTasks + ",\n" +
+                             "RX:"             +report2Nimbus.rxBandwidth            + ",\n" +
+                             "TX:"             +report2Nimbus.txBandwidth            + ",\n" +
+                             "EBR:"            +report2Nimbus.energyPerBitRx         + ",\n" +
+                             "EBT:"            +report2Nimbus.energyPerBitTx         ;
         return phoneStatus;
     }
 
@@ -622,18 +579,18 @@ public class StatusReporter implements Runnable {
     public void submitPhoneStatusToNimbus(String phoneStatus) {
         Request req = new Request();
         req.setReqType(Request.PHONESTATUS);
-        req.setClusterID(cluster_id);
+        req.setClusterID(Supervisor.cluster_id);
         req.setContent(phoneStatus);
         req.setGUID(MStorm.GUID);
-        masterNodeClient.sendRequest(req);
+        Supervisor.masterNodeClient.sendRequest(req);
     }
 
     public void stopSampling(){
-/*        if(mDeviceBandwidthSampler!=null) {
-            if (mDeviceBandwidthSampler.isSampling()) {
-                mDeviceBandwidthSampler.stopSampling();
-            }
-        }*/
+//        if(mDeviceBandwidthSampler!=null) {
+//            if (mDeviceBandwidthSampler.isSampling()) {
+//                mDeviceBandwidthSampler.stopSampling();
+//            }
+//        }
         if(mD2DRTTSampler!=null){
             if(mD2DRTTSampler.isSampling()){
                 mD2DRTTSampler.stopSampling();
@@ -642,16 +599,14 @@ public class StatusReporter implements Runnable {
     }
 
     public void run() {
-        // Start sampling tx/rx bandwidth
+        //// Start sampling tx/rx bandwidth
         //mConnectionClassManager = ConnectionClassManager.getInstance();
         //mDeviceBandwidthSampler = DeviceBandwidthSampler.getInstance();
         //mDeviceBandwidthSampler.setUID(Process.myUid());
         //mDeviceBandwidthSampler.startSampling();
 
-        // Set some initial values and unchanging values
 
         lastTimePointNimbus = SystemClock.elapsedRealtimeNanos();
-
         lastTxBytes = TrafficStats.getTotalTxBytes();
         lastRxBytes = TrafficStats.getTotalRxBytes();
 
@@ -663,17 +618,13 @@ public class StatusReporter implements Runnable {
 
         updateCPUMaxFrequency();
         updateWorkingCPUCoreNum();
-
         updateCPUTimeFromFile();
-        int processID = ComputingNode.getProcessID();
-        for (Map.Entry<Integer,Integer> thread2TaskEntry: thread2Task.entrySet()) {
-            int threadID = thread2TaskEntry.getKey();
-            updateThreadCPUTimeFromFile(processID, threadID);
+        for (Map.Entry<Integer,Integer> entry: StatusOfLocalTasks.task2Thread.entrySet()) {
+            int taskID = entry.getKey();
+            updateTaskCPUTimeFromFile(taskID);
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd, HH:mm:ss");
-
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !finished) {
             try {
                 Thread.sleep(REPORT_PERIOD_TO_UPSTREAM);
             } catch (InterruptedException e) {
@@ -685,29 +636,35 @@ public class StatusReporter implements Runnable {
             periodCounter++;
 
             if(startToReportToUpstreamCounter >=PERIOD_RATIO)
-                updateTaskTrafficReportToUpstream();
+                updateLocalStatusToUpstream();
 
             if(periodCounter==PERIOD_RATIO) {
-                updateTaskTrafficReportToNimbus();
+                updateLocalStatusToNimbus();
                 updatePhoneStatus();
                 lastTimePointNimbus = SystemClock.elapsedRealtimeNanos();
                 String phoneStatusToNimbus = getPhoneStatusToNimbus();
                 logger.info("PERIODICAL REPORT TO NIMBUS: " + phoneStatusToNimbus);
-                if(masterNodeClient.getChannel()!=null) {
+                if(Supervisor.masterNodeClient.getChannel()!=null) {
                     submitPhoneStatusToNimbus(phoneStatusToNimbus);
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd, HH:mm:ss");
                     Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "[" + sdf.format(new Date()) + "]" + " A Status Report Sent to Master").sendToTarget();
                 }
                 // Report phone status to device screen for debugging
                 String phoneStatusDebug = getPhoneStatusForDebug();
-                mHandler.obtainMessage(MStorm.Message_PERIOD_REPORT, phoneStatusDebug).sendToTarget();
+                Supervisor.mHandler.obtainMessage(MStorm.Message_PERIOD_REPORT, phoneStatusDebug).sendToTarget();
                 periodCounter = 0;
             }
         }
 
-        logger.debug("The reporter thread has been stopped ... ");
+        logger.debug("The reporter thread has been stopped because of interruption.");
     }
 
     public void updateIsIncludingTask(){
         report2Nimbus.isIncludingTaskReport = true;
     }
+
+    public void stop(){
+        finished = true;
+    }
+
 }

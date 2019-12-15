@@ -24,6 +24,7 @@ import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.executor.Executor;
 import com.lenss.mstorm.executor.ExecutorManager;
 import com.lenss.mstorm.status.StatusReporter;
+import com.lenss.mstorm.status.StatusReporterEKBased;
 import com.lenss.mstorm.topology.BTask;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.utils.GNSServiceHelper;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import dalvik.system.DexClassLoader;
+import edu.tamu.cse.lenss.edgeKeeper.client.EKClient;
 
 import static java.lang.Thread.sleep;
 
@@ -48,6 +50,9 @@ public class ComputingNode extends Service {
     /// LOGGER
     private final String TAG="ComputingNode";
     Logger logger = Logger.getLogger(TAG);
+
+    // Context
+    public static Context context;
 
     //// SOME CONSTANT STRING
     public static final String ASSIGNMENT = "NEW_ASSIGNMENT";
@@ -69,8 +74,8 @@ public class ComputingNode extends Service {
 
     private static boolean pauseOrContinue = false;
 
-    private StatusReporter statusReporter;
-    private Thread reporterThread;
+    private StatusReporter statusReporter;  // old version status reporter
+    private StatusReporterEKBased statusReporterEKBased;    // new version status reporter using EdgeKeeper
     private Dispatcher dispatcher;
 
     // processID of computing node
@@ -131,19 +136,17 @@ public class ComputingNode extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
 
-        System.out.println("Running in the foreground successfully\n");
+        logger.info("Running in the foreground successfully");
 
         // record the processID of computing node
         processID = Process.myPid();
 
+        context = getApplicationContext();
+
         pauseOrContinue = false; // allow pulling more tuple for stream processing
-
-        // create a status reporter
-        statusReporter = StatusReporter.getInstance();
-        statusReporter.initializeStatusReporter(Supervisor.mHandler, this.getApplicationContext(), Supervisor.masterNodeClient, Supervisor.cluster_id);
-
 
         // get the assignment and local tasks, assign corresponding queues for local tasks
         if(intent==null){
@@ -242,7 +245,6 @@ public class ComputingNode extends Service {
                     mTask.setTaskID(taskID);
                     mTask.setComponent(component);
                     mTask.setSourceIP(sourceIP);
-                    System.out.println("###############" + component + "###############" + "\n");
                     Executor taskExecutor = new Executor(mTask);
                     mExecutorManager.submitTask(taskID,taskExecutor);
                 } catch (ClassNotFoundException e) {
@@ -251,7 +253,6 @@ public class ComputingNode extends Service {
             }
         }
 
-
         // wait for all tasks running up
         try {
             sleep(1000);
@@ -259,12 +260,22 @@ public class ComputingNode extends Service {
             e.printStackTrace();
         }
 
+        // start dispatcher
         dispatcher = new Dispatcher();
         Thread dispatchThread = new Thread(dispatcher);
         dispatchThread.setPriority(Thread.MAX_PRIORITY);
         dispatchThread.start();
 
-        reporterThread = new Thread(statusReporter);
+        // start status reporter
+//        statusReporter = StatusReporter.getInstance();
+//        statusReporter.initializeStatusReporter();
+//        Thread reporterThread = new Thread(statusReporter);
+//        reporterThread.setPriority(Thread.MAX_PRIORITY);
+//        reporterThread.start();
+
+        // start EdgeKeeper based status reporter
+        statusReporterEKBased = StatusReporterEKBased.getInstance();
+        Thread reporterThread = new Thread(statusReporterEKBased);
         reporterThread.setPriority(Thread.MAX_PRIORITY);
         reporterThread.start();
 
@@ -311,25 +322,29 @@ public class ComputingNode extends Service {
         }
 
         try {
-            System.out.println("Wait all threads in executor pool to stop ... ");
+            logger.info("==== Wait all threads in executor pool to stop ====");
             Thread.sleep(100);
         } catch (InterruptedException e1) {
             e1.printStackTrace();
         }
 
         // release sampling resource
-        if(StatusReporter.getInstance()!=null)
-            StatusReporter.getInstance().stopSampling();
+//        if(StatusReporter.getInstance()!=null)
+//            StatusReporter.getInstance().stopSampling();
+
         // stop packet dispatcher
-        dispatcher.stop();
+        dispatcher.stopDispatch();
+
         // stop status reporter
-        reporterThread.interrupt();
+        // statusReporter.stop();
+        statusReporterEKBased.stopReport();
         // clear computation status
         MessageQueues.removeTaskQueues();
         // clear channel status
         ChannelManager.releaseChannelsToRemote();
 
         stopForeground(true);
+
         super.onDestroy();
     }
 

@@ -21,7 +21,7 @@
 			<fileset dir="${dir.buildfile}/target/classes"/>
 			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/Jama-1.0.3.jar"/>
 			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/src/lib/dnsjava-2.0.0.jar"/>
-			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/src/lib/EdgeKeeper-client-api.jar"/>
+			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/src/lib/EdgeKeeper-client.jar"/>
 			<zipfileset excludes="META-INF/*.SF" src="/home/cmy/.m2/repository/org/apache/zookeeper/zookeeper/3.4.6/zookeeper-3.4.6.jar"/>
 			<zipfileset excludes="META-INF/*.SF" src="/home/cmy/.m2/repository/org/slf4j/slf4j-api/1.6.1/slf4j-api-1.6.1.jar"/>
 			<zipfileset excludes="META-INF/*.SF" src="/home/cmy/.m2/repository/org/slf4j/slf4j-log4j12/1.6.1/slf4j-log4j12-1.6.1.jar"/>

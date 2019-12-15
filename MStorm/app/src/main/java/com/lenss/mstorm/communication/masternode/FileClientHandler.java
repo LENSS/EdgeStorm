@@ -48,7 +48,6 @@ public class FileClientHandler extends SimpleChannelUpstreamHandler {
             fOutputStream.flush();
         }
         if (!readingChunks) {
-            System.out.println("Got file from master node to mobile client!");
             FileOnMachine = true;
             fOutputStream.close();
             e.getChannel().close();

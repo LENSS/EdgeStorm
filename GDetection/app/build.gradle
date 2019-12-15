@@ -24,6 +24,10 @@ android {
             jniLibs.srcDirs = ["src/main/jniLibs"]
         }
     }
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
 }
 
 dependencies {

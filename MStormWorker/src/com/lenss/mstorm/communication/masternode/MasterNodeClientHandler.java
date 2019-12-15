@@ -47,6 +47,10 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 				logger.info("Topology has been scheduled!");
 				masterNodeClient.setReply(reply);
 				break;
+			case Reply.ZOOKEEPERADDR:
+				logger.info("Get Zookeeper Connection String " + reply.getContent());
+				MStormWorker.ZK_ADDRESS_IP = reply.getContent();
+				break;
 			/// Can be commented out for real exercise !!!!!!!!!!!!!!!
 //			case Reply.GETAPK: // Reply to Mobile Client in User's app only
 //				logger.info("Request apk file from master!");

@@ -33,6 +33,7 @@ import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.executor.Executor;
 import com.lenss.mstorm.executor.ExecutorManager;
 import com.lenss.mstorm.status.StatusReporter;
+import com.lenss.mstorm.status.StatusReporterEKBased;
 import com.lenss.mstorm.topology.BTask;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.utils.GNSServiceHelper;
@@ -50,6 +51,8 @@ public class ComputingNode implements Runnable {
 	//private static String jarDirectory= "/";			// For container
 	private static String jarDirectory= ""; 			// For jar
 	
+	public static final String REPORT_ADDRESSES="ReportRecord";
+	
 	//// EXECUTORS
 	private ExecutorManager mExecutorManager;
 	private LinkedBlockingDeque<Runnable> mExecutorQueue;
@@ -61,8 +64,7 @@ public class ComputingNode implements Runnable {
 	// pause or continue stream processing;, 0 continue, 1 pause
 	private static int pauseOrContinue = 0;
 
-	private StatusReporter statusReporter;
-	private Thread reporterThread;
+	private StatusReporterEKBased statusReporterEKBased;    // status reporter using EdgeKeeper
 	private Dispatcher dispatcher;
 
 	// assignment from scheduler
@@ -143,7 +145,7 @@ public class ComputingNode implements Runnable {
 		// execute tasks assigned to this node
 		String jarFileName = assignment.getApk().split("\\.")[0] + ".jar";
 		String jarFilePath = jarDirectory+jarFileName;
-		System.out.println(jarFilePath);
+		logger.info(jarFilePath);
 		File jarFile = new File(jarFilePath);
 		ClassLoader ucLoader = null;
 		try {
@@ -189,10 +191,10 @@ public class ComputingNode implements Runnable {
 		dispatcher = new Dispatcher();
 		Thread dispatchThread = new Thread(dispatcher);
 		dispatchThread.start();
-
-		// reporterThread = new Thread(statusReporter);
-		// reporterThread.setPriority(Thread.MAX_PRIORITY);
-		// reporterThread.start();
+		
+		statusReporterEKBased = StatusReporterEKBased.getInstance();
+		Thread reporterThread = new Thread(statusReporterEKBased);
+		reporterThread.start();
 
 	}
 
@@ -215,16 +217,16 @@ public class ComputingNode implements Runnable {
         }
 
         try {
-            System.out.println("Wait all threads in executor pool to stop ... ");
+            logger.info("Wait all threads in executor pool to stop ... ");
             Thread.sleep(100);
         } catch (InterruptedException e1) {
             e1.printStackTrace();
         }
 
         // stop packet dispatcher
-        dispatcher.stop();
+        dispatcher.stopDispatch();
         // stop status reporter
-        reporterThread.interrupt();
+        statusReporterEKBased.stopReport();
         // clear computation status
         MessageQueues.removeTaskQueues();
         // clear channel status

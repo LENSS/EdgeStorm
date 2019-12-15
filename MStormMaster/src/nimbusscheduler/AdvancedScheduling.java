@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.log4j.Logger;
 import org.omg.CORBA.PUBLIC_MEMBER;
 
 import Jama.Matrix;
@@ -20,6 +21,8 @@ import cluster.Cluster;
 import cluster.Node;
 
 public class AdvancedScheduling {
+	Logger logger = Logger.getLogger("AdvancedScheduling");
+	
 	public static final int FEEDBACK_S = 0;
 	public static final int RESOURCE_S = 1;
 	public static final int TRAFFIC_S = 2;
@@ -125,11 +128,11 @@ public class AdvancedScheduling {
 			}
 			compWorkload[i] = (outputRate == 0.0 || workload == 0.0) ? 1.0 : compExpectedInputRate[i]/outputRate * workload;
 			
-			System.out.println("compWorkload"+i+":"+compWorkload[i]);
-			System.out.println("compExpectedInputRate"+i+":"+compExpectedInputRate[i]);
-			System.out.println("outputRate"+i+":"+outputRate);
-			System.out.println("workload"+i+":"+workload);
-			System.out.println();
+			logger.info("compWorkload"+i+":"+compWorkload[i]);
+			logger.info("compExpectedInputRate"+i+":"+compExpectedInputRate[i]);
+			logger.info("outputRate"+i+":"+outputRate);
+			logger.info("workload"+i+":"+workload);
+			logger.info("\n");
 		}
 	}
 	
@@ -148,7 +151,7 @@ public class AdvancedScheduling {
 			String compName = compNames[i];
 			compName2InitTaskIndex.put(compName, totalTaskNum);
 			int compTasks = Helper.approCeil(compWorkload[i]*compRatio, executorResource);
-			System.out.println("compTasks"+i+":"+compTasks);
+			logger.info("compTasks"+i+":"+compTasks);
 			compName2TaskNum.put(compName, compTasks);		
 			for(int j = 0; j< compTasks; j++){
 				taskCompName.add(compName);
@@ -159,7 +162,7 @@ public class AdvancedScheduling {
 		exptExecutorsOfDevice = new int[devNum];
 		for(int i = 0; i < devNum; i++){
 			exptExecutorsOfDevice[i] = Helper.approFloor(devAvailResource[i]*devResRatio, executorResource);
-			System.out.println("exptExecutorsOfDevice"+i+":"+exptExecutorsOfDevice[i]);
+			logger.info("exptExecutorsOfDevice"+i+":"+exptExecutorsOfDevice[i]);
 		}
 	}
 	
@@ -510,22 +513,22 @@ public class AdvancedScheduling {
 		double highBound = minDevCap * highBoundRatio;
 		
 		for (int i=0; i< compWorkLoad.length; i++){
-			System.out.println("compWorkLoad"+i+":"+compWorkLoad[i]);
+			logger.info("compWorkLoad"+i+":"+compWorkLoad[i]);
 		}
 		double minCompWorkLoad = Helper.minimium(compWorkLoad);
 		
-		System.out.println("minDevRes:"+minDevRes);
-		System.out.println("minDevCap:"+minDevCap);
-		System.out.println("lowBound:"+lowBound);
-		System.out.println("highBound:"+highBound);
-		System.out.println("minCompWorkLoad:"+minCompWorkLoad);
+		logger.info("minDevRes:"+minDevRes);
+		logger.info("minDevCap:"+minDevCap);
+		logger.info("lowBound:"+lowBound);
+		logger.info("highBound:"+highBound);
+		logger.info("minCompWorkLoad:"+minCompWorkLoad);
 		
 		
 		double minFromFeedback = (minCompWorkLoad < minDevRes)? minCompWorkLoad:minDevRes;
-		System.out.println("minFromFeedback:"+minFromFeedback);
+		logger.info("minFromFeedback:"+minFromFeedback);
  		double executorRes = (lowBound > minFromFeedback)?lowBound:minFromFeedback;
  		executorRes = (executorRes < highBound) ? executorRes: highBound;
- 		System.out.println("executorRes:"+executorRes);
+ 		logger.info("executorRes:"+executorRes);
  		return executorRes;
 	}
 	
@@ -547,7 +550,7 @@ public class AdvancedScheduling {
 		for(int i = 0; i< compNum; i++){
 			double ratioComp = compExpectedInputRate[i]/compActualOutputRate[i] ;
 			if(ratioComp > COMP_THRESHOLD){
-				System.out.println("Component condition meet:"+ratioComp);
+				logger.info("Component condition meet:"+ratioComp);
 				meetCondition = true;
 				break;
 			}
@@ -600,7 +603,7 @@ public class AdvancedScheduling {
 			double ratioTask = input/output;
 			if(ratioTask>TASK_THRESHOLD){
 				meetCondition = true;
-				System.out.println("Task condition meet:"+ratioTask);
+				logger.info("Task condition meet:"+ratioTask);
 				break;
 			}	
 		}
@@ -620,7 +623,7 @@ public class AdvancedScheduling {
 		}
 		if(e2eDelay > E2EDELAY_THRESHOLD){
 			meetCondition = true;
-			System.out.println("Delay condition meet:"+ e2eDelay);
+			logger.info("Delay condition meet:"+ e2eDelay);
 		}
 		
 		// leave for future:    (OldAssignment+NewEnvironment) > (BestAssignmentWithTheSameTasksAsOldAssignment+NewEnvironment)* RESCHEDULE_RATIO

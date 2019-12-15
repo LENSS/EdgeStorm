@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import Jama.Matrix;
 import cluster.Cluster;
 import cluster.Node;
@@ -17,6 +19,8 @@ public class ResilientScheduling {
 	String submitterAddr;
 	Topology t;
 	Cluster cluster;
+	
+	Logger logger = Logger.getLogger("ResilientScheduling");
 	
 	public ResilientScheduling(String submitterNode, Topology topology, Cluster clus) {
 		submitterAddr = submitterNode;
@@ -103,7 +107,7 @@ public class ResilientScheduling {
 					}
 				}
 			}
-			System.out.println(newAssign.getTask2Node());
+			logger.info(newAssign.getTask2Node());
 			
 			// Tell assigned nodes how to connect each other
 			List<String> assignNodes = newAssign.getAssginedNodes();

@@ -16,11 +16,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import org.apache.log4j.Logger;
+
 /**
  * Created by cmy on 8/8/19.
  */
 
 public class MessageQueues {
+	static Logger logger = Logger.getLogger("MessageQueues");
     //// DISTINCT DATA QUEUES FOR TASKS
     // data queues
     public static Map<Integer,BlockingQueue<InternodePacket>> incomingQueues = new HashMap<Integer,BlockingQueue<InternodePacket>>();
@@ -66,6 +69,8 @@ public class MessageQueues {
         if (incomingQueues.get(taskid)!=null) {
             Long entryTime = System.nanoTime();
             StatusOfLocalTasks.task2EntryTimes.get(taskid).add(entryTime);
+            StatusOfLocalTasks.task2EntryTimesUpStream.get(taskid).add(entryTime);
+            StatusOfLocalTasks.task2EntryTimesNimbus.get(taskid).add(entryTime);
             Assignment assignment = ComputingNode.getAssignment();
             HashMap<Integer,String> task2Component = assignment.getTask2Component();
             Topology topology = ComputingNode.getTopology();
@@ -79,7 +84,6 @@ public class MessageQueues {
 
     // API for user: Retrieve rx tuple from incoming queue to process
     public static InternodePacket retrieveIncomingQueue(int taskid){
-
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
@@ -101,7 +105,13 @@ public class MessageQueues {
     // API for user: Add tuple to the outgoing queue for tx
     public static void emit(InternodePacket data, int taskid, String Component) throws InterruptedException {
         if (outgoingQueues.get(taskid)!=null){
-            MyPair<String, InternodePacket> outData = new MyPair<String, InternodePacket>(Component, data);
+        	if (StatusOfLocalTasks.task2BeginProcessingTimes.get(taskid).size()>0) {
+                long timePoint = System.nanoTime();
+                long beginProcessingTime = StatusOfLocalTasks.task2BeginProcessingTimes.get(taskid).remove(0);
+                long processingTime = timePoint - beginProcessingTime;
+                StatusOfLocalTasks.task2ProcessingTimesUpStream.get(taskid).add(processingTime);
+            }
+        	MyPair<String, InternodePacket> outData = new MyPair<String, InternodePacket>(Component, data);
             outgoingQueues.get(taskid).put(outData);
         }
     }
@@ -201,7 +211,7 @@ public class MessageQueues {
 
         StatusOfLocalTasks.task2taskTupleSize.clear();
 
-        System.out.println("All queues removed ... ");
+        logger.info("All queues removed ... ");
     }
 }
 

@@ -8,6 +8,7 @@ import com.lenss.mstorm.status.StatusOfLocalTasks;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.zookeeper.Assignment;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import java.util.HashMap;
@@ -25,6 +26,11 @@ import java.util.concurrent.LinkedBlockingDeque;
  */
 
 public class MessageQueues {
+
+    /// LOGGER
+    private static final String TAG="MessageQueues";
+    private static Logger logger = Logger.getLogger(TAG);
+
     //// DISTINCT DATA QUEUES FOR TASKS
 
     // data queues
@@ -52,7 +58,7 @@ public class MessageQueues {
         }
 
         // add queues for task status
-        StatusOfLocalTasks.addQueuesForTask(taskID);
+        StatusOfLocalTasks.addStatusQueuesForTask(taskID);
     }
 
     // add result queues for last component tasks
@@ -194,30 +200,8 @@ public class MessageQueues {
 
         resultQueues.clear();
 
-        StatusOfLocalTasks.task2EntryTimesForFstComp.clear();
+        StatusOfLocalTasks.removeStatusQueues();
 
-        StatusOfLocalTasks.task2EntryTimes.clear();
-
-        StatusOfLocalTasks.task2BeginProcessingTimes.clear();
-
-        StatusOfLocalTasks.task2EntryTimesUpStream.clear();
-
-        StatusOfLocalTasks.task2EmitTimesUpStream.clear();
-
-        StatusOfLocalTasks.task2ResponseTimesUpStream.clear();
-
-        StatusOfLocalTasks.task2ProcessingTimesUpStream.clear();
-
-        StatusOfLocalTasks.task2EntryTimesNimbus.clear();
-
-        StatusOfLocalTasks.task2EmitTimesNimbus.clear();
-
-        StatusOfLocalTasks.task2ResponseTimesNimbus.clear();
-
-        StatusOfLocalTasks.task2taskTupleNum.clear();
-
-        StatusOfLocalTasks.task2taskTupleSize.clear();
-
-        System.out.println("All queues removed ... ");
+        logger.info("All task queues removed!");
     }
 }

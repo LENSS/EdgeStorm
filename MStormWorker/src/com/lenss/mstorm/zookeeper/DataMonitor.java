@@ -205,14 +205,14 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
     }
 
     public void register(String cluster_id)  {
-        zk.create(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate,
+        zk.create(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate + ":" + MStormWorker.availability,
                     new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL,this,null);
         zk.getChildren(CLUSTER_DIR + "/" + cluster_id + ASSIGN_DIR, true, this, null);
     }
 
     public void unregister(String cluster_id){
         try {
-            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate,-1);
+            zk.delete(CLUSTER_DIR + "/" + cluster_id + NODES_DIR +"/" + MStormWorker.GUID + ":" + MStormWorker.isPublicOrPrivate + ":" + MStormWorker.availability,-1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (KeeperException e) {

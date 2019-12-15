@@ -72,9 +72,9 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     private static final String apkFileDirectory = MStormDir + "APK/";
     private static final String apkFileName = "GRecognition.apk";
 
-    private static final String CAMERA_SOURCE = "0";
-    private static final String VIDEO_SOURCE = "1";
-    private static final String FOLDER_SOURCE = "2";
+    private static final String CAMERA_SOURCE = "Yi";
+    private static final String VIDEO_SOURCE = "Video";
+    private static final String FOLDER_SOURCE = "Folder";
     private static String IP_CAMERA_SOURCE = "10.8.162.1:8554/police1";
 
     private static final int NUM_OF_FACES=0;
@@ -107,7 +107,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     public static ReadFromFolder rff = null;
     public static ReadFromIPCamera rfipc = null;
 
-    public static String streamSource = FOLDER_SOURCE;  // use video source as default
+    public static String streamSource = CAMERA_SOURCE;  // use video source as default
 
     Logger logger;
 
@@ -241,8 +241,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                     // do nothing
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
-        }
-        else if (id == R.id.action_set_groupingMethod) {
+        } else if (id == R.id.action_set_groupingMethod) {
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
             CharSequence[] streamSources = {"Shuffle", "MinSojourn", "SojournProb", "MinEWT"};
@@ -272,11 +271,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                             }
                         }
                     }).show();
-        }
-        else if(id == R.id.action_set_streamSource){
+        } else if(id == R.id.action_set_streamSource){
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            CharSequence[] streamSources = {"Yi Camera", "Local Video", "Local Folder", "RTSP Camera"};
+            //CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera", "Local Folder"};
+            CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};  // , "Local Folder" for research experiment
             new AlertDialog.Builder(this)
                     .setSingleChoiceItems(streamSources, 0, null)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -290,10 +289,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                                 case 1: // Local Video
                                     streamSource = VIDEO_SOURCE;
                                     break;
-                                case 2: // Local Folder
-                                    streamSource = FOLDER_SOURCE;
-                                    break;
-                                case 3: // RTSP Camera
+                                case 2: // RTSP Camera
                                     AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
                                     final EditText ssBox = new EditText(GRecognitionActivity.this);
                                     ssBox.setHint("Input the RTSP camera URL");
@@ -308,6 +304,9 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                                             streamSource = IP_CAMERA_SOURCE;
                                         }
                                     }).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                    break;
+                                case 3: // Local Folder
+                                    streamSource = FOLDER_SOURCE;
                                     break;
                             }
                         }

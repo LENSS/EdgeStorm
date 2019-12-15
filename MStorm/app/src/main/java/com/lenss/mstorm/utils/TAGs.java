@@ -12,7 +12,6 @@ public class TAGs {
           //First let the logger show the messages to System.out
           Logger logger = Logger.getRootLogger();
           logger.addAppender(new ConsoleAppender(new PatternLayout("[%-5p] %d (%c{1}): %m%n"), "System.out"));
-
           logger.info("Trying to initialize logger at "+loggerFilePath);
           PatternLayout layout = new PatternLayout("[%-5p] %d (%c{1}): %m%n");
           RollingFileAppender appender = new RollingFileAppender(layout, loggerFilePath);

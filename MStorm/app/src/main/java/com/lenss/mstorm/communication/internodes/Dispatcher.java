@@ -12,12 +12,15 @@ import com.lenss.mstorm.status.StatusReporter;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.zookeeper.Assignment;
 
-import org.apache.zookeeper.data.Stat;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Dispatcher implements Runnable {
+    private final String TAG="Dispatcher";
+    Logger logger = Logger.getLogger(TAG);
+
     private boolean finished = false;
 
     @Override
@@ -33,32 +36,32 @@ public class Dispatcher implements Runnable {
                 for (int taskID: localTasks) {
                     Pair<String, InternodePacket> outdata = MessageQueues.retrieveOutgoingQueue(taskID);
                     if (outdata != null) {
-                        StatusReporter.getInstance().updateIsIncludingTask();
+                        //StatusReporter.getInstance().updateIsIncludingTask();
                         if (!outdata.first.equals("END")) { // Go to tasks of the next component
                             if ((outdata.second != null)) {
-                                Status status;
+                                DispatchStatus dispatchStatus;
                                 if (grouping.get(outdata.first) == Topology.Shuffle) {         // Shuffle stream grouping
-                                    status = ChannelManager.sendToRandomDownstreamTask(outdata.first, outdata.second);
-                                    if (!status.success) {
+                                    dispatchStatus = ChannelManager.sendToRandomDownstreamTask(outdata.first, outdata.second);
+                                    if (!dispatchStatus.success) {
                                         try {
                                             MessageQueues.reQueue(taskID, outdata);
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
                                     } else {
-                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                     }
                                 } else if (grouping.get(outdata.first) == Topology.MinSojournTime) {
-                                    status = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, false);
-                                    if (!status.success) {
-                                        if(status.remoteTaskID!=-1){
-                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                    dispatchStatus = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, false);
+                                    if (!dispatchStatus.success) {
+                                        if(dispatchStatus.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                         }
-                                        status = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, true);
-                                        if (!status.success) {
-                                            if(status.remoteTaskID!=-1){
-                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                        dispatchStatus = ChannelManager.sendToDownstreamTaskMinSojournTime(outdata.first, outdata.second, true);
+                                        if (!dispatchStatus.success) {
+                                            if(dispatchStatus.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                             }
                                             try {
                                                 MessageQueues.reQueue(taskID, outdata);
@@ -66,23 +69,23 @@ public class Dispatcher implements Runnable {
                                                 e.printStackTrace();
                                             }
                                         } else {
-                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                            updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                         }
                                     } else {
-                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                     }
                                 } else if(grouping.get(outdata.first) == Topology.SojournTimeProb){
-                                    status = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, false);
-                                    if (!status.success) {
-                                        if(status.remoteTaskID!=-1){
-                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                    dispatchStatus = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, false);
+                                    if (!dispatchStatus.success) {
+                                        if(dispatchStatus.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                         }
-                                        status = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, true);
-                                        if (!status.success) {
-                                            if(status.remoteTaskID!=-1){
-                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                        dispatchStatus = ChannelManager.sendToDownstreamTaskSojournTimeProb(outdata.first, outdata.second, true);
+                                        if (!dispatchStatus.success) {
+                                            if(dispatchStatus.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                             }
                                             try {
                                                 MessageQueues.reQueue(taskID, outdata);
@@ -90,23 +93,23 @@ public class Dispatcher implements Runnable {
                                                 e.printStackTrace();
                                             }
                                         } else {
-                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                            updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                         }
                                     } else {
-                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                     }
                                 } else if (grouping.get(outdata.first) == Topology.MinEWT){
-                                    status = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, false);
-                                    if (!status.success) {
-                                        if(status.remoteTaskID!=-1){
-                                            updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                    dispatchStatus = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, false);
+                                    if (!dispatchStatus.success) {
+                                        if(dispatchStatus.remoteTaskID!=-1){
+                                            updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                         }
-                                        status = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, true);
-                                        if (!status.success) {
-                                            if(status.remoteTaskID!=-1){
-                                                updateDownStreamTaskStatusOnFailure(status.remoteTaskID);
+                                        dispatchStatus = ChannelManager.sendToDownstreamTaskMinEWT(outdata.first, outdata.second, true);
+                                        if (!dispatchStatus.success) {
+                                            if(dispatchStatus.remoteTaskID!=-1){
+                                                updateDownStreamTaskStatusOnFailure(dispatchStatus.remoteTaskID);
                                             }
                                             try {
                                                 MessageQueues.reQueue(taskID, outdata);
@@ -114,12 +117,12 @@ public class Dispatcher implements Runnable {
                                                 e.printStackTrace();
                                             }
                                         } else {
-                                            updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                            updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                            updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                            updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                         }
                                     } else {
-                                        updateLocalTaskStatus(taskID, status.remoteTaskID, outdata.second.pktSize());
-                                        updateDownStreamTaskStatusOnSuccess(status.remoteTaskID);
+                                        updateLocalTaskStatus(taskID, dispatchStatus.remoteTaskID, outdata.second.pktSize());
+                                        updateDownStreamTaskStatusOnSuccess(dispatchStatus.remoteTaskID);
                                     }
                                 }
                             }
@@ -147,7 +150,8 @@ public class Dispatcher implements Runnable {
                 finished = true;
             }
         }
-        System.out.println("The Dispatcher thread has stopped ... ");
+
+        logger.info("==== Dispatcher stops ====");
     }
 
     public void updateLocalTaskStatus(int taskID, int remoteTaskID, long size){
@@ -181,10 +185,10 @@ public class Dispatcher implements Runnable {
     }
 
     public void updateDownStreamTaskStatusOnFailure(int remoteTaskID){
-        StatusOfDownStreamTasks.setDownStreamTaskDisconnected(remoteTaskID);
+        StatusOfDownStreamTasks.updateDownStreamTaskLink(remoteTaskID);
     }
 
-    public void stop(){
+    public void stopDispatch(){
         finished = true;
     }
 }

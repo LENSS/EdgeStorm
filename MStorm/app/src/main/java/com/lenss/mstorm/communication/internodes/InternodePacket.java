@@ -11,7 +11,7 @@ import java.util.Map;
  * Created by cmy on 7/30/19.
  */
 
-public class InternodePacket implements Serializable {
+public class InternodePacket {
     public static final int TYPE_INIT = 0;
     public static final int TYPE_DATA = 1;
     public static final int TYPE_REPORT = 2;

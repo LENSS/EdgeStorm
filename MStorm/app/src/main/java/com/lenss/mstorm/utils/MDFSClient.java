@@ -1,5 +1,6 @@
 package com.lenss.mstorm.utils;
 
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.IOException;
@@ -8,6 +9,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class MDFSClient {
+    /// LOGGER
+    private static final String TAG="MDFSClient";
+    private static Logger logger = Logger.getLogger(TAG);
+
     //constant static fields
     private static String LOCALFILEPATH = "LOCALFILEPATH";
     private static String MDFSFILEPATH = "MDFSFILEPATH";
@@ -41,7 +46,7 @@ public class MDFSClient {
             //send
             ds.send(DpSend);
 
-            System.out.println("request sent to MDFS");
+            logger.info("request sent to MDFS");
 
         }catch(IOException e){
             e.printStackTrace();

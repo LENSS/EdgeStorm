@@ -1,5 +1,6 @@
 package communication;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFactory;
@@ -22,6 +23,8 @@ import java.util.concurrent.Executors;
 public class CommunicationServer  {
     static final int SERVER_PORT = 12016;
     static final int workerThreads = 10;
+    
+    Logger logger = Logger.getLogger("CommunicationServer");
 
     private ChannelFactory factory;
 
@@ -44,7 +47,7 @@ public class CommunicationServer  {
             bootstrap.setOption("child.keepAlive", true);
             bootstrap.setOption("child.keepAlive", 10000);
             bootstrap.bind(new InetSocketAddress(SERVER_PORT));
-            System.out.println("\n\n"+"Server Starts !\n");
+            logger.info("\n\n"+"Server Starts !\n");
             
             List<String> ipAddresses = new ArrayList<String>();
             ipAddresses.add("localhost");

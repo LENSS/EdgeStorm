@@ -224,27 +224,33 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                     // do nothing
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
-        }
-//        else if (id == R.id.action_set_groupingMethod) {
-//            LinearLayout layout = new LinearLayout(this);
-//            layout.setOrientation(LinearLayout.VERTICAL);
-//            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-//            final EditText distributorBox = new EditText(this);
-//            distributorBox.setHint("distributor (shuffle:1, feedbackBased:2):" + distributorGroupingMethod);
-//            layout.addView(distributorBox);
-//            alert.setView(layout);
-//            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-//                public void onClick(DialogInterface dialog, int which) {
-//                    // continue with delete
-//                    distributorGroupingMethod = Integer.parseInt(distributorBox.getText().toString());
-//                }
-//            }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-//                public void onClick(DialogInterface dialog, int which) {
-//                    // do nothing
-//                }
-//            }).setIcon(android.R.drawable.ic_dialog_alert).show();
-//        }
-        else if(id == R.id.action_set_streamSource){
+        } else if (id == R.id.action_set_groupingMethod) {
+            final LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            CharSequence[] streamSources = {"Shuffle", "MinSojourn", "SojournProb", "MinEWT"};
+            new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(streamSources, 0, null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            dialog.dismiss();
+                            int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+                            switch (selectedPosition) {
+                                case 0: // shuffle
+                                    faceDetectorGroupingMethod = Topology.Shuffle;
+                                    break;
+                                case 1: // MinSojourn
+                                    faceDetectorGroupingMethod = Topology.MinSojournTime;
+                                    break;
+                                case 2: // SojournProb
+                                    faceDetectorGroupingMethod = Topology.SojournTimeProb;
+                                    break;
+                                case 3: // MinEWT
+                                    faceDetectorGroupingMethod = Topology.MinEWT;
+                                    break;
+                            }
+                        }
+                    }).show();
+        } else if(id == R.id.action_set_streamSource){
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
             CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};

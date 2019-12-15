@@ -6,11 +6,15 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 
+import org.apache.log4j.Logger;
+
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
 
 
 public class MStormWorker{     
+	Logger logger = Logger.getLogger("MStormWorker");
+	
 	public static final int SESSION_TIMEOUT = 10000;
 	public static String ZK_ADDRESS_IP;
 
@@ -22,6 +26,8 @@ public class MStormWorker{
 	public static String localAddress;
 
 	public static String isPublicOrPrivate;
+   
+    public static double availability = 1.0;
 
 	public static Supervisor mSupervisor;
 
@@ -66,7 +72,7 @@ public class MStormWorker{
 		// Get own GUID and IP
 		GUID = GNSServiceHelper.getOwnGUID();
 		if(GUID == null) {
-			System.out.println("EdgeKeeper unreachable!");
+			logger.info("EdgeKeeper unreachable!");
 			System.exit(-1);
 		}
 		localAddress = Helper.getIPAddress(true);
@@ -74,20 +80,20 @@ public class MStormWorker{
 		// Get Master Node GUID and IP
 		MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
 		if (MASTER_NODE_GUID == null){
-			System.out.println("MStorm Master Unregistered!");
+			logger.info("MStorm Master Unregistered!");
 			System.exit(-1);
 		}
-		System.out.println("The Master GUID is: " + MASTER_NODE_GUID);
+		logger.info("The Master GUID is: " + MASTER_NODE_GUID);
 		
 		MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
 		if (MASTER_NODE_IP == null){
-			System.out.println("MStorm Master unreachable!");
+			logger.info("MStorm Master unreachable!");
 			System.exit(-1);
 		}
-		System.out.println("The Master IP is: " + MASTER_NODE_IP);
+		logger.info("The Master IP is: " + MASTER_NODE_IP);
 
 		// Get ZOOKEEPER IP
-		ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
+		//ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
 
 		// Get Configuration, public(1) or private(0)
 		BufferedReader reader = null;

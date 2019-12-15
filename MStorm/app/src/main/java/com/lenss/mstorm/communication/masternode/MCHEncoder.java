@@ -1,6 +1,8 @@
 package com.lenss.mstorm.communication.masternode;
 
 import com.lenss.mstorm.utils.Serialization;
+
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
@@ -11,6 +13,8 @@ import static org.jboss.netty.buffer.ChannelBuffers.buffer;
 
 
 public class MCHEncoder extends SimpleChannelHandler {
+	private final String TAG="MasterNode.MCHEncoder";
+	Logger logger = Logger.getLogger(TAG);
 
 	@Override
 	public void writeRequested(ChannelHandlerContext ctx, MessageEvent event) throws Exception {
@@ -21,7 +25,7 @@ public class MCHEncoder extends SimpleChannelHandler {
 			ChannelBuffer cb = buffer(data.length);
 			cb.writeBytes(data);
 			Channels.write(ctx, event.getFuture(), cb);
-			System.out.println("The report has been sent to the master node ... ");
+			logger.info("==== Something sent to MStorm master ====");
 		}
 	}
 }

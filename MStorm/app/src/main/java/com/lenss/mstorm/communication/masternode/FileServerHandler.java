@@ -98,8 +98,6 @@ public class FileServerHandler extends SimpleChannelUpstreamHandler {
 
                 public void operationProgressed(ChannelFuture future,
                                                 long amount, long current, long total) {
-/*                    System.out.printf("%s: %d / %d (+%d)%n", path, current,
-                            total, amount);*/
                 }
             });
         }

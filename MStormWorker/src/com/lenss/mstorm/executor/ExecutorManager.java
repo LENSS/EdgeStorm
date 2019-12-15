@@ -9,8 +9,12 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+
 
 public class ExecutorManager extends ThreadPoolExecutor {
+	
+	Logger logger = Logger.getLogger("ExecutorManager");
 
     // record all the tasks running in the thread pool
     public HashMap<Integer, Future<?>> taskID2Future= new HashMap<Integer, Future<?>>();
@@ -35,7 +39,7 @@ public class ExecutorManager extends ThreadPoolExecutor {
                 }
         }
         if (t != null)
-            System.out.println(t);
+        	logger.info(t);
     }
 
     public void submitTask(Integer taskID, Runnable runnableTask){

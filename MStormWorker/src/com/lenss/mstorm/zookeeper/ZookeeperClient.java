@@ -66,4 +66,7 @@ public class ZookeeperClient implements Watcher, Runnable, DataMonitor.DataMonit
         closing(1);
     }
 
+    public boolean isConnected(){
+        return zk!=null && zk.getState().isConnected();
+    }
 }

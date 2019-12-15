@@ -11,6 +11,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.xbill.DNS.Master;
 
 import com.google.gson.Gson;
 
@@ -48,7 +49,6 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		ChannelManager.addRec(ctx.getChannel());
 		// Logging
 		String loggerChannelConnectionMsg = ctx.getChannel().getRemoteAddress().toString() + " is connected!" + "\n\n";
-		System.out.println("[" + sdf.format(new Date()) + "] " + loggerChannelConnectionMsg);
 		logger.info(loggerChannelConnectionMsg);
 	}
 
@@ -64,10 +64,18 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			return;
 		int type = recReq.getReqType();
 		switch (type) {
+		case Request.GETZOOKEEPER:
+			String loggerGetZooKeeperAddr = "Request Zookeeper Address!" + "\n\n";
+			logger.info(loggerGetZooKeeperAddr);		
+			Reply reply_zookeeper = new Reply();
+			reply_zookeeper.setType(Reply.ZOOKEEPERADDR);
+			reply_zookeeper.setContent(MasterNode.zooKeeperConnectionString);
+			ctx.getChannel().write(reply_zookeeper);
+			logger.info("Zookeeper Address " + MasterNode.zooKeeperConnectionString + " is sent!" + "\n\n");
+			break;
 		case Request.JOIN:
 			// Logging
 			String loggerJoinMsg = "Request to join mStorm platform!" + "\n\n";
-			System.out.println("[" + sdf.format(new Date()) + "] " + loggerJoinMsg);
 			logger.info(loggerJoinMsg);		
 			Reply reply = new Reply();
 			try {
@@ -85,8 +93,7 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			break;		
 		case Request.TOPOLOGY:
 			// Logging
-			String loggerNewTopologyMsg = "New topology is received!" + "\n\n"; 
-			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewTopologyMsg);
+			String loggerNewTopologyMsg = "New topology is received!" + "\n\n";
 			logger.info(loggerNewTopologyMsg);
 
 			// can be commented out for exercise by putting apk files in different phones
@@ -123,7 +130,6 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		case Request.CANCEL:
 			// Logging
 			String loggerCancelTopologyMsg = "Cancel Topology" + "\n\n"; 
-			System.out.println("[" + sdf.format(new Date()) + "] " + loggerCancelTopologyMsg);
 			logger.info(loggerCancelTopologyMsg);
 			Cluster curClusterCancel =  Cluster.getClusterByNodeAddress(recReq.getGUID());
 			String topologyIdCancel = recReq.getContent();
@@ -133,7 +139,6 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		case Request.GETAPKFILE:
 			// Logging
 			String loggerNewAPKFileMsg = "New Request Recived! Request Type is Request for APK file!" + "\n\n"; 
-			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewAPKFileMsg);
 			logger.info(loggerNewAPKFileMsg);
 
 			synchronized (FileServer.ServerExist) {
@@ -163,7 +168,6 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 
 			// Logging
 			String loggerNewStatusReportMsg = "A Status Report from GUID: " + phoneAddress + "\n" + "The Report is: " + statusReportStr + "\n\n"; 
-			System.out.println("[" + sdf.format(new Date()) + "] " + loggerNewStatusReportMsg);
 			logger.info(loggerNewStatusReportMsg);
 
 			// temporary comment out for March exercise, need more debugging later
@@ -221,6 +225,6 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 		// NetworkEventHandler.class.getSimpleName()));
 		super.channelClosed(ctx, e);
 
-		System.out.println(ctx.getChannel().getRemoteAddress().toString() + " connection closed!");
+		logger.info(ctx.getChannel().getRemoteAddress().toString() + " connection closed!");
 	}
 }

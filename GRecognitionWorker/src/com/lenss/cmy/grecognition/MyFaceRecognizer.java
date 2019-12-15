@@ -11,6 +11,8 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
 import org.datavec.image.loader.NativeImageLoader;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.transferlearning.TransferLearningHelper;
@@ -28,6 +30,8 @@ import com.lenss.mstorm.topology.Processor;
 import Models.PersonModel;
 
 public class MyFaceRecognizer extends Processor {
+	Logger logger = Logger.getLogger("MyFaceRecognizer");
+	
 	private TransferLearningHelper transferLearningHelper ;
 	private NativeImageLoader nativeImageLoader;
 	private DataNormalization scaler;
@@ -53,34 +57,36 @@ public class MyFaceRecognizer extends Processor {
 	
 	@Override
 	public void prepare() {
-	    System.out.println("Loading DL4J and FaceRecognizer");    
+		logger.info("Loading DL4J and FaceRecognizer");    
 	    ZooModel objZooModel = new VGG16();
-	    System.out.println("Test 1 ......");
+	    logger.info("Create VGG16 ......");
 	    ComputationGraph objComputationGraph = null;
 	    try {
 	    	objComputationGraph = (ComputationGraph)objZooModel.initPretrained(PretrainedType.VGGFACE);	
-	    	System.out.println("Test 2 ......");
+	    	logger.info("Intialize with pretrained model ......");
 	    } catch (IOException e) {
-	    	System.out.println("Test 3 ......");
+	    	logger.info("Can NOT intialize with pretrained model ......");
 			e.printStackTrace();
 	    }
 	    transferLearningHelper = new TransferLearningHelper(objComputationGraph,"pool4");
-		System.out.println("Test 4 ......");
+		logger.info("Create a transfer learning helper ......");
 		nativeImageLoader = new NativeImageLoader(224, 224, 3);
-		System.out.println("Test 5 ......");
+		logger.info("Image loader created ......");
 		scaler = new VGG16ImagePreProcessor();
-		System.out.println("Test 6 ......");
+		logger.info("VGG16 Preprocessor created ......");
 		trainList = readTrainedFacesFromDisk(); 
-	    System.out.println("Loaded DL4J and FaceRecognizer");
+	    logger.info("Successfully loaded DL4J and FaceRecognizer");
 	}
     
 	@Override
 	public void execute() {
+		int taskID = getTaskID();
         while (!Thread.currentThread().isInterrupted()) {
             InternodePacket pktRecv = MessageQueues.retrieveIncomingQueue(getTaskID());
             if(pktRecv != null){
+            	long enterTime = System.nanoTime();
                 byte[] frame = pktRecv.complexContent;
-	            System.out.println("FACE RECOGNIZER RECEIVES A FRAME, "+ getTaskID());
+	            logger.info("FACE RECOGNIZER RECEIVES A FRAME, "+ getTaskID());
 	            // read byte frame into image and recognize
 	            try {
 	            	// get feature of 
@@ -88,7 +94,6 @@ public class MyFaceRecognizer extends Processor {
 					INDArray imageMatrix = nativeImageLoader.asMatrix(img);
 					scaler.transform(imageMatrix);
 					DataSet objDataSet = new DataSet(imageMatrix, Nd4j.create(new float[]{0,0}));
-					System.out.println(transferLearningHelper);
 				    DataSet objFeaturized = transferLearningHelper.featurize(objDataSet);
 				    INDArray featuresArray = objFeaturized.getFeatures();				 
 				    int reshapeDimension=1;
@@ -108,12 +113,19 @@ public class MyFaceRecognizer extends Processor {
 				        recognizedFace = personModel.get_personName();
 				      }
 				    }
-				    System.out.println(recognizedFace);
 				    InternodePacket pktSend = new InternodePacket();
+				    pktSend.ID = pktRecv.ID;
                     pktSend.type = InternodePacket.TYPE_DATA;
                     pktSend.fromTask = getTaskID();
                     pktSend.simpleContent.put("name",recognizedFace);
                     pktSend.complexContent = frame;
+                    pktSend.traceTask = pktRecv.traceTask;
+                    pktSend.traceTask.add("MFR_"+taskID);
+                    pktSend.traceTaskEnterTime = pktRecv.traceTaskEnterTime;
+                    pktSend.traceTaskEnterTime.put("MFR_"+taskID, enterTime);
+                    pktSend.traceTaskExitTime = pktRecv.traceTaskExitTime;
+                    long exitTime = System.nanoTime();
+                    pktSend.traceTaskExitTime.put("MFR_"+taskID, exitTime);
                     String component = MyFaceSaver.class.getName();
                     try {
                         MessageQueues.emit(pktSend, getTaskID(), component);

@@ -7,6 +7,7 @@ public class Reply {
 	public static final int FAILED=1;
 	public static final int TOPOLOGY_ID=2;
 	public static final int GETAPK=3;
+	public static final int ZOOKEEPERADDR = 4;
 
 	@Expose
 	private int type=0;

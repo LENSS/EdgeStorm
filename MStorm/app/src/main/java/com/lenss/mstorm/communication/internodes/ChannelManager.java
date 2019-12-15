@@ -9,6 +9,7 @@ import com.lenss.mstorm.status.StatusOfDownStreamTasks;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
+import com.lenss.mstorm.utils.StatisticsCalculator;
 import com.lenss.mstorm.zookeeper.Assignment;
 
 import org.apache.log4j.Logger;
@@ -135,7 +136,7 @@ public class ChannelManager {
                     availTasks.add(remoteTask);
                     comp2AvailRemoteTasks.put(comp, availTasks);
                 }
-                StatusOfDownStreamTasks.setDownStreamTaskConnected(remoteTask);
+                StatusOfDownStreamTasks.initDownStreamTaskLink(remoteTask);
             }
         }
     }
@@ -153,7 +154,7 @@ public class ChannelManager {
                 if(comp2AvailRemoteTasks.containsKey(comp)){
                     comp2AvailRemoteTasks.get(comp).remove(remoteTask);
                 }
-                StatusOfDownStreamTasks.setDownStreamTaskDisconnected(remoteTask);
+                StatusOfDownStreamTasks.removeReport(remoteTask);
             }
         }
         channel2RemoteGUID.remove(ch.getId());
@@ -176,47 +177,52 @@ public class ChannelManager {
         StatusOfDownStreamTasks.removeAllStatus();
     }
 
-    public static Status sendToRandomDownstreamTask(String component, InternodePacket pkt){
-        Status status = new Status();
+    public static DispatchStatus sendToRandomDownstreamTask(String component, InternodePacket pkt){
+        DispatchStatus dispatchStatus = new DispatchStatus();
         List<Integer> availTasks = comp2AvailRemoteTasks.get(component);
         if(availTasks == null || (availTasks!=null && availTasks.size()==0)){
-            status.remoteTaskID = -1;
-            status.success = false;
+            dispatchStatus.remoteTaskID = -1;
+            dispatchStatus.success = false;
         } else {
             int index = Helper.randInt(0, availTasks.size());
             int taskID = availTasks.get(index);
             Channel ch = availRemoteTask2Channel.get(taskID);
+            logger.info("------- SendToRandomDownStream ------, from " + pkt.fromTask + "-------------------");
             if (ch != null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                status.remoteTaskID = taskID;
-                status.success = true;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = true;
+                logger.info("------- SendToRandomDownStream ------, to " + taskID + "-------------------");
             } else {
-                status.remoteTaskID = taskID;
-                status.success = false;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = false;
+                logger.info("------- SendToRandomDownStream ------, to " + taskID + " failed -------------------");
             }
         }
-        return status;
+        return dispatchStatus;
     }
 
-    public static Status sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt, boolean localRequired){
-        Status status;
+    public static DispatchStatus sendToDownstreamTaskMinSojournTime(String component, InternodePacket pkt, boolean localRequired){
+        DispatchStatus dispatchStatus;
         List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
         Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
 
         if(availableTasksWithStatus.size()==0){  // no remote task status yet
-            status = sendToRandomDownstreamTask(component, pkt);
+            dispatchStatus = sendToRandomDownstreamTask(component, pkt);
         } else {
-            status = new Status();
+            dispatchStatus = new DispatchStatus();
             double minSojournTime = Double.MAX_VALUE;
             int taskID = -1;
+
+            logger.info("------ SendToMinSojournTime------, from " + pkt.fromTask + " -----------------");
             for(int availableTaskID: availableTasksWithStatus){
                 double sojounTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                 double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
-                sojounTime = sojounTime/linkQuality*(-rssi);
+                sojounTime = sojounTime/linkQuality;
+                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " SojournTime:" + sojounTime);
                 if(localRequired){
                     if((sojounTime < minSojournTime) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
                         minSojournTime = sojounTime;
@@ -229,47 +235,51 @@ public class ChannelManager {
                     }
                 }
             }
+
             Channel ch = availRemoteTask2Channel.get(taskID);
             if (ch!=null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                status.remoteTaskID = taskID;
-                status.success = true;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = true;
+                logger.info("------ SendToMinSojournTime------, to " + taskID + " -----------------");
             } else {
-                status.remoteTaskID = taskID;
-                status.success = false;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = false;
+                logger.info("------ SendToMinSojournTime------, to " + taskID + " failed -----------------");
             }
         }
-        return status;
+        return dispatchStatus;
     }
 
     /********************************************************************************************
      *|--sojourn1/sojourn1--|--sojourn1/sojourn2--|-------- ... ---------|--sojourn1/sojournN--|*
      *          0                     1                     ...                   N-1           *
      *******************************************************************************************/
-    public static Status sendToDownstreamTaskSojournTimeProb(String component, InternodePacket pkt, boolean localRequired){
-        Status status;
+    public static DispatchStatus sendToDownstreamTaskSojournTimeProb(String component, InternodePacket pkt, boolean localRequired){
+        DispatchStatus dispatchStatus;
         List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
         Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2SojournTime.keySet());
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
 
         if(availableTasksWithStatus.size()==0){  // no downstream task has report yet
-            status = sendToRandomDownstreamTask(component, pkt);
+            dispatchStatus = sendToRandomDownstreamTask(component, pkt);
         } else {
-            status = new Status();
+            dispatchStatus = new DispatchStatus();
             // unify the sojourn time based on sojourn1 and added to a probability slot
             ArrayList<Pair<Integer,Double>> sojournTimeBasedProbSlots = new ArrayList<>();
             ArrayList<Integer> availableTaskListWithStatus = new ArrayList<>(availableTasksWithStatus);
             double sojourn1 = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskListWithStatus.get(0));
             double maxBound = 0.0;
+
+            logger.info("------ SendToSojournTimeProb------, from " + pkt.fromTask + " -----------------");
             for(int availableTaskID: availableTaskListWithStatus){
                 if(localRequired){
                     if(Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
                         double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                         double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                        double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
-                        sojournTime = sojournTime / linkQuality * (-rssi);
+                        sojournTime = sojournTime / linkQuality;
                         double unifiedSojournTime = sojourn1/sojournTime;
                         sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
                         maxBound += unifiedSojournTime;
@@ -277,8 +287,7 @@ public class ChannelManager {
                 } else {
                     double sojournTime = StatusOfDownStreamTasks.taskID2SojournTime.get(availableTaskID);
                     double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
-                    double rssi = StatusOfDownStreamTasks.taskID2RSSI.get(availableTaskID);
-                    sojournTime = sojournTime / linkQuality * (-rssi);
+                    sojournTime = sojournTime / linkQuality;
                     double unifiedSojournTime = sojourn1/sojournTime;
                     sojournTimeBasedProbSlots.add(new Pair<>(availableTaskID,unifiedSojournTime));
                     maxBound += unifiedSojournTime;
@@ -297,44 +306,46 @@ public class ChannelManager {
                 }
             }
             int taskID = sojournTimeBasedProbSlots.get(selectedIndex).first;
+
             Channel ch = availRemoteTask2Channel.get(taskID);
             if (ch!=null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                status.remoteTaskID = taskID;
-                status.success = true;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = true;
+                logger.info("------ SendToSojournTimeProb------, to " + taskID + " -----------------");
             } else {
-                status.remoteTaskID = taskID;
-                status.success = false;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = false;
+                logger.info("------ SendToSojournTimeProb------, to " + taskID + " failed -----------------");
             }
         }
-        return status;
+        return dispatchStatus;
     }
 
-    public static Status sendToDownstreamTaskMinEWT(String component, InternodePacket pkt, boolean localRequired) {
-        Status status;
+    public static DispatchStatus sendToDownstreamTaskMinEWT(String component, InternodePacket pkt, boolean localRequired) {
+        DispatchStatus dispatchStatus;
         List<Integer> availableTasks = comp2AvailRemoteTasks.get(component);
         Set<Integer> availableTasksWithStatus = new HashSet<>(availableTasks);
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2InQueueLength.keySet());
         availableTasksWithStatus.retainAll(StatusOfDownStreamTasks.taskID2LinkQuality.keySet());
 
-        if(availableTasksWithStatus.size()==0){  // not every downstream task has report yet
-            status = sendToRandomDownstreamTask(component, pkt);
+        if(availableTasksWithStatus.size()==0){
+            dispatchStatus = sendToRandomDownstreamTask(component, pkt);
         } else {
-            status = new Status();
+            dispatchStatus = new DispatchStatus();
             double minEWT = Double.MAX_VALUE;
             int taskID = -1;
 
-            logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            logger.info("PKTID: " + pkt.ID);
-
+            logger.info("------ SendToMinEWT------, from " + pkt.fromTask + " -----------------");
             for(int availableTaskID: availableTasksWithStatus){
                 double linkQuality = StatusOfDownStreamTasks.taskID2LinkQuality.get(availableTaskID);
                 double inQueueLength = StatusOfDownStreamTasks.taskID2InQueueLength.get(availableTaskID);
-                inQueueLength = (inQueueLength==0) ? 0.001 : inQueueLength;
+                inQueueLength = (inQueueLength==0) ? StatisticsCalculator.SMALL_VALUE : inQueueLength;
                 double outQueueLength = StatusOfDownStreamTasks.taskID2OutQueueLength.get(availableTaskID);
-                outQueueLength = (outQueueLength==0)? 0.001 : outQueueLength;
+                outQueueLength = (outQueueLength==0)? StatisticsCalculator.SMALL_VALUE : outQueueLength;
 
+//                // version 1.0
 //                double inputRate = StatusOfDownStreamTasks.taskID2InputRate.get(availableTaskID);
 //                double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
 //                double outputRate = StatusOfDownStreamTasks.taskID2OutputRate.get(availableTaskID);
@@ -343,11 +354,11 @@ public class ChannelManager {
 //                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +
 //                        outQueueLength + " INR: " + inputRate + " PROCR: " + procRate + " OUTR: " + outputRate + " WT: " + WT + " EWT:" + EWT);
 
-
+                // version 2.0
                 double procRate = StatusOfDownStreamTasks.taskID2ProcRate.get(availableTaskID);
+                procRate = (procRate==0)? StatisticsCalculator.SMALL_VALUE:procRate;
                 double EWT = inQueueLength * outQueueLength / linkQuality / procRate;
-                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +
-                        outQueueLength + " PROCR: " + procRate + " EWT:" + EWT);
+                logger.info("TaskID: " + availableTaskID + " LQ: " + linkQuality + " IQL: " + inQueueLength + " OQL: " +  outQueueLength + " PROCR: " + procRate + " EWT:" + EWT);
 
                 if(localRequired){
                     if((EWT < minEWT) && Supervisor.newAssignment.getTask2Node().get(availableTaskID).equals(MStorm.GUID)){
@@ -361,22 +372,20 @@ public class ChannelManager {
                     }
                 }
             }
-
-            logger.info("CHOOSE　" + " TaskID: " + taskID + " EWT: " + minEWT);
-            logger.info("-------------------------------------------------------------------------------------------------");
-
             Channel ch = availRemoteTask2Channel.get(taskID);
             if (ch!=null && ch.isWritable()) {
                 pkt.toTask = taskID;
                 ch.write(pkt);
-                status.remoteTaskID = taskID;
-                status.success = true;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = true;
+                logger.info("------ SendToMinEWT------, to " + taskID + "  -----------------");
             } else {
-                status.remoteTaskID = taskID;
-                status.success = false;
+                dispatchStatus.remoteTaskID = taskID;
+                dispatchStatus.success = false;
+                logger.info("------ SendToMinEWT------, to " + taskID + " failed -----------------");
             }
         }
-        return status;
+        return dispatchStatus;
     }
 
     public static int broadcastToUpstreamTasks(int taskID, InternodePacket pkt) {

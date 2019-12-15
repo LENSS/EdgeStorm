@@ -2,15 +2,16 @@ package com.lenss.mstorm.communication.internodes;
 
 import com.google.gson.annotations.Expose;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by cmy on 7/30/19.
  */
 
-public class InternodePacket implements Serializable {
+public class InternodePacket{
+
 	public static final int TYPE_INIT = 0;
     public static final int TYPE_DATA = 1;
     public static final int TYPE_REPORT = 2;
@@ -40,5 +41,30 @@ public class InternodePacket implements Serializable {
         traceTaskEnterTime = new HashMap<>();
         traceTaskExitTime = new HashMap<>();
         simpleContent = new HashMap<>();
+    }
+    
+    public int pktSize(){
+        // head size
+        int size = 20;
+
+        // trace track size
+        for(String task: traceTask){
+            size += task.length();
+        }
+
+        // trace track entry and exit time size
+        for(Map.Entry<String,Long> entry: traceTaskEnterTime.entrySet()){
+            size += (entry.getKey().length() + 8) * 2;
+        }
+
+        // simple content size
+        for(Map.Entry<String,String> entry: simpleContent.entrySet()){
+            size += entry.getKey().length() + entry.getValue().length();
+        }
+
+        // complex content size
+        size += (complexContent==null) ? 0 : complexContent.length;
+
+        return size;
     }
 }

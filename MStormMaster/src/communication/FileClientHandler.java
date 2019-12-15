@@ -5,8 +5,9 @@ package communication;
  */
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException; 
+import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -22,6 +23,8 @@ public class FileClientHandler extends SimpleChannelUpstreamHandler {
 	private FileOutputStream fOutputStream = null;
 	private String apkFileDirectory;
 	public static boolean FileOnServer = false;
+	
+	Logger logger = Logger.getLogger("FileClientHandler"); 
 
 	public FileClientHandler(String apkDirectory) {
 		apkFileDirectory = apkDirectory;
@@ -65,7 +68,7 @@ public class FileClientHandler extends SimpleChannelUpstreamHandler {
 			fOutputStream.flush();
 		}
 		if (!readingChunks) {
-			System.out.println("Got file from mobile client to master node!");
+			logger.info("Got file from mobile client to master node!");
 			FileOnServer = true;
 			fOutputStream.close();
 			e.getChannel().close();
@@ -75,7 +78,7 @@ public class FileClientHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 			throws Exception {
-		System.out.println("here i am");
-		System.out.println(e.getCause());
+		logger.info("here i am");
+		e.getCause().printStackTrace();
 	}
 }
