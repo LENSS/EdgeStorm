@@ -25,9 +25,12 @@ public class NimbusScheduler {
 		// Use the cluster that the task submitter belongs to
 		String submitterAddress = req.getGUID();		
 		Cluster cluster = Cluster.getClusterByNodeAddress(submitterAddress);
-		
 		String serTopology = req.getContent();
 		Topology topology= (Topology) Serialization.Deserialize(serTopology, Topology.class);
+		
+		// no cluster
+		if(cluster==null)
+			return null;
 		
 		RoundRobinScheduling rrs = new RoundRobinScheduling(submitterAddress,topology,cluster);
 		Assignment newAssign = rrs.schedule();

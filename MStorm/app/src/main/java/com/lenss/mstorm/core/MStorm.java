@@ -80,8 +80,8 @@ public class MStorm extends ActionBarActivity{
     public static String ZK_ADDRESS_IP = null;
 
     //Master Node
-    public static String MASTER_NODE_GUID;
-    public static String MASTER_NODE_IP;
+    public static String MASTER_NODE_GUID = null;
+    public static String MASTER_NODE_IP = null;
     public static final int MASTER_PORT = 12016;
 
     // Own Address
@@ -136,6 +136,13 @@ public class MStorm extends ActionBarActivity{
         return context;
     }
 
+    private boolean isReadyToStartService(){
+        if(MASTER_NODE_GUID!=null)
+            return true;
+        else
+            return false;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -154,6 +161,8 @@ public class MStorm extends ActionBarActivity{
         gps = new GPSTracker(MStorm.this);
         context = getApplicationContext();
 
+        mLog.append("\n==========================");
+
         // Configure the logger to store logs in file
         try {
             TAGs.initLogger(LOG_URL);
@@ -165,8 +174,10 @@ public class MStorm extends ActionBarActivity{
         /// Get own GUID
         GUID = GNSServiceHelper.getOwnGUID();
         if(GUID == null) {
-            mLog.append("\nEdgeKeeper unreachable!");
+            mLog.append("\nO_GUID: Cannot get, check if EdgeKeeper starts!");
             onStop();
+        } else {
+            mLog.append("\nO_GUID: " + GUID);
         }
 
         /// For Real Machines WiFi
@@ -185,15 +196,21 @@ public class MStorm extends ActionBarActivity{
         /// Get Master Node GUID and IP
         MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
         if (MASTER_NODE_GUID == null){
-            mLog.append("\nMStorm Master Unregistered!");
+            mLog.append("\nM_GUID: Cannot get, check EdgeKeeper Status!");
             onStop();
+        } else {
+            mLog.append("\nM_GUID: "+ MASTER_NODE_GUID);
         }
 
         MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
         if (MASTER_NODE_IP == null){
-            mLog.append("\nMStorm Master unreachable!\n");
+            mLog.append("\nM_IP: Cannot get, check EdgeKeeper Status!");
             onStop();
+        } else {
+            mLog.append("\nM_IP: "+ MASTER_NODE_IP);
         }
+
+        mLog.append("\n=========================="+"\n");
 
 //        /// Get Zookeeper IP
 //        ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
@@ -361,6 +378,11 @@ public class MStorm extends ActionBarActivity{
 //        }
 
         if (id == R.id.action_start_computing_service) {
+            if(!isReadyToStartService()){
+                Toast.makeText(this, "Cannot start Supervisor! Check EdgeKeeper Status!", Toast.LENGTH_SHORT).show();
+                return super.onOptionsItemSelected(item);
+            }
+
             if (SERVICE_STARTED == false) {
                 SERVICE_STARTED = true;
                 if (!mBound) {
@@ -371,7 +393,7 @@ public class MStorm extends ActionBarActivity{
                 // Start supervisor
                 startService(Intents.createExplicitFromImplicitIntent(this, new Intent(Intents.ACTION_START_SUPERVISOR)));
             } else {
-                Toast.makeText(this, "Supervisor Already ON", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Supervisor Already ON!", Toast.LENGTH_SHORT).show();
             }
         } else {
             if (SERVICE_STARTED) {

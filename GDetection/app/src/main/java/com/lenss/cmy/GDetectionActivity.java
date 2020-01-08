@@ -8,7 +8,9 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -40,11 +42,18 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.Executable;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
@@ -68,9 +77,11 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
 
     private static final String CAMERA_SOURCE = "0";
     private static final String VIDEO_SOURCE = "1";
-    private static String IP_CAMERA_SOURCE = "10.8.162.1:8554/police1";
+    private static String IP_CAMERA_SOURCE = "rtsp://10.8.162.1:8554/police1";
 
-    private static final int NUM_OF_FACES=0;
+    private static final int MSG_NUM_OF_FACES=0;
+    private static final int MSG_RTSP=1;
+
     private TextView result;
 
     // initial parallelism of face detector and recognizer component
@@ -92,11 +103,13 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
     // Input frame rate
     public static String frameRate = "1";
 
-    public static ReadFromCamera rfc = null;
+    public static ReadFromYiCamera rfc = null;
     public static ReadFromVideo rfv = null;
-    public static ReadFromIPCamera rfipc = null;
+    public static ReadFromRTSPCamera rfipc = null;
+    public static volatile boolean noFFmpeg = true;  // variable to ensure there is only one FFmpeg running
 
-    public static String streamSource = VIDEO_SOURCE;  // use video source as default
+
+    public static String streamSource = null;
 
     Logger logger;
 
@@ -205,29 +218,39 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         int id = item.getItemId();
 
         if(id == R.id.action_set_parallelTasks) {
-            LinearLayout layout = new LinearLayout(this);
-            layout.setOrientation(LinearLayout.VERTICAL);
-            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-
             final EditText fdBox = new EditText(this);
             fdBox.setHint("faceDetector:"+faceDetectorParallel);
+
+            final LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
             layout.addView(fdBox);
 
-            alert.setView(layout);
-            alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+            new AlertDialog.Builder(this)
+                    .setView(layout)
+                    .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    // continue with delete
-                    faceDetectorParallel = Integer.parseInt(fdBox.getText().toString());
+                    try {
+                        faceDetectorParallel = Integer.parseInt(fdBox.getText().toString());
+                        if(faceDetectorParallel<=0 || faceDetectorParallel>10){
+                            faceDetectorParallel = 1;
+                            Toast.makeText(GDetectionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch(NumberFormatException nfe){
+                        faceDetectorParallel = 1;
+                        Toast.makeText(GDetectionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                    }
+                    fdBox.setHint("faceDetector:"+faceDetectorParallel);
                 }
             }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    // do nothing
+                    faceDetectorParallel = 1;
+                    fdBox.setHint("faceDetector:"+faceDetectorParallel);
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
         } else if (id == R.id.action_set_groupingMethod) {
+            CharSequence[] streamSources = {"Shuffle", "MinSojourn", "SojournProb", "MinEWT"};
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            CharSequence[] streamSources = {"Shuffle", "MinSojourn", "SojournProb", "MinEWT"};
             new AlertDialog.Builder(this)
                     .setSingleChoiceItems(streamSources, 0, null)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -251,9 +274,9 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_streamSource){
+            CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};
             new AlertDialog.Builder(this)
                     .setSingleChoiceItems(streamSources, 0, null)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -268,18 +291,22 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                                     streamSource = VIDEO_SOURCE;
                                     break;
                                 case 2: // RTSP Camera
-                                    AlertDialog.Builder alert = new AlertDialog.Builder(GDetectionActivity.this);
                                     final EditText ssBox = new EditText(GDetectionActivity.this);
-                                    ssBox.setHint("Input the RTSP camera URL");
+                                    ssBox.setHint("Input an RTSP URL, e.g.," + IP_CAMERA_SOURCE);
                                     layout.addView(ssBox);
+                                    AlertDialog.Builder alert = new AlertDialog.Builder(GDetectionActivity.this);
                                     alert.setView(layout);
                                     alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
-                                        // continue with delete
                                         streamSource = ssBox.getText().toString();
+                                        String validResult = isValidRTSPURL(streamSource);
+                                        if(!validResult.equals("valid")){
+                                            Toast.makeText(GDetectionActivity.this, validResult, Toast.LENGTH_SHORT).show();
+                                            streamSource = null;
+                                        }
                                     }}).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
-                                            streamSource = IP_CAMERA_SOURCE;
+                                            streamSource = null;
                                         }
                                     }).setIcon(android.R.drawable.ic_dialog_alert).show();
                                     break;
@@ -287,9 +314,9 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_frameRate){
+            CharSequence[] frameRates = {"1 Frame/s", "2 Frames/s", "3 Frames/s", "5 Frames/s", "Manually Setting"};
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
-            final CharSequence[] frameRates = {"1 Frame/s", "2 Frames/s", "3 Frames/s", "5 Frames/s", "Manually Setting"};
             new AlertDialog.Builder(this)
                     .setSingleChoiceItems(frameRates, 0, null)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -310,37 +337,30 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                                     frameRate = "5";
                                     break;
                                 case 4: // Manually Setting
-                                    final AlertDialog.Builder alert = new AlertDialog.Builder(GDetectionActivity.this);
                                     final EditText frBox = new EditText(GDetectionActivity.this);
                                     frBox.setHint("Default (F/s): " + frameRate);
                                     layout.addView(frBox);
-                                    alert.setView(layout);
-                                    alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                                    new AlertDialog.Builder(GDetectionActivity.this)
+                                            .setView(layout)
+                                            .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
-                                            // continue with delete
-                                            frameRate = frBox.getText().toString();
-                                            if(Integer.valueOf(frameRate) >30 || Integer.valueOf(frameRate) <= 0){
-                                                LinearLayout newLayout = new LinearLayout(GDetectionActivity.this);
-                                                newLayout.setOrientation(LinearLayout.VERTICAL);
-                                                AlertDialog.Builder newAlert = new AlertDialog.Builder(GDetectionActivity.this);
-                                                final TextView text = new TextView(GDetectionActivity.this);
-                                                text.setTextSize(16);
-                                                text.setText("FrameRate must be integer between 1 and 30");
-                                                newLayout.addView(text);
-                                                newAlert.setView(newLayout);
-                                                newAlert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-                                                    public void onClick(DialogInterface dialog, int which) {
-                                                        frameRate = "1";
-                                                    }
-                                                }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                                                    public void onClick(DialogInterface dialog, int which) {
-                                                        frameRate = "1";
-                                                    }}).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                            try {
+                                                frameRate = frBox.getText().toString();
+                                                int fr = Integer.parseInt(frameRate);    // check if it is an int
+                                                if(fr >15 || fr <= 0){
+                                                    frameRate = "1";
+                                                    Toast.makeText(GDetectionActivity.this, "Set an integer between 1 and 15!", Toast.LENGTH_SHORT).show();
+                                                }
+                                            } catch(NumberFormatException nfe){
+                                                frameRate = "1";
+                                                Toast.makeText(GDetectionActivity.this, "Set an integer between 1 and 15!", Toast.LENGTH_SHORT).show();
                                             }
+                                            frBox.setHint("Default (F/s): " + frameRate);
                                         }
                                     }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
                                             frameRate = "1";
+                                            frBox.setHint("Default (F/s): " + frameRate);
                                         }
                                     }).setIcon(android.R.drawable.ic_dialog_alert).show();
                                     break;
@@ -363,7 +383,13 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         } else {
             Topology topology = GDetectorTopology.createTopology();
             StormSubmitter submitter = new StormSubmitter(this);
+            if(!submitter.isReady()){
+                mHandler.obtainMessage(MSG_RTSP,"EdgeKeeper or MStorm master does NOT start yet").sendToTarget();
+                return;
+            }
+            logger.debug("============= Submitter is ready ================");
             submitter.submitTopology(apkFileName, topology);
+
             // wait for reply containing topologyID
             Reply reply;
             while ((reply = submitter.getReply()) == null) {
@@ -373,9 +399,13 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                     e.printStackTrace();
                 }
             }
+
             topologyID = new Integer(reply.getContent());
+
             if (topologyID != 0)
                 Toast.makeText(this, "Topology Scheduled!", Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(this, "Topology can NOT be scheduled!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -384,23 +414,30 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
             Toast.makeText(this, "Topology Already Canceled!", Toast.LENGTH_SHORT).show();
         } else {
             StormSubmitter submitter = new StormSubmitter(this);
+            if(!submitter.isReady()){
+                mHandler.obtainMessage(MSG_RTSP,"EdgeKeeper does not work").sendToTarget();
+                return;
+            }
+            logger.debug("============= Submitter is ready ================");
             submitter.cancelTopology(Integer.toString(topologyID));
+
             topologyID = 0;
             Toast.makeText(this, "Topology Canceled!", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
-//        if(topologyID == 0){
-//            Toast.makeText(this, "Topology Not Submitted/Scheduled Yet!", Toast.LENGTH_SHORT).show();
-//        } else {
-            mRecordingEnabled = !mRecordingEnabled;
-            updateControls();
-            if (mRecordingEnabled)
-                startPullStream();
-            else
-                stopPullStream();
-        //}
+        if(streamSource == null){
+            Toast.makeText(GDetectionActivity.this, "Please set stream source first!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mRecordingEnabled = !mRecordingEnabled;
+        updateControls();
+        if (mRecordingEnabled)
+            startPullStream();
+        else
+            stopPullStream();
     }
 
     public void updateControls() {
@@ -411,45 +448,43 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
     }
 
     public void startPullStream(){
-        if(streamSource.equals(CAMERA_SOURCE)){ // pull stream from camera
-            if(rfc==null){
-                rfc = new ReadFromCamera();
-                new Thread(rfc).start();
-            }
-        } else if(streamSource.equals(VIDEO_SOURCE)){ // pull stream from video
-            if (rfv == null) {
-                rfv = new ReadFromVideo();
-                new Thread(rfv).start();
-            }
-        } else{
-            if(rfipc == null){
-                rfipc = new ReadFromIPCamera();
-                new Thread(rfipc).start();
+        if(streamSource!=null) {
+            if (streamSource.equals(CAMERA_SOURCE)) { // pull stream from camera
+                if (rfc == null) {
+                    rfc = new ReadFromYiCamera();
+                    new Thread(rfc).start();
+                }
+            } else if (streamSource.equals(VIDEO_SOURCE)) { // pull stream from video
+                if (rfv == null) {
+                    rfv = new ReadFromVideo();
+                    new Thread(rfv).start();
+                }
+            } else {
+                if (rfipc == null) {
+                    rfipc = new ReadFromRTSPCamera();
+                    new Thread(rfipc).start();
+                }
             }
         }
-
-//         pull stream to FD App
-//        if(rfs==null){
-//            rfs = new ReadFromStream();
-//            new Thread(rfs).start();
-//        }
     }
 
     public void stopPullStream(){
-        if(streamSource.equals(CAMERA_SOURCE)) { // pull stream from camera
-            if (rfc != null) {
-                rfc.stop();
-                rfc = null;
-            }
-        } else if(streamSource.equals(VIDEO_SOURCE)){ // stop pulling from video
-            if (rfv != null) {
-                rfv.stop();
-                rfv = null;
-            }
-        } else {
-            if (rfipc != null) {
-                rfipc.stop();
-                rfipc = null;
+        if(streamSource!=null){
+            if(streamSource.equals(CAMERA_SOURCE)) { // pull stream from camera
+                if (rfc != null) {
+                    rfc.stop();
+                    rfc = null;
+                }
+            } else if(streamSource.equals(VIDEO_SOURCE)){ // stop pulling from video
+                if (rfv != null) {
+                    rfv.stop();
+                    rfv = null;
+                }
+            } else {
+                if (rfipc != null) {
+                    rfipc.stop();
+                    rfipc = null;
+                }
             }
         }
     }
@@ -457,41 +492,70 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            result.setText(msg.obj.toString());
+            switch (msg.what){
+                case MSG_NUM_OF_FACES:
+                    result.setText(msg.obj.toString());
+                    break;
+                case MSG_RTSP:
+                    Toast.makeText(GDetectionActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+                    break;
+            }
+
         }
     };
 
-    class ReadFromIPCamera implements Runnable{
-        public void run(){
-            String rtsp = streamSource;
+    class ReadFromRTSPCamera implements Runnable{
+        int lastReturnCode = 1;
+        boolean finished = false;
 
-            int lastReturnCode = 1;
-            // 1:AmbaRTSPServer@YICamera restarts, because the camera has not started recording and there is no stream to be pull to the phone.
-            while ((lastReturnCode == 1)) {
+        public void run(){
+            String rtspURL = streamSource;
+
+            while (!finished && lastReturnCode==1) {
+                if(noFFmpeg){
+                    try{
+                        noFFmpeg = false;
+                        lastReturnCode = FFmpeg.execute("-i " + rtspURL +" -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg"); // blocking call
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    } finally {
+                        noFFmpeg = true;
+                        logger.debug("noFFmpeg is set to " + noFFmpeg);
+                    }
+                }
+                // 1: The camera has not started recording yet, there is no stream
+                if(lastReturnCode==1) {
+                    mHandler.obtainMessage(MSG_RTSP,"No RTSP stream!").sendToTarget();
+                }
+                // 0: The camera stops recording and causes timeout
+                if(lastReturnCode == 0) {
+                    mHandler.obtainMessage(MSG_RTSP,"RTSP server timeout").sendToTarget();
+                    lastReturnCode = 1;
+                }
+                // wait for the camera to start recording
                 try {
-                    Thread.sleep(1000);     // wait for RTSP server restarting at the camera
+                    Thread.sleep(1000);
                 } catch (InterruptedException e){
                     e.printStackTrace();
                 }
-                lastReturnCode = FFmpeg.execute("-i rtsp://" + rtsp +" -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
-            }
-            // 0: FFmpeg client to AmbaRTSPServer@YICamera is timeout, because the camera stops recording.
-            if(lastReturnCode == 0){
-                stopPullStream();
-                startPullStream();
             }
         }
 
         public void stop(){
+            finished = true;
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
-    class ReadFromCamera implements Runnable{
-        public void run(){
-            String rtsp;
+    class ReadFromYiCamera implements Runnable{
+        int lastReturnCode = 1;
+        boolean finished = false;
 
-            while ((rtsp = getCameraIP()) == null ) {   // camera is not open yet
+        public void run(){
+            String rtspIP;
+            while ((rtspIP = getCameraIP()) == null ) {   // camera is not open yet
+                mHandler.obtainMessage(MSG_RTSP,"Camera is not open").sendToTarget();
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e){
@@ -499,35 +563,69 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                 }
             }
 
-            int lastReturnCode = 1;
-            // 1:AmbaRTSPServer@YICamera restarts, because the camera has not started recording and there is no stream to be pull to the phone.
-            while ((lastReturnCode == 1)) {
+            while (!finished && lastReturnCode==1) {
+                if(noFFmpeg){
+                    try{
+                        noFFmpeg = false;
+                        lastReturnCode = FFmpeg.execute("-i rtsp://" + rtspIP + "/live -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg"); // blocking call
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    } finally {
+                        noFFmpeg = true;
+                        logger.debug("noFFmpeg is set to " + noFFmpeg);
+                    }
+                }
+                // 1: The camera has not started recording yet, there is no stream
+                if(lastReturnCode==1) {
+                    mHandler.obtainMessage(MSG_RTSP,"No RTSP stream!").sendToTarget();
+                }
+                // 0: The camera stops recording and causes timeout
+                if(lastReturnCode == 0) {
+                    mHandler.obtainMessage(MSG_RTSP,"RTSP server timeout").sendToTarget();
+                    lastReturnCode = 1;
+                }
+                // wait for the camera to start recording
                 try {
-                    Thread.sleep(1000);     // wait for RTSP server restarting at the camera
+                    Thread.sleep(1000);
                 } catch (InterruptedException e){
                     e.printStackTrace();
                 }
-                lastReturnCode = FFmpeg.execute("-i rtsp://" + rtsp + "/live -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
-            }
-            // 0: FFmpeg client to AmbaRTSPServer@YICamera is timeout, because the camera stops recording.
-            if(lastReturnCode == 0){
-                stopPullStream();
-                startPullStream();
             }
         }
 
         public void stop(){
+            finished = true;
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
     class ReadFromVideo implements Runnable{
         String videoPath = MStormDir + "Videos/test.mp4";
+        int lastReturnCode = 1;
         public void run(){
-            FFmpeg.execute("-i " +  videoPath + " -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
+            if(noFFmpeg){
+                try{
+                    noFFmpeg = false;
+                    lastReturnCode = FFmpeg.execute("-i " +  videoPath + " -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
+                } catch (Exception e){
+                    e.printStackTrace();
+                } finally {
+                    noFFmpeg = true;
+                    logger.debug("noFFmpeg is set to " + noFFmpeg);
+                }
+            }
+
+            if(lastReturnCode==1){
+                mHandler.obtainMessage(MSG_RTSP, videoPath + " does NOT exist!").sendToTarget();
+            } else {
+                mHandler.obtainMessage(MSG_RTSP, "Finished pulling stream!").sendToTarget();
+            }
         }
+
         public void stop(){
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
@@ -556,7 +654,6 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
             mProgressBar.setVisibility(View.GONE);
         }
     }
-
 
     private void changeProgressDialogMessage(final ProgressDialog pd, final String msg) {
         Runnable changeMessage = new Runnable() {
@@ -587,7 +684,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
-        mHandler.obtainMessage(NUM_OF_FACES, mGridData.size() + " faces detected! ").sendToTarget();
+        mHandler.obtainMessage(MSG_NUM_OF_FACES, mGridData.size() + " faces detected! ").sendToTarget();
     }
 
     public String getCameraIP() {
@@ -659,6 +756,117 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
             }
         }
         mGridData.clear();
+    }
+
+    public String isValidRTSPURL(String rtspURL){
+        String result;
+
+        String temp = "rtsp://";
+        int locOfRtsp = rtspURL.indexOf(temp);
+        // return false if rtsp:// is not accompanied with the URL
+        if (locOfRtsp == -1){
+            result = "rtsp:// is not in the URL";
+            logger.error(result);
+            return result;
+        }
+
+        // Obtain a string excluding the "rtsp://"
+        String parsedURL = rtspURL.substring(locOfRtsp + temp.length());
+        // Extract IP with port if possible, also make sure that there is a path.
+        int indexOfSlash = parsedURL.indexOf("/");
+        String hostnameTemp;
+        if (indexOfSlash != -1) {
+            hostnameTemp = parsedURL.substring(0, indexOfSlash);
+            // Check if there is a path following slash
+            if (indexOfSlash + 1 > parsedURL.length()) {
+                result =  "There is no path following the slash";
+                logger.error(result);
+                return result;
+            }
+        } else {
+            result = "There is no slash in the URL";
+            logger.error(result);
+            return result;
+        }
+
+        // Check to see if there is a port specified. If there isn't, assume default part
+        String hostName;
+        int serverPort;
+        int indexOfColon = hostnameTemp.indexOf(':');
+        if (indexOfColon != -1) {
+            // Get the IP
+            hostName = hostnameTemp.substring(0, indexOfColon);
+            // Get the port number
+            try {
+                serverPort = Integer.parseInt(hostnameTemp.substring(hostnameTemp.indexOf(':') + 1));
+            } catch (NumberFormatException nfe) {
+                result = "The port num is not an integer";
+                logger.error(result);
+                return result;
+            }
+        } else {
+            hostName = hostnameTemp;
+            serverPort = 554;
+        }
+
+        try {
+            ExecutorService executorService = Executors.newSingleThreadExecutor();
+            Boolean isConnecable = executorService.submit(new ConnectToRTSPServer(hostName, serverPort)).get();
+            executorService.shutdownNow();
+            if(!isConnecable){
+                result = "Unable to connect to the URL!";
+                logger.info(result);
+                return result;
+            }
+        } catch (Exception e){
+            result = "Exception: Unable to connect to the URL!";
+            logger.error(result);
+            e.printStackTrace();
+            return result;
+        }
+
+        // valid RTSP URL
+        result = "valid";
+        return result;
+    }
+
+    class ConnectToRTSPServer implements Callable<Boolean> {
+        String hostName;
+        int serverPort;
+        Boolean isConnectable;
+
+        ConnectToRTSPServer(String hostName, int serverPort){
+            this.hostName = hostName;
+            this.serverPort = serverPort;
+        }
+
+        public Boolean call(){
+            // try to check if there is an RTSP server running
+            Socket RTSPSocket = null;
+            try {
+                InetAddress ServerIPAddr = InetAddress.getByName(hostName);
+                RTSPSocket = new Socket(ServerIPAddr, serverPort);
+                isConnectable = true;
+            } catch (UnknownHostException e) {
+                logger.error("Could not find host ... ");
+                e.printStackTrace();
+                isConnectable = false;
+            } catch (IOException e) {
+                logger.error("Could not establish socket ... ");
+                e.printStackTrace();
+                isConnectable = false;
+            } finally {
+                // close the socket
+                if(RTSPSocket!=null && RTSPSocket.isConnected()){
+                    try {
+                        RTSPSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            return isConnectable;
+        }
     }
 }
 

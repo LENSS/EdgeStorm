@@ -27,7 +27,7 @@ public class RoundRobinScheduling {
 		cluster = clus;
 	}
 		
-	public Assignment schedule(){
+	public Assignment schedule(){		
 		Assignment newAssign = new Assignment();
 		
 		// Report IP addresses of available nodes to clients, such that they can calculate the RTT time to each other

@@ -34,11 +34,20 @@ public class MasterNode {
 	}
 	
 	public void setup(){
+		// get zookeeper connection string
+		while ((zooKeeperConnectionString = EKClient.getZooKeeperConnectionString()) == null) {
+			logger.error("Can NOT get Zookeeper connection string, try again to get it after 1s ... ");
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		// establish a zooKeeper client
-		try {
-			zooKeeperConnectionString = EKClient.getZooKeeperConnectionString();
+		try {	
 			mZkClient = new ZookeeperClient(zooKeeperConnectionString);
-			logger.info("Get Zookeeper Connection String ... ");
+			logger.info("Start a Zookeeper client ...");
 		} catch (KeeperException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

@@ -154,7 +154,9 @@ public class ResilientScheduling {
 				}
 			}	
 			newAssign.setNode2NodeConnection(node2NodeConnection);
-		}		
-		return newAssign;
+			return newAssign;
+		} else {	// cannot be scheduled
+			return null;
+		}
 	}
 }

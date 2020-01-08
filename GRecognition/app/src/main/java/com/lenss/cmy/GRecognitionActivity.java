@@ -75,9 +75,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     private static final String CAMERA_SOURCE = "Yi";
     private static final String VIDEO_SOURCE = "Video";
     private static final String FOLDER_SOURCE = "Folder";
-    private static String IP_CAMERA_SOURCE = "10.8.162.1:8554/police1";
+    private static String IP_CAMERA_SOURCE = "rtsp://10.8.162.1:8554/police1";
 
-    private static final int NUM_OF_FACES=0;
+    private static final int MSG_NUM_OF_FACES=0;
+    private static final int MSG_RTSP=1;
+
     private TextView result;
 
     // initial parallelism of face detector and recognizer component
@@ -106,6 +108,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     public static ReadFromVideo rfv = null;
     public static ReadFromFolder rff = null;
     public static ReadFromIPCamera rfipc = null;
+    public static volatile boolean noFFmpeg = true;  // variable to ensure there is only one FFmpeg running
 
     public static String streamSource = CAMERA_SOURCE;  // use video source as default
 
@@ -232,13 +235,36 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
             alert.setView(layout);
             alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    // continue with delete
-                    faceDetectorParallel = Integer.parseInt(fdBox.getText().toString());
-                    faceRecognizerParallel =  Integer.parseInt(frBox.getText().toString());
+                    try {
+                        faceDetectorParallel = Integer.parseInt(fdBox.getText().toString());
+                        if(faceDetectorParallel<=0 || faceDetectorParallel>10){
+                            faceDetectorParallel = 1;
+                            Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch(NumberFormatException nfe){
+                        faceDetectorParallel = 1;
+                        Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                    }
+                    fdBox.setHint("faceDetector:"+faceDetectorParallel);
+
+                    try {
+                        faceRecognizerParallel =  Integer.parseInt(frBox.getText().toString());
+                        if(faceRecognizerParallel<=0 || faceRecognizerParallel>10){
+                            faceRecognizerParallel = 1;
+                            Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch(NumberFormatException nfe){
+                        faceRecognizerParallel = 1;
+                        Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 10!", Toast.LENGTH_SHORT).show();
+                    }
+                    frBox.setHint("faceRecognizer:"+faceRecognizerParallel);
                 }
             }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    // do nothing
+                    faceDetectorParallel = 1;
+                    fdBox.setHint("faceDetector:"+faceDetectorParallel);
+                    faceRecognizerParallel = 1;
+                    frBox.setHint("faceRecognizer:"+faceRecognizerParallel);
                 }
             }).setIcon(android.R.drawable.ic_dialog_alert).show();
         } else if (id == R.id.action_set_groupingMethod) {
@@ -292,7 +318,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                                 case 2: // RTSP Camera
                                     AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
                                     final EditText ssBox = new EditText(GRecognitionActivity.this);
-                                    ssBox.setHint("Input the RTSP camera URL");
+                                    ssBox.setHint("Input an RTSP URL, e.g., rtsp://ip:portNum/path");
                                     layout.addView(ssBox);
                                     alert.setView(layout);
                                     alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
@@ -335,37 +361,30 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                                     frameRate = "5";
                                     break;
                                 case 4: // Manually Setting
-                                    final AlertDialog.Builder alert = new AlertDialog.Builder(GRecognitionActivity.this);
                                     final EditText frBox = new EditText(GRecognitionActivity.this);
                                     frBox.setHint("Default (F/s): " + frameRate);
                                     layout.addView(frBox);
-                                    alert.setView(layout);
-                                    alert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                                    new AlertDialog.Builder(GRecognitionActivity.this)
+                                        .setView(layout)
+                                        .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
-                                            // continue with delete
-                                            frameRate = frBox.getText().toString();
-                                            if(Integer.valueOf(frameRate) >30 || Integer.valueOf(frameRate) <= 0){
-                                                LinearLayout newLayout = new LinearLayout(GRecognitionActivity.this);
-                                                newLayout.setOrientation(LinearLayout.VERTICAL);
-                                                AlertDialog.Builder newAlert = new AlertDialog.Builder(GRecognitionActivity.this);
-                                                final TextView text = new TextView(GRecognitionActivity.this);
-                                                text.setTextSize(16);
-                                                text.setText("FrameRate must be integer between 1 and 30");
-                                                newLayout.addView(text);
-                                                newAlert.setView(newLayout);
-                                                newAlert.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-                                                    public void onClick(DialogInterface dialog, int which) {
-                                                        frameRate = "1";
-                                                    }
-                                                }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                                                    public void onClick(DialogInterface dialog, int which) {
-                                                        frameRate = "1";
-                                                    }}).setIcon(android.R.drawable.ic_dialog_alert).show();
+                                            try {
+                                                frameRate = frBox.getText().toString();
+                                                int fr = Integer.parseInt(frameRate);    // check if it is an int
+                                                if(fr >15 || fr <= 0){
+                                                    frameRate = "1";
+                                                    Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 15!", Toast.LENGTH_SHORT).show();
+                                                }
+                                            } catch(NumberFormatException nfe){
+                                                frameRate = "1";
+                                                Toast.makeText(GRecognitionActivity.this, "Set an integer between 1 and 15!", Toast.LENGTH_SHORT).show();
                                             }
+                                            frBox.setHint("Default (F/s): " + frameRate);
                                         }
                                     }).setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
                                             frameRate = "1";
+                                            frBox.setHint("Default (F/s): " + frameRate);
                                         }
                                     }).setIcon(android.R.drawable.ic_dialog_alert).show();
                                     break;
@@ -388,7 +407,13 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
         } else {
             Topology topology = GRecognizerTopology.createTopology();
             StormSubmitter submitter = new StormSubmitter(this);
+            if(!submitter.isReady()){
+                mHandler.obtainMessage(MSG_RTSP,"EdgeKeeper or MStorm master does NOT start yet").sendToTarget();
+                return;
+            }
+            logger.debug("============= Submitter is ready ================");
             submitter.submitTopology(apkFileName, topology);
+
             // wait for reply containing topologyID
             Reply reply;
             while ((reply = submitter.getReply()) == null) {
@@ -398,9 +423,12 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                     e.printStackTrace();
                 }
             }
+
             topologyID = new Integer(reply.getContent());
             if (topologyID != 0)
                 Toast.makeText(this, "Topology Scheduled!", Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(this, "Topology can NOT be scheduled!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -409,6 +437,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
             Toast.makeText(this, "Topology Already Canceled!", Toast.LENGTH_SHORT).show();
         } else {
             StormSubmitter submitter = new StormSubmitter(this);
+            if(!submitter.isReady()){
+                mHandler.obtainMessage(MSG_RTSP,"EdgeKeeper does not work").sendToTarget();
+                return;
+            }
+            logger.debug("============= Submitter is ready ================");
             submitter.cancelTopology(Integer.toString(topologyID));
             topologyID = 0;
             Toast.makeText(this, "Topology Canceled!", Toast.LENGTH_SHORT).show();
@@ -491,41 +524,70 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            result.setText(msg.obj.toString());
+            switch (msg.what){
+                case MSG_NUM_OF_FACES:
+                    result.setText(msg.obj.toString());
+                    break;
+                case MSG_RTSP:
+                    Toast.makeText(GRecognitionActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+                    break;
+            }
+
         }
     };
 
     class ReadFromIPCamera implements Runnable{
-        public void run(){
-            String rtsp = streamSource;
+        int lastReturnCode = 1;
+        boolean finished = false;
 
-            int lastReturnCode = 1;
-            // 1:AmbaRTSPServer@YICamera restarts, because the camera has not started recording and there is no stream to be pull to the phone.
-            while ((lastReturnCode == 1)) {
+        public void run(){
+            String rtspURL = streamSource;
+
+            while (!finished && lastReturnCode==1) {
+                if(noFFmpeg){
+                    try{
+                        noFFmpeg = false;
+                        lastReturnCode = FFmpeg.execute("-i " + rtspURL +" -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg"); // blocking call
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    } finally {
+                        noFFmpeg = true;
+                        logger.debug("noFFmpeg is set to " + noFFmpeg);
+                    }
+                }
+                // 1: The camera has not started recording yet, there is no stream
+                if(lastReturnCode==1) {
+                    mHandler.obtainMessage(MSG_RTSP,"No RTSP stream!").sendToTarget();
+                }
+                // 0: The camera stops recording and causes timeout
+                if(lastReturnCode == 0) {
+                    mHandler.obtainMessage(MSG_RTSP,"RTSP server timeout").sendToTarget();
+                    lastReturnCode = 1;
+                }
+                // wait for the camera to start recording
                 try {
-                    Thread.sleep(1000);     // wait for RTSP server restarting at the camera
+                    Thread.sleep(1000);
                 } catch (InterruptedException e){
                     e.printStackTrace();
                 }
-                lastReturnCode = FFmpeg.execute("-i rtsp://" + rtsp +" -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
-            }
-            // 0: FFmpeg client to AmbaRTSPServer@YICamera is timeout, because the camera stops recording.
-            if(lastReturnCode == 0){
-                stopPullStream();
-                startPullStream();
             }
         }
 
         public void stop(){
+            finished = true;
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
     class ReadFromCamera implements Runnable{
-        public void run(){
-            String rtsp;
+        int lastReturnCode = 1;
+        boolean finished = false;
 
-            while ((rtsp = getCameraIP()) == null ) {   // camera is not open yet
+        public void run(){
+            String rtspIP;
+            while ((rtspIP = getCameraIP()) == null ) {   // camera is not open yet
+                mHandler.obtainMessage(MSG_RTSP,"Camera is not open").sendToTarget();
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e){
@@ -533,35 +595,69 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                 }
             }
 
-            int lastReturnCode = 1;
-            // 1:AmbaRTSPServer@YICamera restarts, because the camera has not started recording and there is no stream to be pull to the phone.
-            while ((lastReturnCode == 1)) {
+            while (!finished && lastReturnCode==1) {
+                if(noFFmpeg){
+                    try{
+                        noFFmpeg = false;
+                        lastReturnCode = FFmpeg.execute("-i rtsp://" + rtspIP + "/live -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg"); // blocking call
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    } finally {
+                        noFFmpeg = true;
+                        logger.debug("noFFmpeg is set to " + noFFmpeg);
+                    }
+                }
+                // 1: The camera has not started recording yet, there is no stream
+                if(lastReturnCode==1) {
+                    mHandler.obtainMessage(MSG_RTSP,"No RTSP stream!").sendToTarget();
+                }
+                // 0: The camera stops recording and causes timeout
+                if(lastReturnCode == 0) {
+                    mHandler.obtainMessage(MSG_RTSP,"RTSP server timeout").sendToTarget();
+                    lastReturnCode = 1;
+                }
+                // wait for the camera to start recording
                 try {
-                    Thread.sleep(1000);     // wait for RTSP server restarting at the camera
+                    Thread.sleep(1000);
                 } catch (InterruptedException e){
                     e.printStackTrace();
                 }
-                lastReturnCode = FFmpeg.execute("-i rtsp://" + rtsp + "/live -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
-            }
-            // 0: FFmpeg client to AmbaRTSPServer@YICamera is timeout, because the camera stops recording.
-            if(lastReturnCode == 0){
-                stopPullStream();
-                startPullStream();
             }
         }
 
         public void stop(){
+            finished = true;
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
     class ReadFromVideo implements Runnable{
         String videoPath = MStormDir + "Videos/test.mp4";
+        int lastReturnCode = 1;
         public void run(){
-            FFmpeg.execute("-i " +  videoPath + " -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
+            if(noFFmpeg){
+                try{
+                    noFFmpeg = false;
+                    lastReturnCode = FFmpeg.execute("-i " +  videoPath + " -qscale:v 3 -r " + frameRate + " " + RAW_PIC_URL + "/sample%d.jpg");
+                } catch (Exception e){
+                    e.printStackTrace();
+                } finally {
+                    noFFmpeg = true;
+                    logger.debug("noFFmpeg is set to " + noFFmpeg);
+                }
+            }
+
+            if(lastReturnCode==1){
+                mHandler.obtainMessage(MSG_RTSP, videoPath + " does NOT exist!").sendToTarget();
+            } else {
+                mHandler.obtainMessage(MSG_RTSP, "Finished pulling stream!").sendToTarget();
+            }
         }
+
         public void stop(){
             FFmpeg.cancel();
+            mHandler.obtainMessage(MSG_RTSP,"Stop pulling stream!").sendToTarget();
         }
     }
 
@@ -714,7 +810,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
-        mHandler.obtainMessage(NUM_OF_FACES, mGridData.size() + " faces detected! ").sendToTarget();
+        mHandler.obtainMessage(MSG_NUM_OF_FACES, mGridData.size() + " faces detected! ").sendToTarget();
     }
 
     public String getCameraIP() {

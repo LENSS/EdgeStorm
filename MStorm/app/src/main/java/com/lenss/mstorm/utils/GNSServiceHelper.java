@@ -24,6 +24,7 @@ public class GNSServiceHelper {
     public static String getMasterNodeGUID(){
         String masterGUID = null;
         List<String> masterGUIDs = EKClient.getPeerGUIDs("MStorm", "master");
+
         if(masterGUIDs.size() == 0){
             masterGUID = null;
         } else {
@@ -71,7 +72,7 @@ public class GNSServiceHelper {
     static class ValidingGUID implements Callable<String>{
         public String GUID;
         public ValidingGUID(String guid) {GUID = guid;}
-        public String call() throws Exception{
+        public String call(){
             if(getIPInUseByGUID(GUID)!=null)
                 return GUID;
             else

@@ -32,7 +32,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
     private static final String NODES_ZNODE="/nodes";
     private static final String NODE_CHANGE_PARTERN = CLUSTER_ZNODE+"/\\d+"+NODES_ZNODE;
 
-    private ZooKeeper zk;  
+    private ZooKeeper zk;
     private Watcher chainedWatcher;
     boolean dead=false;
     boolean initiated=false;
@@ -147,7 +147,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
         }
     }
     
-   
+       
     //zookeeper.getChildren() Callback  
     @SuppressWarnings("deprecation")
 	@Override
@@ -253,11 +253,16 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
 	
 	public void createCluster(Cluster cluster) throws KeeperException, InterruptedException {
 		int clusterId=cluster.getClusterId();
-		if(cluster.getNodeNum() == 0){	// new cluster
+		
+		if(zk.exists(getClusterDir(clusterId), false)==null)
 			zk.create(getClusterDir(clusterId), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,  CreateMode.PERSISTENT);
+		
+		if(zk.exists(getAssgDir(clusterId), false)==null)
 			zk.create(getAssgDir(clusterId), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+		
+		if(zk.exists(getNodesDir(clusterId), false)==null)
 			zk.create(getNodesDir(clusterId), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		}
+		
 		zk.getChildren(getNodesDir(clusterId), true, this, null);
 	}
 	

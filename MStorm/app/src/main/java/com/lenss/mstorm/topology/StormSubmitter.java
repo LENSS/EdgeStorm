@@ -39,6 +39,14 @@ public class StormSubmitter {
         this.ownGUID = GNSServiceHelper.getOwnGUID() ;
     }
 
+    public boolean isReady(){
+        if(masterNodeGUID!=null && ownGUID!=null){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void submitTopology(String apkFileName, Topology topology){
         Request req=new Request();
         req.setReqType(Request.TOPOLOGY);

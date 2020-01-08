@@ -119,9 +119,12 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 			Cluster curCluster = Cluster.getClusterByNodeAddress(recReq.getGUID());
 			// Start to Schedule
 			NimbusScheduler sch = MasterNode.getInstance().mNimbusScheduler;
+			int topologyId = 0;
 			Assignment assign = sch.fstSchedule(recReq);
-			int topologyId = assign.getAssignId();
-			curCluster.setTopologyBeingScheduled(topologyId, false);
+			if(assign!=null) {
+				topologyId = assign.getAssignId();
+				curCluster.setTopologyBeingScheduled(topologyId, false);
+			}
 			Reply reply2 = new Reply();
 			reply2.setType(Reply.TOPOLOGY_ID);
 			reply2.setContent(Integer.toString(topologyId));
