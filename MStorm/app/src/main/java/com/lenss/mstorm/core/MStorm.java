@@ -137,10 +137,12 @@ public class MStorm extends ActionBarActivity{
     }
 
     private boolean isReadyToStartService(){
-        if(MASTER_NODE_GUID!=null)
-            return true;
-        else
+        MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
+        MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
+        if(MASTER_NODE_GUID==null || MASTER_NODE_IP == null)
             return false;
+        else
+            return true;
     }
 
     @Override
@@ -161,7 +163,7 @@ public class MStorm extends ActionBarActivity{
         gps = new GPSTracker(MStorm.this);
         context = getApplicationContext();
 
-        mLog.append("\n==========================");
+        mLog.append("\n======================================");
 
         // Configure the logger to store logs in file
         try {
@@ -196,7 +198,7 @@ public class MStorm extends ActionBarActivity{
         /// Get Master Node GUID and IP
         MASTER_NODE_GUID = GNSServiceHelper.getMasterNodeGUID();
         if (MASTER_NODE_GUID == null){
-            mLog.append("\nM_GUID: Cannot get, check EdgeKeeper Status!");
+            mLog.append("\nM_GUID: Cannot get, check EdgeKeeper/MStormMaster status!");
             onStop();
         } else {
             mLog.append("\nM_GUID: "+ MASTER_NODE_GUID);
@@ -204,13 +206,17 @@ public class MStorm extends ActionBarActivity{
 
         MASTER_NODE_IP = GNSServiceHelper.getIPInUseByGUID(MASTER_NODE_GUID);
         if (MASTER_NODE_IP == null){
-            mLog.append("\nM_IP: Cannot get, check EdgeKeeper Status!");
+            mLog.append("\nM_IP: Cannot get, check EdgeKeeper/MStormMaster status!");
             onStop();
         } else {
             mLog.append("\nM_IP: "+ MASTER_NODE_IP);
         }
 
-        mLog.append("\n=========================="+"\n");
+        if (MASTER_NODE_GUID!=null){
+            mLog.append("\nChoose \"Start\" on the up-right corner to join a cluster ... ");
+        }
+
+        mLog.append("\n======================================");
 
 //        /// Get Zookeeper IP
 //        ZK_ADDRESS_IP = GNSServiceHelper.getZookeeperIP();
@@ -379,7 +385,7 @@ public class MStorm extends ActionBarActivity{
 
         if (id == R.id.action_start_computing_service) {
             if(!isReadyToStartService()){
-                Toast.makeText(this, "Cannot start Supervisor! Check EdgeKeeper Status!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Cannot start! Check EdgeKeeper and MStorm master status!", Toast.LENGTH_SHORT).show();
                 return super.onOptionsItemSelected(item);
             }
 

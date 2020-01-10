@@ -1,7 +1,13 @@
 package com.lenss.mstorm.utils;
 
+import com.lenss.mstorm.core.MStorm;
+
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -29,9 +35,9 @@ public class GNSServiceHelper {
             masterGUID = null;
         } else {
             ExecutorService executor = Executors.newFixedThreadPool(masterGUIDs.size());
-            List<ValidingGUID> potentialGUIDs = new ArrayList<>();
+            List<ValidingMasterGUID> potentialGUIDs = new ArrayList<>();
             for (String potentialGUID : masterGUIDs) {
-                ValidingGUID validGuid = new ValidingGUID(potentialGUID);
+                ValidingMasterGUID validGuid = new ValidingMasterGUID(potentialGUID);
                 potentialGUIDs.add(validGuid);
             }
 
@@ -69,14 +75,43 @@ public class GNSServiceHelper {
         return masterGUID;
     }
 
-    static class ValidingGUID implements Callable<String>{
+    static class ValidingMasterGUID implements Callable<String>{
         public String GUID;
-        public ValidingGUID(String guid) {GUID = guid;}
+        public ValidingMasterGUID(String guid) {GUID = guid;}
         public String call(){
-            if(getIPInUseByGUID(GUID)!=null)
-                return GUID;
-            else
+            String ipAddr = getIPInUseByGUID(GUID);
+            if(ipAddr!=null){
+                Boolean isConnectable;
+                Socket RTSPSocket = null;
+                try {
+                    InetAddress ServerIPAddr = InetAddress.getByName(ipAddr);
+                    RTSPSocket = new Socket(ServerIPAddr, MStorm.MASTER_PORT);
+                    isConnectable = true;
+                } catch (UnknownHostException e) {
+                    logger.error("Could not find host ... ");
+                    e.printStackTrace();
+                    isConnectable = false;
+                } catch (IOException e) {
+                    logger.error("Could not establish socket ... ");
+                    e.printStackTrace();
+                    isConnectable = false;
+                } finally {
+                    // close the socket
+                    if(RTSPSocket!=null && RTSPSocket.isConnected()){
+                        try {
+                            RTSPSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                if(isConnectable)
+                    return GUID;
+                else
+                    return null;
+            } else {
                 return null;
+            }
         }
     }
 

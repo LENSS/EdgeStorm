@@ -96,7 +96,7 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 		super.channelClosed(ctx, e);
 		Channel ch = ctx.getChannel();
 		if(ch !=null && ch.getRemoteAddress()!=null) {
-			String channelClosedMSG = "MStorm client disconnects to MStorm master "
+			String channelClosedMSG = "Disconnected to MStorm master "
 					+ ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
 			if(Supervisor.mHandler!=null)
 				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,channelClosedMSG).sendToTarget();

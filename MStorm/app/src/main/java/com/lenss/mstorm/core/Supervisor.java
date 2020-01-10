@@ -127,7 +127,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
             mZKClient.stopZookeeperClient();
             mZKClient=null;
             if(Supervisor.mHandler!=null) {
-                Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Disconnected to Zookeeper finally!").sendToTarget();
+                Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Release the connection to Zookeeper finally!").sendToTarget();
             }
         }
         // release network resource to Nimbus
@@ -135,7 +135,7 @@ public class Supervisor extends Service implements AssignmentProcessor {
             masterNodeClient.close();
             masterNodeClient = null;
             if(Supervisor.mHandler!=null) {
-                Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Disconnected to MStorm Master finally!").sendToTarget();
+                Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Release the connection to MStorm master finally!").sendToTarget();
             }
         }
 

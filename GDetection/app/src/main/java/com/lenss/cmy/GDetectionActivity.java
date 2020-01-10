@@ -405,7 +405,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
             if (topologyID != 0)
                 Toast.makeText(this, "Topology Scheduled!", Toast.LENGTH_SHORT).show();
             else
-                Toast.makeText(this, "Topology can NOT be scheduled!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Topology can NOT be scheduled! No enough computing nodes!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -427,9 +427,16 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
     }
 
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
-        if(streamSource == null){
-            Toast.makeText(GDetectionActivity.this, "Please set stream source first!", Toast.LENGTH_SHORT).show();
-            return;
+        if(!mRecordingEnabled) {    // currently is not recording
+            if(streamSource == null){
+                Toast.makeText(GDetectionActivity.this, "Please set stream source first!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if(topologyID == 0) {
+                Toast.makeText(GDetectionActivity.this, "Please submit topology first!", Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         mRecordingEnabled = !mRecordingEnabled;
