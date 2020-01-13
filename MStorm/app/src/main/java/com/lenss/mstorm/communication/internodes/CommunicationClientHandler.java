@@ -29,6 +29,8 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 
 	@Override
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		communicationClient.reconnectedTimes = 0;
+
 		super.channelConnected(ctx, e);
 		Channel ch = ctx.getChannel();
 		String channelConnectedMSG = "P-client " + ((InetSocketAddress)ch.getLocalAddress()).getAddress().getHostAddress()
@@ -71,8 +73,14 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+		logger.debug("================================ reconnectedTimes ============================" + communicationClient.reconnectedTimes);
+		logger.debug(" ================================ NEW EXCEPTION IN CLIENT HANDLER ============================" + e.getCause());
+		communicationClient.reconnectedTimes++;
+
 		super.exceptionCaught(ctx, e);
 		Channel ch = ctx.getChannel();
+
+		logger.debug("===================== channel: " + ch);
 
 		// a connected channel gets disconnected
 		if(ch!=null && ch.getRemoteAddress()!=null) {
@@ -82,33 +90,61 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 			logger.info(channelDisconnectedMSG);
 		}
 
-		logger.info("NEW EXCEPTION IN CLIENT HANDLER *****************" + e.getCause());
-
 		// try reconnecting
 		String reconnectingMSG = "Try reconnecting to P-server ... ";
 		Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,reconnectingMSG).sendToTarget();
 		logger.info(reconnectingMSG);
 
-		String remoteIP;
-		if(e.getCause().getClass().getName().equals("java.io.IOException")) {  // Software caused connection abort or Connection reset by peer
-			remoteIP = ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
+		if(e.getCause().getClass().getName().equals("java.io.IOException")) {  // Software caused connection abort (client side) or Connection reset by peer (server side)
+			// Get current remoteIP
+			String remoteIP = ((InetSocketAddress)ch.getRemoteAddress()).getAddress().getHostAddress();
+			// Get remoteGUID and remove from channelManager
 			String remoteGUID = ChannelManager.channel2RemoteGUID.get(ch.getId());
-			String newRemoteIP = GNSServiceHelper.getIPInUseByGUID(remoteGUID);
-			if(newRemoteIP!=null && !newRemoteIP.equals(remoteIP))
-				remoteIP = newRemoteIP;
-			if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId())) // remove the record of the channel
+			// Remove the records from channelManager
+			if(ChannelManager.channel2RemoteGUID.containsKey(ch.getId()))
 				ChannelManager.removeChannelToRemote(ch);
-			ch.close(); // close the channel
-			communicationClient.connectByIP(remoteIP);
-		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException")){	// ConnectException: network is unreachable
+			// Make sure remoteIP is the latest
+			String newRemoteIP = GNSServiceHelper.getIPInUseByGUID(remoteGUID);
+			if(newRemoteIP!=null && !newRemoteIP.equals(remoteIP)){
+				remoteIP = newRemoteIP;
+			}
+			// add the new remoteIP--remoteGUID relation
+			ChannelManager.tempIP2GUID.put(remoteIP, remoteGUID);
+			// Try connecting
+			if(communicationClient.reconnectedTimes < communicationClient.MAX_RETRY_TIMES){
+				communicationClient.connectByIP(remoteIP);
+			} else {
+				String stopRetryMSG = "Have tried reconnecting to P-server for " + communicationClient.MAX_RETRY_TIMES + " times, give up ... ";
+				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,stopRetryMSG).sendToTarget();
+				logger.info(stopRetryMSG);
+			}
+		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException")){	// ConnectException: network is unreachable (client side is trying to reconnect)
 			String errorMsg = e.getCause().getMessage();
 			int startIndex = errorMsg.indexOf("/")+1;
 			int endIndex = errorMsg.lastIndexOf(":");
-			remoteIP = errorMsg.substring(startIndex, endIndex);
+			// Get current remoteIP
+			String remoteIP = errorMsg.substring(startIndex, endIndex);
+			// Get remoteGUID
+			String remoteGUID = ChannelManager.tempIP2GUID.get(remoteIP);
+			// Make sure remoteIP is the latest
+			String newRemoteIP = GNSServiceHelper.getIPInUseByGUID(remoteGUID);
+			if(newRemoteIP!=null && !newRemoteIP.equals(remoteIP)) {
+				// remove the expired remoteIP--remoteGUID relation
+				if(ChannelManager.tempIP2GUID.containsKey(remoteIP))
+					ChannelManager.tempIP2GUID.remove(remoteIP);
+				remoteIP = newRemoteIP;
+				// add the new remoteIP--remoteGUID relation
+				ChannelManager.tempIP2GUID.put(remoteIP, remoteGUID);
+			}
+			// Wait for next try
 			Thread.sleep(communicationClient.TIMEOUT);
-			if(!ch.isConnected()) {	// After TIMEOUT, ch is still not connected, close the channel and start a new one
-				ch.close();
+			// Try connecting
+			if(communicationClient.reconnectedTimes < communicationClient.MAX_RETRY_TIMES){
 				communicationClient.connectByIP(remoteIP);
+			} else {
+				String stopRetryMSG = "Have tried reconnecting to P-server for " + communicationClient.MAX_RETRY_TIMES + " times, give up ... ";
+				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,stopRetryMSG).sendToTarget();
+				logger.info(stopRetryMSG);
 			}
 		}
 	}

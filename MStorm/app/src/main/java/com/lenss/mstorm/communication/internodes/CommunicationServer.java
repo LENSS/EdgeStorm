@@ -34,7 +34,6 @@ public class CommunicationServer  {
         });
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.keepAlive", true);
-        bootstrap.setOption("child.keepAlive", 10000);
         bootstrap.bind(new InetSocketAddress(SERVER_PORT));
     }
 

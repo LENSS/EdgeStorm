@@ -43,11 +43,14 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 				Supervisor.mHandler.obtainMessage(MStorm.CLUSTER_ID, reply.getContent()).sendToTarget();
 				break;
 			case Reply.FAILED:	// Reply to Mobile Client in User's app only
-				logger.info("Topology cannot be scheduled!");
+				String failMsg = "Cannot join the MStorm cluster!";
+				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, failMsg).sendToTarget();
+				logger.info(failMsg);
 				//masterNodeClient.close();
 				break;
 			case Reply.TOPOLOGY_ID: // Reply to Mobile Client in User's app only
-				logger.info("Topology has been scheduled!");
+				String topologyMsg = "Topology " + reply.getContent() + " has been scheduled!";
+				logger.info(topologyMsg);
 				masterNodeClient.setReply(reply);
 				//masterNodeClient.close();
 				break;

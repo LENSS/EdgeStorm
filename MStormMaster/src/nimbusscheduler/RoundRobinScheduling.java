@@ -32,6 +32,12 @@ public class RoundRobinScheduling {
 		
 		// Report IP addresses of available nodes to clients, such that they can calculate the RTT time to each other
 		List<String> availableNodes = cluster.getAvailableCompNodes();					
+		// No available Nodes
+		if(availableNodes.size()==0) {
+			return null;
+		}
+			
+		
 		for (String addr: availableNodes){
 			newAssign.addAddress(addr);
 		}   
@@ -116,8 +122,7 @@ public class RoundRobinScheduling {
 				String node;
 				if(scheduleRequirements.get(component) == Topology.Schedule_Local) {
 					node = submitterAddr;
-				}
-				else {
+				} else {
 					node = availableNodes.get(freeNodeIndex%nodeNum);
 				}
 				if(component.equals(spoutComponent)){

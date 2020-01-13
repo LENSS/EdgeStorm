@@ -79,6 +79,7 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
 
     private static final int MSG_NUM_OF_FACES=0;
     private static final int MSG_RTSP=1;
+    private static final int MSG_STOP_PULL_STREAM=2;
 
     private TextView result;
 
@@ -298,6 +299,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_streamSource){
+            // stop pulling from original stream source
+            if(mRecordingEnabled){
+                stopPullFromCurrentStream();
+            }
+
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
             //CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera", "Local Folder"};
@@ -338,6 +344,11 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_frameRate){
+            // stop pulling from original stream source
+            if(mRecordingEnabled){
+                stopPullFromCurrentStream();
+            }
+
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
             final CharSequence[] frameRates = {"1 Frame/s", "2 Frames/s", "3 Frames/s", "5 Frames/s", "Manually Setting"};
@@ -521,6 +532,12 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
         }
     }
 
+    public void stopPullFromCurrentStream(){
+        mRecordingEnabled = false;
+        updateControls();
+        stopPullStream();
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -530,6 +547,9 @@ public class GRecognitionActivity extends AppCompatActivity{ //ActionBarActivity
                     break;
                 case MSG_RTSP:
                     Toast.makeText(GRecognitionActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_STOP_PULL_STREAM:
+                    stopPullFromCurrentStream();
                     break;
             }
 

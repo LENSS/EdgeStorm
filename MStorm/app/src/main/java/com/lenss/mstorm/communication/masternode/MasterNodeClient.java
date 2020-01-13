@@ -51,7 +51,6 @@ public class MasterNodeClient {
         });
         mClientBootstrap.setOption("tcpNoDelay", true);
         mClientBootstrap.setOption("keepAlive", true);
-        mClientBootstrap.setOption("keepAlive", 10000);
         mClientBootstrap.setOption("connectTimeoutMillis", 10000);
     }
 

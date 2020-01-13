@@ -116,6 +116,7 @@ public class ChannelManager {
     public static Map<Integer, Channel> availRemoteTask2Channel = new ConcurrentHashMap<>();
     public static Map<String, CopyOnWriteArrayList<Integer>> comp2AvailRemoteTasks = new ConcurrentHashMap<>();
     public static Map<Integer, String> channel2RemoteGUID = new ConcurrentHashMap<>();
+    public static Map<String, String> tempIP2GUID = new ConcurrentHashMap<>(); // used for mapping from remote IP to remote GUID at reconnecting time
 
     public static void addChannelToRemote(Channel ch, String remoteGUID){
         channel2RemoteGUID.put(ch.getId(), remoteGUID);

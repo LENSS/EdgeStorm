@@ -81,6 +81,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
 
     private static final int MSG_NUM_OF_FACES=0;
     private static final int MSG_RTSP=1;
+    private static final int MSG_STOP_PULL_STREAM=2;
 
     private TextView result;
 
@@ -274,6 +275,11 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_streamSource){
+            // stop pulling from original stream source
+            if(mRecordingEnabled){
+                stopPullFromCurrentStream();
+            }
+
             CharSequence[] streamSources = {"Yi Camera", "Local Video", "RTSP Camera"};
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
@@ -314,6 +320,11 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                         }
                     }).show();
         } else if(id == R.id.action_set_frameRate){
+            // stop pulling from original stream source
+            if(mRecordingEnabled){
+                stopPullFromCurrentStream();
+            }
+
             CharSequence[] frameRates = {"1 Frame/s", "2 Frames/s", "3 Frames/s", "5 Frames/s", "Manually Setting"};
             final LinearLayout layout = new LinearLayout(this);
             layout.setOrientation(LinearLayout.VERTICAL);
@@ -496,6 +507,12 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         }
     }
 
+    public void stopPullFromCurrentStream(){
+        mRecordingEnabled = false;
+        updateControls();
+        stopPullStream();
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -505,6 +522,9 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
                     break;
                 case MSG_RTSP:
                     Toast.makeText(GDetectionActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_STOP_PULL_STREAM:
+                    stopPullFromCurrentStream();
                     break;
             }
 
@@ -561,13 +581,10 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
 
         public void run(){
             String rtspIP;
-            while ((rtspIP = getCameraIP()) == null ) {   // camera is not open yet
-                mHandler.obtainMessage(MSG_RTSP,"Camera is not open").sendToTarget();
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e){
-                    e.printStackTrace();
-                }
+            if ((rtspIP = getCameraIP()) == null ) {   // camera is not open yet
+                mHandler.obtainMessage(MSG_RTSP,"Yi Camera is not open").sendToTarget();
+                mHandler.obtainMessage(MSG_STOP_PULL_STREAM,null).sendToTarget();
+                return;
             }
 
             while (!finished && lastReturnCode==1) {
@@ -625,6 +642,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
 
             if(lastReturnCode==1){
                 mHandler.obtainMessage(MSG_RTSP, videoPath + " does NOT exist!").sendToTarget();
+                mHandler.obtainMessage(MSG_STOP_PULL_STREAM,null).sendToTarget();
             } else {
                 mHandler.obtainMessage(MSG_RTSP, "Finished pulling stream!").sendToTarget();
             }

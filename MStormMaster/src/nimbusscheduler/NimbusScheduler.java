@@ -47,7 +47,7 @@ public class NimbusScheduler {
 			MasterNode.getInstance().mZkClient.getDM().addNewAssignment(newAssign,cluster.getClusterId());
 			return newAssign;
 		} else{		// cannot be scheduled
-			logger.info("The topology from GUID: " + submitterAddress + "cannot be schduled!\n");
+			logger.info("The topology from GUID " + submitterAddress + "cannot be schduled!\n");
 			return null;
 		}
 	}

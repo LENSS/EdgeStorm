@@ -22,7 +22,11 @@ import java.util.concurrent.Executors;
 public class CommunicationClient  {
     private ClientBootstrap mClientBootstrap;
     private NioClientSocketChannelFactory factory;
-    public final int TIMEOUT = 2000;
+    public final int TIMEOUT = 6000;
+
+    public int reconnectedTimes = 0;
+    public static int MAX_RETRY_TIMES = 20;
+
     public void setup() {
         factory = new NioClientSocketChannelFactory(
                 Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
@@ -38,7 +42,6 @@ public class CommunicationClient  {
         });
         mClientBootstrap.setOption("tcpNoDelay", true);
         mClientBootstrap.setOption("keepAlive", true);
-        mClientBootstrap.setOption("keepAlive", 10000);
         mClientBootstrap.setOption("connectTimeoutMillis", TIMEOUT);
     }
 
