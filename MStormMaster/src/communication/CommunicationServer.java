@@ -47,8 +47,7 @@ public class CommunicationServer  {
             bootstrap.setOption("child.keepAlive", true);
             bootstrap.setOption("child.keepAlive", 10000);
             bootstrap.bind(new InetSocketAddress(SERVER_PORT));
-            logger.info("\n\n"+"Server Starts !\n");
-            
+                        
             List<String> ipAddresses = new ArrayList<String>();
             ipAddresses.add("localhost");
             

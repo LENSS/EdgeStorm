@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.text.style.AbsoluteSizeSpan;
 import android.widget.Toast;
 import com.google.gson.Gson;
 import com.lenss.mstorm.R;
@@ -200,30 +201,47 @@ public class ComputingNode extends Service {
         mClient.setup();
 
         // wait for setting up of all nodes
-        try {
-            sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            sleep(3000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
-        ConnectTasks ct = new ConnectTasks();
-        ct.execute(assignment, mClient);
+        // Old Method: busy checking, not good
+//        ConnectTasks ct = new ConnectTasks();
+//        ct.execute(assignment, mClient);
+//        while(allConnected==0){     // wait until all workers are connected
+//            try {
+//                sleep(5);
+//                logger.info("Waiting for establishing connections to collaborators ...");
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
-        while(allConnected==0){     // wait until all workers are connected
-            try {
-                sleep(5);
-                logger.info("Waiting workers to connect with each other ... ");
-            } catch (InterruptedException e) {
+        // New Method: using wait() and notify()
+        String waitMsg = "Waiting for establishing connections to collaborators ... ";
+        logger.info(waitMsg);
+        Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, waitMsg).sendToTarget();
+        ConnectTaskThread ctt = new ConnectTaskThread(assignment, mClient);
+        ctt.start();
+        synchronized (ctt){
+            try{
+                ctt.wait();
+            } catch(InterruptedException e){
                 e.printStackTrace();
             }
         }
 
         if(allConnected==-1){
-            logger.error("Some connections between workers failed ... ");
-            Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Workers cannot establish connections, please turn off and try again ...").sendToTarget();
+            String errorMsg = "Cannot establish connections to some collaborators. Please turn off MStorm and G-App, try again ... ";
+            logger.error(errorMsg);
+            Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, errorMsg).sendToTarget();
             return START_NOT_STICKY;
         } else{
-            logger.info("All connections among workers succeed ... ");
+            String successMsg = "Successfully establish connections to all collaborators!";
+            logger.info(successMsg);
+            Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, successMsg).sendToTarget();
         }
 
         // execute tasks assigned to this node
@@ -254,11 +272,11 @@ public class ComputingNode extends Service {
         }
 
         // wait for all tasks running up
-        try {
-            sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            sleep(1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
         // start dispatcher
         dispatcher = new Dispatcher();
@@ -418,6 +436,48 @@ public class ComputingNode extends Service {
             }
             allConnected = 1;
             return null;
+        }
+    }
+
+
+    private class ConnectTaskThread extends Thread {
+        Assignment assignment;
+        CommunicationClient mClient;
+
+        ConnectTaskThread(Assignment assignment, CommunicationClient mClient){
+            this.assignment = assignment;
+            this.mClient = mClient;
+        }
+
+        @Override
+        public void run(){
+            synchronized (this){
+                List<String> assignNodes = assignment.getAssginedNodes();
+                int numOfNodes = assignNodes.size();
+                String localAddr = MStorm.GUID;
+                int indexOfLocalNode;
+                int connectionStatus = 1;
+                if ((indexOfLocalNode = assignNodes.indexOf(localAddr)) != -1){
+                    int[][] node2NodeConnection = assignment.getNode2NodeConnection();
+                    for (int i = 0; i < numOfNodes; i++) {
+                        if (node2NodeConnection[indexOfLocalNode][i] == 1) {
+                            String remoteGUID = assignNodes.get(i);
+                            ChannelFuture cf = mClient.connectByGUID(remoteGUID);
+                            cf.awaitUninterruptibly();
+                            Channel currentChannel = cf.getChannel();
+                            if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
+                                String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
+                                logger.debug(msg);
+                            } else {
+                                connectionStatus = -1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                allConnected = connectionStatus;
+                notify();
+            }
         }
     }
 

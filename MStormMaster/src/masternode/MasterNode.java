@@ -19,7 +19,7 @@ import edu.tamu.cse.lenss.edgeKeeper.client.EKClient;
 public class MasterNode {
 	public static ZookeeperClient mZkClient;
 	public static String zooKeeperConnectionString;
-	Logger logger = Logger.getLogger("MasterNode");
+	static Logger logger = Logger.getLogger("MasterNode");
 
 	public CommunicationServer mServer;
 	public NimbusScheduler mNimbusScheduler;
@@ -43,8 +43,10 @@ public class MasterNode {
 				e.printStackTrace();
 			}
 		}
+		logger.info("\n\n"+" ===================================== MStormMaster successfully gets the Zookeeper connection string! ====================================\n");
+		System.out.println("MStormMaster successfully gets the Zookeeper connection string!");
 		
-		// establish a zooKeeper client
+		// establish a zooKeeper client for MStormMaster
 		try {	
 			mZkClient = new ZookeeperClient(zooKeeperConnectionString);
 			logger.info("Start a Zookeeper client ...");
@@ -53,22 +55,28 @@ public class MasterNode {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 		new Thread(mZkClient).start();
 		
-		// establish a communication server
-		mServer = new CommunicationServer();
-		mServer.setup();
+		// register as a service to GNS server
+		while(!EKClient.addService("MStorm", "master")) {
+			logger.error("MStormMaster can NOT register to GNS server as a service, try again to get it after 1s ... ");
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		logger.info("\n\n"+" ===================================== MStormMaster successfully registers to GNS server as a service ====================================\n");
+		System.out.println("MStormMaster successfully registers to GNS server as a service!");
 		
 		// establish a Nimbus scheduler
 		mNimbusScheduler= new NimbusScheduler();
 		
-		// register as a service to GNS server
-		if(EKClient.addService("MStorm", "master")) {
-			logger.info("MStorm master successfully register to GNS server ... ");
-		} else {
-			logger.info("MStorm master can NOT register to GNS server ... ");
-		}
+		// establish a communication server to receive request from clients
+		mServer = new CommunicationServer();
+		mServer.setup();
+        logger.info("\n\n"+" ===================================== Communication Server at MStormMaster Starts, waiting requests from clients!====================================\n");
+        System.out.println("Communication Server at MStormMaster Starts, waiting requests from clients!");
 	}
 	
 	public static void main(String[] args) {
@@ -103,6 +111,15 @@ public class MasterNode {
 			}
 		}
 		
-		EKClient.removeService("MStorm");
+		while(!EKClient.removeService("MStorm")) {
+			logger.error("MStormMaster can NOT remove as a service from GNS server, try again to get it after 1s ... ");
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		logger.info("\n\n"+" ===================================== MStormMaster successfully remove as a service from GNS server ====================================\n");
+		System.out.println("MStormMaster successfully remove as a service from GNS server!");
 	}
 }
