@@ -420,16 +420,18 @@ public class ComputingNode extends Service {
                     if (node2NodeConnection[indexOfLocalNode][i] == 1) {
                         String remoteGUID = assignNodes.get(i);
                         ChannelFuture cf = mClient.connectByGUID(remoteGUID);
-                        cf.awaitUninterruptibly();
-                        Channel currentChannel = cf.getChannel();
-                        if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
-                            String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
-                            logger.debug(msg);
-                        } else {
-                            if (currentChannel != null) {
-                                currentChannel.close();
+                        if(cf!=null){
+                            cf.awaitUninterruptibly();
+                            Channel currentChannel = cf.getChannel();
+                            if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
+                                String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
+                                logger.debug(msg);
+                            } else {
+                                if (currentChannel != null) {
+                                    currentChannel.close();
+                                }
+                                allConnected = -1;
                             }
-                            allConnected = -1;
                         }
                     }
                 }
@@ -463,14 +465,16 @@ public class ComputingNode extends Service {
                         if (node2NodeConnection[indexOfLocalNode][i] == 1) {
                             String remoteGUID = assignNodes.get(i);
                             ChannelFuture cf = mClient.connectByGUID(remoteGUID);
-                            cf.awaitUninterruptibly();
-                            Channel currentChannel = cf.getChannel();
-                            if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
-                                String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
-                                logger.debug(msg);
-                            } else {
-                                connectionStatus = -1;
-                                break;
+                            if(cf!=null){
+                                cf.awaitUninterruptibly();
+                                Channel currentChannel = cf.getChannel();
+                                if (cf.isSuccess() && currentChannel != null && currentChannel.isConnected()) {
+                                    String msg = "A connection from " + currentChannel.getLocalAddress().toString() + " to " + currentChannel.getRemoteAddress().toString() + " succeeds ... ";
+                                    logger.debug(msg);
+                                } else {
+                                    connectionStatus = -1;
+                                    break;
+                                }
                             }
                         }
                     }

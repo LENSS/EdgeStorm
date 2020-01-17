@@ -24,6 +24,9 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 	/** Session is connected! */
 	@Override
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		// Try connecting with maximum times
+		masterNodeClient.reconnectedTimes = 0;
+
 		super.channelConnected(ctx, e);
 		if(Supervisor.mHandler!=null)	// For both Mobile Clients in User's app and mobile storm platform, so need check
 	    	Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, "Connected to MStorm Master!").sendToTarget();
@@ -75,17 +78,31 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 	 *  Here we need to consider reconnect to the server*/
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+		// Try connecting with maximum times
+		logger.debug("==== MasterNodeClient reconnectedTimes ====" + masterNodeClient.reconnectedTimes);
+		masterNodeClient.reconnectedTimes++;
+
 		super.exceptionCaught(ctx, e);
 		Channel ch = ctx.getChannel();
-
 		ch.close();
 
 		String exceptionMSG ="Try reconnecting to MStorm master ... ";
 		if(Supervisor.mHandler!=null)
 			Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,exceptionMSG).sendToTarget();
 		logger.info(exceptionMSG);
-		Thread.sleep(2000L);
-		masterNodeClient.connect();
+		Thread.sleep(masterNodeClient.TIMEOUT);
+
+		// Try connecting with maximum times
+		if(masterNodeClient.reconnectedTimes < masterNodeClient.MAX_RETRY_TIMES){
+			masterNodeClient.connect();
+		} else {
+			String stopRetryMSG = "Have tried reconnecting to MStormMaster for " + masterNodeClient.MAX_RETRY_TIMES + " times, give up ... ";
+			Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,stopRetryMSG).sendToTarget();
+			logger.info(stopRetryMSG);
+		}
+
+//		// Try connecting
+//		masterNodeClient.connect();
 	}
 
 	/** The channel is going to closed. */

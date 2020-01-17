@@ -1,4 +1,7 @@
 package com.lenss.mstorm.communication.internodes;
+import android.telecom.Call;
+
+import com.lenss.mstorm.core.MStorm;
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
 import com.lenss.mstorm.core.ComputingNode;
@@ -14,7 +17,10 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /** each computing node owns a server with a fixed port,
  *  and have different clients with different ports */
@@ -22,10 +28,13 @@ import java.util.concurrent.Executors;
 public class CommunicationClient  {
     private ClientBootstrap mClientBootstrap;
     private NioClientSocketChannelFactory factory;
-    public final int TIMEOUT = 6000;
+    public final int TIMEOUT = 10000;
 
+    // Try connecting with maximum times
     public int reconnectedTimes = 0;
-    public static int MAX_RETRY_TIMES = 20;
+    public static int MAX_RETRY_TIMES = 200;
+
+    ExecutorService executorService;
 
     public void setup() {
         factory = new NioClientSocketChannelFactory(
@@ -51,8 +60,25 @@ public class CommunicationClient  {
         return cf;
     }
 
+//    public ChannelFuture connectByIP(String remoteIP){
+//        ChannelFuture cf = mClientBootstrap.connect(new InetSocketAddress(remoteIP, CommunicationServer.SERVER_PORT));
+//        return cf;
+//    }
+
     public ChannelFuture connectByIP(String remoteIP){
-        ChannelFuture cf = mClientBootstrap.connect(new InetSocketAddress(remoteIP, CommunicationServer.SERVER_PORT));
+        ChannelFuture cf = null;
+        executorService = Executors.newSingleThreadExecutor();
+        Future<ChannelFuture> future = executorService.submit(new Callable<ChannelFuture> (){
+            @Override
+            public ChannelFuture call() throws Exception{
+                return mClientBootstrap.connect(new InetSocketAddress(remoteIP, CommunicationServer.SERVER_PORT));
+            }
+        });
+        try{
+            cf = future.get();
+        } catch(Exception e){
+            System.out.println("== Cannot connect to remoteIP ==" + remoteIP);
+        }
         return cf;
     }
 

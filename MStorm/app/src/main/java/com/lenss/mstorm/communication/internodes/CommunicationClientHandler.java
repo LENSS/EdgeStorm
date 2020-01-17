@@ -29,6 +29,7 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 
 	@Override
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		// Try connecting with maximum times
 		communicationClient.reconnectedTimes = 0;
 
 		super.channelConnected(ctx, e);
@@ -73,14 +74,12 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-		logger.debug("================================ reconnectedTimes ============================" + communicationClient.reconnectedTimes);
-		logger.debug(" ================================ NEW EXCEPTION IN CLIENT HANDLER ============================" + e.getCause());
+//		// Try connecting with maximum times
+		logger.debug("==== communicationClient reconnectedTimes ====" + communicationClient.reconnectedTimes);
 		communicationClient.reconnectedTimes++;
 
 		super.exceptionCaught(ctx, e);
 		Channel ch = ctx.getChannel();
-
-		logger.debug("===================== channel: " + ch);
 
 		// a connected channel gets disconnected
 		if(ch!=null && ch.getRemoteAddress()!=null) {
@@ -110,7 +109,8 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 			}
 			// add the new remoteIP--remoteGUID relation
 			ChannelManager.tempIP2GUID.put(remoteIP, remoteGUID);
-			// Try connecting
+
+			// Try connecting with maximum times
 			if(communicationClient.reconnectedTimes < communicationClient.MAX_RETRY_TIMES){
 				communicationClient.connectByIP(remoteIP);
 			} else {
@@ -118,6 +118,9 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,stopRetryMSG).sendToTarget();
 				logger.info(stopRetryMSG);
 			}
+
+//			// Try connecting
+//			communicationClient.connectByIP(remoteIP);
 		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException")){	// ConnectException: network is unreachable (client side is trying to reconnect)
 			String errorMsg = e.getCause().getMessage();
 			int startIndex = errorMsg.indexOf("/")+1;
@@ -138,6 +141,7 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 			}
 			// Wait for next try
 			Thread.sleep(communicationClient.TIMEOUT);
+
 			// Try connecting
 			if(communicationClient.reconnectedTimes < communicationClient.MAX_RETRY_TIMES){
 				communicationClient.connectByIP(remoteIP);
@@ -146,6 +150,9 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG,stopRetryMSG).sendToTarget();
 				logger.info(stopRetryMSG);
 			}
+
+//			// Try connecting
+//			communicationClient.connectByIP(remoteIP);
 		}
 	}
 

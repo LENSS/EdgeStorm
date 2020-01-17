@@ -4,6 +4,9 @@ import java.io.File;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashSet;
 
 import nimbusscheduler.NimbusScheduler;
@@ -34,6 +37,10 @@ public class MasterNode {
 	}
 	
 	public void setup(){
+		final DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Calendar cal = Calendar.getInstance();		
+		System.out.println("=====================================[" + sdf.format(cal.getTime()) + "]=====================================\n");
+		
 		// get zookeeper connection string
 		while ((zooKeeperConnectionString = EKClient.getZooKeeperConnectionString()) == null) {
 			logger.error("Can NOT get Zookeeper connection string, try again to get it after 1s ... ");

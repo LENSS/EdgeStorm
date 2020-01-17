@@ -1,6 +1,5 @@
 package com.lenss.mstorm.communication.masternode;
 
-import android.os.AsyncTask;
 
 import com.lenss.mstorm.core.MStorm;
 import com.lenss.mstorm.utils.GNSServiceHelper;
@@ -8,7 +7,6 @@ import com.lenss.mstorm.utils.GNSServiceHelper;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
@@ -28,6 +26,12 @@ public class MasterNodeClient {
     private String mMasterNodeGUID;
     private String mMasterNodeIP;
     private Reply reply = null;
+    public final int TIMEOUT = 10000;
+
+    // Try connecting with maximum times
+    public int reconnectedTimes = 0;
+    public static int MAX_RETRY_TIMES = 200;
+
     ExecutorService executorService;
 
     public MasterNodeClient(String GUID) {
@@ -51,7 +55,7 @@ public class MasterNodeClient {
         });
         mClientBootstrap.setOption("tcpNoDelay", true);
         mClientBootstrap.setOption("keepAlive", true);
-        mClientBootstrap.setOption("connectTimeoutMillis", 10000);
+        mClientBootstrap.setOption("connectTimeoutMillis", TIMEOUT);
     }
 
     public void setChannel(Channel connectedCH) {
