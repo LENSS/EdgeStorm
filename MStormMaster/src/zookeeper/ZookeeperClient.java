@@ -12,10 +12,10 @@ import cluster.Cluster;
 public class ZookeeperClient  implements Watcher, Runnable, DataMonitor.DataMonitorListener {
 	private DataMonitor dm;
 	private ZooKeeper zk;
+    private String zookeeperAddr;
 
-	public ZookeeperClient(String hostPort)  throws KeeperException, IOException {
-		zk = new ZooKeeper(hostPort, 5000, this);
-		dm = new DataMonitor(zk, null, this);
+	public ZookeeperClient(String zkAddr)  throws KeeperException, IOException {
+		zookeeperAddr = zkAddr;
 	}
     
     public DataMonitor getDM(){
@@ -52,4 +52,28 @@ public class ZookeeperClient  implements Watcher, Runnable, DataMonitor.DataMoni
     }
     
     public void exists(byte[] data) {}
+    
+    public void connect() {
+    	try {
+			zk = new ZooKeeper(zookeeperAddr, 10000, this);
+			dm = new DataMonitor(zk, null, this);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    public void stopZookeeperClient(){
+        try {
+            zk.close();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        dm.dead = true;
+        closing(KeeperException.Code.SessionExpired);
+    }
+    
+    public boolean isConnected(){
+        return zk!=null && zk.getState().isConnected();
+    }
 }

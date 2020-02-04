@@ -76,7 +76,7 @@ public class ZookeeperClient implements Watcher, Runnable, DataMonitor.DataMonit
             e.printStackTrace();
         }
         dm.dead = true;
-        closing(1);
+        closing(KeeperException.Code.SessionExpired);
     }
 
     public boolean isConnected(){

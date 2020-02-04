@@ -184,6 +184,8 @@ public class DataMonitor implements Watcher,AsyncCallback.DataCallback, AsyncCal
                 break;
             case KeeperException.Code.SessionExpired:
             case KeeperException.Code.NoAuth:
+                dead = true;
+                listener.closing(rc);
                 return;
             default:
                 // Retry errors

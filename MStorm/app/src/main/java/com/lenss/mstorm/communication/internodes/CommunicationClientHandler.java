@@ -121,7 +121,8 @@ public class CommunicationClientHandler extends SimpleChannelHandler {
 
 //			// Try connecting
 //			communicationClient.connectByIP(remoteIP);
-		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException")){	// ConnectException: network is unreachable (client side is trying to reconnect)
+		} else if(e.getCause().getClass().getName().equals("java.net.ConnectException") ||
+				e.getCause().getClass().getName().equals("org.jboss.netty.channel.ConnectTimeoutException")){	// ConnectException: network is unreachable (client side is trying to reconnect) or connection timeout
 			String errorMsg = e.getCause().getMessage();
 			int startIndex = errorMsg.indexOf("/")+1;
 			int endIndex = errorMsg.lastIndexOf(":");

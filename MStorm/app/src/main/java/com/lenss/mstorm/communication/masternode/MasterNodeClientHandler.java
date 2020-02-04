@@ -47,7 +47,7 @@ public class MasterNodeClientHandler extends SimpleChannelHandler {
 				break;
 			case Reply.FAILED:	// Reply to Mobile Client in User's app only
 				String failMsg = "Cannot join the MStorm cluster!";
-				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, failMsg).sendToTarget();
+				Supervisor.mHandler.obtainMessage(MStorm.Message_LOG, failMsg + reply.getContent()).sendToTarget();
 				logger.info(failMsg);
 				//masterNodeClient.close();
 				break;

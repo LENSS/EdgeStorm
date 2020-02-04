@@ -84,10 +84,12 @@ public class CommunicationServerHandler extends SimpleChannelHandler {
 				reply.setType(Reply.CLUSTER_ID);
 				int clusterId = cluster.getClusterId();
 				reply.setContent(Integer.toString(clusterId));
+				logger.info("Joined cluster: " + clusterId);
 			} catch (KeeperException | InterruptedException e1) {
 				reply.setType(Reply.FAILED);
 				reply.setContent(e1.getMessage());
 				e1.printStackTrace();
+				logger.info(e1.getMessage());
 			}
 			ctx.getChannel().write(reply);
 			break;		

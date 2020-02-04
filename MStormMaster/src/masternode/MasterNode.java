@@ -56,6 +56,7 @@ public class MasterNode {
 		// establish a zooKeeper client for MStormMaster
 		try {	
 			mZkClient = new ZookeeperClient(zooKeeperConnectionString);
+			mZkClient.connect();
 			logger.info("Start a Zookeeper client ...");
 		} catch (KeeperException e) {
 			e.printStackTrace();
@@ -115,6 +116,7 @@ public class MasterNode {
 				} catch (KeeperException | InterruptedException e) {
 					e.printStackTrace();
 				}
+				mZkClient.stopZookeeperClient();
 			}
 		}
 		
@@ -126,6 +128,7 @@ public class MasterNode {
 				e.printStackTrace();
 			}
 		}
+		
 		logger.info("\n\n"+" ===================================== MStormMaster successfully remove as a service from GNS server ====================================\n");
 		System.out.println("MStormMaster successfully remove as a service from GNS server!");
 	}

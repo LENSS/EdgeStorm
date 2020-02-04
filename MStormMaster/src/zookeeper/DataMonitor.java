@@ -18,6 +18,7 @@ import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.ChildrenCallback;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
+import org.jboss.netty.util.internal.CaseIgnoringComparator;
 
 import cluster.Cluster;
 
@@ -92,6 +93,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
 
     /**event callback for Zookeeper Client*/
     public void process(WatchedEvent event) {
+    	logger.debug("Event state ============================" + event.getState()); 	
         String path = event.getPath();
         if (event.getType() == Event.EventType.None) {
             // We are are being told that the state of the
@@ -102,8 +104,26 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
             		break;
             	case Expired:
             		// It's all over
-            		dead = true;
-            		listener.closing(KeeperException.Code.SessionExpired);
+            		ZookeeperClient zkClient = ((ZookeeperClient) listener);
+                    zkClient.stopZookeeperClient();
+                    logger.info("Zookeeper session expired, trying reconnecting ... ");
+                    zkClient.connect();
+                    while(!zkClient.isConnected()){
+                        try {
+                            Thread.sleep(500L);
+                            logger.info("Waiting for zkClient reconnecting ... ");
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    logger.info("Successfully reconnect to Zookeeper... ");
+					try {
+						zkClient.createCluster(Cluster.getCluster());
+						logger.info("Successfully watch Zookeeper after reconnecting ... ");
+					} catch (KeeperException | InterruptedException e) {
+						logger.debug("Cannot watch Zookeeper after reconnecting ... ");
+						e.printStackTrace();
+					}
             		break;
             	default:
             		break;
@@ -114,6 +134,7 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
              	zk.getChildren(path, true, this, null);
             }
         }
+        
         if (chainedWatcher != null) {
             chainedWatcher.process(event);
         }
@@ -175,7 +196,6 @@ public class DataMonitor implements Watcher, StatCallback ,ChildrenCallback, Str
         		logger.info("Cluster changed! Current Cluster size:"+children.size());       
         		Cluster.getClusterById(getClusterIdFromPath(path)).updateComputingNodes(children);	
         	}
-
 
 		// TODO Auto-generated method stub	
         
