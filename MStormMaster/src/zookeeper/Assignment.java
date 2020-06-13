@@ -32,6 +32,7 @@ public class Assignment implements Serializable {
     private ArrayList<String> assginedNodes = new ArrayList<String>();	// The nodes that are assigned with tasks
     private ArrayList<String> preAssignedNodes = new ArrayList<String>(); // The nodes that are previously assigned with tasks
     private int[][] node2NodeConnection; // Matrix tells how to establish connections among nodes
+    private HashMap<Integer, String> task2Modelvariant = new HashMap<Integer, String>(); // TaskID ==> ModelVariant
     
     public void setAssignId(int id)
     {
@@ -193,4 +194,14 @@ public class Assignment implements Serializable {
     public int[][] getNode2NodeConnection(){
     	return node2NodeConnection;
     }
+
+    public void setTask2ModelVariant(int taskID, String variant) {
+    	task2Modelvariant.put(taskID, variant);
+    }
+    
+    public String getTask2ModelVariant(int taskID) {
+    	return task2Modelvariant.get(taskID);
+    }
+
+
 }

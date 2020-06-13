@@ -1,0 +1,29 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" tools:context=".MStorm">
+<!--    <item-->
+<!--        android:id="@+id/action_set_availability"-->
+<!--        android:orderInCategory="100"-->
+<!--        app:showAsAction="never"-->
+<!--        android:title="@string/action_set_availability"/>-->
+<!--    <item-->
+<!--        android:id="@+id/action_set_in_queue_parameter"-->
+<!--        android:orderInCategory="100"-->
+<!--        app:showAsAction="never"-->
+<!--        android:title="@string/action_set_in_queue_parameter"/>-->
+<!--    <item-->
+<!--        android:id="@+id/action_set_stream_selection_strategy"-->
+<!--        android:orderInCategory="100"-->
+<!--        app:showAsAction="never"-->
+<!--        android:title="@string/action_set_stream_selection_strategy"/>-->
+    <item
+        android:id="@+id/action_start_computing_service"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        android:title="@string/action_start_computing"/>
+    <item
+        android:id="@+id/action_stop_computing_service"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        android:title="@string/action_stop_computing"/>
+</menu>

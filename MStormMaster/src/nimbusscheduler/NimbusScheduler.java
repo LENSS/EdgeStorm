@@ -38,6 +38,10 @@ public class NimbusScheduler {
 //		ResilientScheduling resSch = new ResilientScheduling(submitterAddress, topology, cluster);
 //		Assignment newAssign = resSch.schedule();
 		
+//		AMVPScheduling amvps = new AMVPScheduling(submitterAddress,topology,cluster);
+//		Assignment newAssign = amvps.schedule();
+		
+		
 		if(newAssign!=null){	// can be scheduled
 			int topologyId=cluster.getNextTopologyId();	 // assign a unique id for this topology/assignment		
 			newAssign.setAssignId(topologyId);			// topology id is also used as assignment id

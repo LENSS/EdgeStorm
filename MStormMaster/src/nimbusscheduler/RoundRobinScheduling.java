@@ -35,9 +35,7 @@ public class RoundRobinScheduling {
 		// No available Nodes
 		if(availableNodes.size()==0) {
 			return null;
-		}
-			
-		
+		}	
 		for (String addr: availableNodes){
 			newAssign.addAddress(addr);
 		}   
@@ -49,9 +47,9 @@ public class RoundRobinScheduling {
 		String serTopology = Serialization.Serialize(t);
 		newAssign.setSerTopology(serTopology);
 		
+		
 		// Assign tasks to computing nodes using round robin scheduling
 		String[] topComponents = t.getComponents();
-		
 		int componentNum = t.getComponentNum();
 		int nodeNum = availableNodes.size();
 		
