@@ -1,0 +1,7 @@
+//include ':app', ':kaldi-android-5.2-old-release', ':models', ':dlib'
+//include ':app', ':kaldi-android-5.2-release', ':kaldilib'
+//include ':app', ':kaldi-android-5.2-release'
+//include ':app', ':kaldilib'
+include ':app'
+//include ':app', ':models'
+rootProject.name='EdgeAssistant'
