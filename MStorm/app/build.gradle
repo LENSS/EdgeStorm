@@ -54,6 +54,10 @@ android {
 
 repositories {
     mavenCentral()
+    google()
+    maven {
+        url  "https://dl.bintray.com/alphacep/vosk"
+    }
 }
 
 dependencies {
@@ -68,6 +72,7 @@ dependencies {
 //    implementation 'com.android.support:support-v4:23.1.1'
 //    implementation 'com.android.support:appcompat-v7:23.1.1'
     implementation project(':dlib')
+    implementation 'com.alphacep:vosk-android:0.3.10'
 }
 
 //// BUILD JAR
