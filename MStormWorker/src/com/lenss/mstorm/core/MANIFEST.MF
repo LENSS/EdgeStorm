@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Main-Class: com.lenss.mstorm.core.MStormWorker
+Class-Path: .
+Built-By: Amran
+Build-Version: 0.01_build40
