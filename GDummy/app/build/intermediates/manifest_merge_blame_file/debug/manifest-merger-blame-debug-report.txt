@@ -1,0 +1,69 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.lenss.liuyi.edgeassistant"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+8-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+9        android:targetSdkVersion="28" />
+9-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+10
+11    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+11-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:8:5-81
+11-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:8:22-78
+12    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+12-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:9:5-79
+12-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:9:22-77
+13    <uses-permission android:name="android.permission.INTERNET" />
+13-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:10:5-66
+13-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:10:22-64
+14    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+14-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:11:5-76
+14-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:11:22-73
+15    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+15-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:12:5-79
+15-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:12:22-76
+16    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+16-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:13:5-78
+16-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:13:22-76
+17    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+17-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:14:5-71
+17-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:14:22-68
+18
+19    <application
+19-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:17:5-31:19
+20        android:allowBackup="true"
+20-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:18:9-35
+21        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+21-->[androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:24:18-86
+22        android:debuggable="true"
+23        android:extractNativeLibs="false"
+24        android:icon="@mipmap/ic_launcher"
+24-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:19:9-43
+25        android:label="@string/app_name"
+25-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:20:9-41
+26        android:roundIcon="@mipmap/ic_launcher_round"
+26-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:21:9-54
+27        android:supportsRtl="true"
+27-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:22:9-35
+28        android:theme="@style/AppTheme" >
+28-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:23:9-40
+29        <activity android:name="com.lenss.amran.GAssistantActivity" >
+29-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:24:9-30:20
+29-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:24:19-68
+30            <intent-filter>
+30-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:25:13-29:29
+31                <action android:name="android.intent.action.MAIN" />
+31-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:26:17-69
+31-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:26:25-66
+32
+33                <category android:name="android.intent.category.LAUNCHER" />
+33-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:28:17-77
+33-->/home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:28:27-74
+34            </intent-filter>
+35        </activity>
+36    </application>
+37
+38</manifest>

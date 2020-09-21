@@ -4,7 +4,7 @@ package com.lenss.mstorm.executor;
  *
  */
 
-import com.lenss.mstorm.status.StatusReporter;
+//import com.lenss.mstorm.status.StatusReporter;
 import com.lenss.mstorm.status.StatusReporterEKBased;
 import com.lenss.mstorm.topology.BTask;
 import org.apache.log4j.Logger;

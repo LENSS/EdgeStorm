@@ -36,7 +36,7 @@ public class ContainerManager {
 	/*memory limits (MB)*/
 	private final static long memoryLimit = 256;
 	/*CPU limits (%)*/
-	private final static long cpuLimit = 50;
+	private final static long cpuLimit = 100;
 	
 	private final static long period =100000;
 	private final static long quota = cpuLimit * 1000;
@@ -47,8 +47,8 @@ public class ContainerManager {
 	//An instance of docker client
 	private DockerClient client;
 	
-	private final String dockerDirectory = "/home/cmy/workspace/tamugithub/EdgeStorm/Code/Research/MSDockerManager/src/main/resources/";
-	private final String imageName = "ms_worker1";
+	private final String dockerDirectory = "/home/amran/myworkspace/amran/EdgeStorm/MSDockerManager/src/main/resources/";
+	private final String imageName = "mstormworker";
 	
 	//build image
 	final AtomicReference<String> imageIdFromMessage = new AtomicReference<>();
@@ -99,7 +99,7 @@ public class ContainerManager {
 		        final String imageId = message.buildImageId();
 		        if (imageId != null) {
 		          imageIdFromMessage.set(imageId);
-		          System.out.println("Successfully create image " + name);
+		          System.out.println("Successfully built docker image: " + name);
 		        }
 		      }
 		    });

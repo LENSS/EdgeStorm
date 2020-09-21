@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 
 import org.apache.log4j.Logger;
-
 import com.lenss.mstorm.utils.GNSServiceHelper;
 import com.lenss.mstorm.utils.Helper;
 
@@ -39,6 +38,7 @@ public class MStormWorker{
 		return MStormWorkerHolder.mstormWorker;
 	} 
 
+	@SuppressWarnings("deprecation")
 	public static void main(String[] args) {
 		//		if (args.length < 1) {
 			//			System.err.println("USAGE: MasterNode_IP(Zookeeper_IP)");
@@ -60,7 +60,7 @@ public class MStormWorker{
 			public void run() {
 				exit();
 			}
-		}, "MStormWorker shutdown"));
+		}, "MStormWorker Shutdown"));
 	}
 
 	public static void exit() {
@@ -72,7 +72,7 @@ public class MStormWorker{
 		// Get own GUID and IP
 		GUID = GNSServiceHelper.getOwnGUID();
 		if(GUID == null) {
-			logger.info("EdgeKeeper unreachable!");
+			logger.info("EdgeKeeper Unreachable!");
 			System.exit(-1);
 		}
 		localAddress = Helper.getIPAddress(true);

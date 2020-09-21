@@ -176,7 +176,7 @@ public class MStorm extends ActionBarActivity{
         /// Get own GUID
         GUID = GNSServiceHelper.getOwnGUID();
         if(GUID == null) {
-            mLog.append("\nO_GUID: Cannot get, check if EdgeKeeper starts!");
+            mLog.append("\nO_GUID: Cannot get, check if EdgeKeeper is Running and Connected!");
             onStop();
         } else {
             mLog.append("\nO_GUID: " + GUID);

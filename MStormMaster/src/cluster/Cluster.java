@@ -211,7 +211,7 @@ public class Cluster {
 		for(String nodeAddr: computingNodes){
 			int nodeID = addr2nodeID.get(nodeAddr);
 			nodeID2TopologyID.put(nodeID, topologyID);
-			setCompNodeAsUsed(nodeAddr);
+			//setCompNodeAsUsed(nodeAddr);
 		}
 	}
 
