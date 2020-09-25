@@ -26,7 +26,7 @@ public class MStormWorker{
 	public static String localAddress;
 
 	public static String isPublicOrPrivate;
-   
+	public static int isMobileOrServer = 1;
     public static double availability = 1.0;
 
 	public static Supervisor mSupervisor;

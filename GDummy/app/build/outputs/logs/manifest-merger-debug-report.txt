@@ -1,0 +1,202 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+MERGED from [androidx.appcompat:appcompat:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/daa25031b18f678227f729b28271d796/appcompat-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.constraintlayout:constraintlayout:1.1.3] /home/amran/.gradle/caches/transforms-2/files-2.1/29cd7a730e712ee539d54bc20c8f1600/constraintlayout-1.1.3/AndroidManifest.xml:2:1-11:12
+MERGED from [androidx.legacy:legacy-support-v4:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/bc0c628cd3dcc59476bd04cdf8f98c14/legacy-support-v4-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.fragment:fragment:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/9576e5341091adc458174550484f074f/fragment-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/8b59b3c1a887765b35ed12535dbc7a74/jetified-appcompat-resources-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.legacy:legacy-support-core-ui:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7e22443bc66c657151e5da8e7cb0276b/legacy-support-core-ui-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0d6d97df9ef16e34a14e41912a444681/drawerlayout-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media:media:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5aeff20bd1d21fbd339836640e8b8af6/media-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/c937d2ab5c3a142b9bd90a63be024862/legacy-support-core-utils-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5322c07a93ce2b0f49015dab1da68055/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f63bbea4ed0c77743c21be8033aef132/loader-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/da20e81661ca7e5ebf8437e5d683ecb0/jetified-activity-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/43c06f5389232ff1e7ff6be114a41de4/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f25e7fe0e41c9aa1d459e41b4dfac670/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5dcc3cb9c8ed26517f4914ebf4ad5a8a/coordinatorlayout-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7bf3cfdac373f804c6af0e52e309e7e8/slidingpanelayout-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/ccfa03f3e6d9fa9a4b976fea8047d05b/customview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2bc81dc25c298d23c68805370c913134/swiperefreshlayout-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.asynclayoutinflater:asynclayoutinflater:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/29df28a74a42c8d8c6bef4777f031352/asynclayoutinflater-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:17:1-26:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a96842a0fc9a1784968a3648af4402bb/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a9ee940734029c1f8f6420a06adb5418/versionedparcelable-1.1.0/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0696a8d60a76516af9ea433f5925d576/documentfile-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/450bf72472d3098aeb0909268d1ae6fd/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/3caa9504709ad9df6e4263522d3fb7df/print-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/512af1f275fcce8ece2a83bcf3627450/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/1eb8075cde815307d703b51562ca6811/lifecycle-runtime-2.1.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/684ac5686aea8901203adde15cb7734e/lifecycle-viewmodel-2.1.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2b003293c936a507c2e7067a4bfed1ed/jetified-savedstate-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/17e40fb465befc8f7f490efb76a9d3e4/lifecycle-livedata-2.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/69c63fe4cb62f71fdc8e03e014d6212b/lifecycle-livedata-core-2.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b25a1d60efdaa9d94173f464653fa2b/core-runtime-2.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.alphacep:vosk-android:0.3.10] /home/amran/.gradle/caches/transforms-2/files-2.1/a64a3185de66ab66eda3d4c1d74ffc5c/jetified-vosk-android-0.3.10/AndroidManifest.xml:2:1-11:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:1-33:12
+	package
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:4:5-26
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+	android:versionName
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:6:5-30
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:3:5-51
+	xmlns:android
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:2:11-69
+	android:versionCode
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:5:5-29
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:8:5-81
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:8:22-78
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:9:5-79
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:9:22-77
+uses-permission#android.permission.INTERNET
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:10:5-66
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:10:22-64
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:11:5-76
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:11:22-73
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:12:5-79
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:12:22-76
+uses-permission#android.permission.CHANGE_NETWORK_STATE
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:13:5-78
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:13:22-76
+uses-permission#android.permission.RECORD_AUDIO
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:14:5-71
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:14:22-68
+application
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:17:5-31:19
+MERGED from [androidx.constraintlayout:constraintlayout:1.1.3] /home/amran/.gradle/caches/transforms-2/files-2.1/29cd7a730e712ee539d54bc20c8f1600/constraintlayout-1.1.3/AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:1.1.3] /home/amran/.gradle/caches/transforms-2/files-2.1/29cd7a730e712ee539d54bc20c8f1600/constraintlayout-1.1.3/AndroidManifest.xml:9:5-20
+MERGED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:24:5-89
+MERGED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:24:5-89
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a9ee940734029c1f8f6420a06adb5418/versionedparcelable-1.1.0/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a9ee940734029c1f8f6420a06adb5418/versionedparcelable-1.1.0/AndroidManifest.xml:24:5-25:19
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:24:18-86
+	android:supportsRtl
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:22:9-35
+	android:label
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:20:9-41
+	android:roundIcon
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:21:9-54
+	android:icon
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:19:9-43
+	android:allowBackup
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:18:9-35
+	android:theme
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:23:9-40
+activity#com.lenss.amran.GAssistantActivity
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:24:9-30:20
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:24:19-68
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:25:13-29:29
+action#android.intent.action.MAIN
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:26:17-69
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:26:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:28:17-77
+	android:name
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml:28:27-74
+uses-sdk
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+MERGED from [androidx.appcompat:appcompat:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/daa25031b18f678227f729b28271d796/appcompat-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/daa25031b18f678227f729b28271d796/appcompat-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.constraintlayout:constraintlayout:1.1.3] /home/amran/.gradle/caches/transforms-2/files-2.1/29cd7a730e712ee539d54bc20c8f1600/constraintlayout-1.1.3/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:1.1.3] /home/amran/.gradle/caches/transforms-2/files-2.1/29cd7a730e712ee539d54bc20c8f1600/constraintlayout-1.1.3/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.legacy:legacy-support-v4:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/bc0c628cd3dcc59476bd04cdf8f98c14/legacy-support-v4-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-v4:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/bc0c628cd3dcc59476bd04cdf8f98c14/legacy-support-v4-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.fragment:fragment:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/9576e5341091adc458174550484f074f/fragment-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/9576e5341091adc458174550484f074f/fragment-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/8b59b3c1a887765b35ed12535dbc7a74/jetified-appcompat-resources-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/8b59b3c1a887765b35ed12535dbc7a74/jetified-appcompat-resources-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.legacy:legacy-support-core-ui:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7e22443bc66c657151e5da8e7cb0276b/legacy-support-core-ui-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-ui:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7e22443bc66c657151e5da8e7cb0276b/legacy-support-core-ui-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0d6d97df9ef16e34a14e41912a444681/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0d6d97df9ef16e34a14e41912a444681/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media:media:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5aeff20bd1d21fbd339836640e8b8af6/media-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media:media:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5aeff20bd1d21fbd339836640e8b8af6/media-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/c937d2ab5c3a142b9bd90a63be024862/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/c937d2ab5c3a142b9bd90a63be024862/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5322c07a93ce2b0f49015dab1da68055/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5322c07a93ce2b0f49015dab1da68055/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f63bbea4ed0c77743c21be8033aef132/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f63bbea4ed0c77743c21be8033aef132/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/da20e81661ca7e5ebf8437e5d683ecb0/jetified-activity-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.activity:activity:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/da20e81661ca7e5ebf8437e5d683ecb0/jetified-activity-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/43c06f5389232ff1e7ff6be114a41de4/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/43c06f5389232ff1e7ff6be114a41de4/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f25e7fe0e41c9aa1d459e41b4dfac670/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/f25e7fe0e41c9aa1d459e41b4dfac670/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5dcc3cb9c8ed26517f4914ebf4ad5a8a/coordinatorlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/5dcc3cb9c8ed26517f4914ebf4ad5a8a/coordinatorlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7bf3cfdac373f804c6af0e52e309e7e8/slidingpanelayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/7bf3cfdac373f804c6af0e52e309e7e8/slidingpanelayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/ccfa03f3e6d9fa9a4b976fea8047d05b/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/ccfa03f3e6d9fa9a4b976fea8047d05b/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2bc81dc25c298d23c68805370c913134/swiperefreshlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2bc81dc25c298d23c68805370c913134/swiperefreshlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.asynclayoutinflater:asynclayoutinflater:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/29df28a74a42c8d8c6bef4777f031352/asynclayoutinflater-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.asynclayoutinflater:asynclayoutinflater:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/29df28a74a42c8d8c6bef4777f031352/asynclayoutinflater-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b6df050df7db4eb02765832eef901ef/core-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a96842a0fc9a1784968a3648af4402bb/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a96842a0fc9a1784968a3648af4402bb/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a9ee940734029c1f8f6420a06adb5418/versionedparcelable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/a9ee940734029c1f8f6420a06adb5418/versionedparcelable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0696a8d60a76516af9ea433f5925d576/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/0696a8d60a76516af9ea433f5925d576/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/450bf72472d3098aeb0909268d1ae6fd/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/450bf72472d3098aeb0909268d1ae6fd/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/3caa9504709ad9df6e4263522d3fb7df/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/3caa9504709ad9df6e4263522d3fb7df/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/512af1f275fcce8ece2a83bcf3627450/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/512af1f275fcce8ece2a83bcf3627450/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/1eb8075cde815307d703b51562ca6811/lifecycle-runtime-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/1eb8075cde815307d703b51562ca6811/lifecycle-runtime-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/684ac5686aea8901203adde15cb7734e/lifecycle-viewmodel-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.1.0] /home/amran/.gradle/caches/transforms-2/files-2.1/684ac5686aea8901203adde15cb7734e/lifecycle-viewmodel-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2b003293c936a507c2e7067a4bfed1ed/jetified-savedstate-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.savedstate:savedstate:1.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/2b003293c936a507c2e7067a4bfed1ed/jetified-savedstate-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/17e40fb465befc8f7f490efb76a9d3e4/lifecycle-livedata-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/17e40fb465befc8f7f490efb76a9d3e4/lifecycle-livedata-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/69c63fe4cb62f71fdc8e03e014d6212b/lifecycle-livedata-core-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/69c63fe4cb62f71fdc8e03e014d6212b/lifecycle-livedata-core-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b25a1d60efdaa9d94173f464653fa2b/core-runtime-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.0.0] /home/amran/.gradle/caches/transforms-2/files-2.1/6b25a1d60efdaa9d94173f464653fa2b/core-runtime-2.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.alphacep:vosk-android:0.3.10] /home/amran/.gradle/caches/transforms-2/files-2.1/a64a3185de66ab66eda3d4c1d74ffc5c/jetified-vosk-android-0.3.10/AndroidManifest.xml:7:5-9:41
+MERGED from [com.alphacep:vosk-android:0.3.10] /home/amran/.gradle/caches/transforms-2/files-2.1/a64a3185de66ab66eda3d4c1d74ffc5c/jetified-vosk-android-0.3.10/AndroidManifest.xml:7:5-9:41
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		ADDED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml
+		INJECTED from /home/amran/eclipse-workspace/LENSS/EdgeStorm/GDummy/app/src/main/AndroidManifest.xml

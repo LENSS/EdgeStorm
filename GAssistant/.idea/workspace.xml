@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="55601d48-2d70-4552-9c0d-8a3904a70009" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../Gdummy/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/libs/mstorm.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/proguard-rules.pro" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/GAssistantActivity.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/GAssistantTopology.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/MyVoiceConverter.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/MyVoiceDistributor.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/MyVoiceSaver.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/Utils.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/java/com/lenss/liuyi/VoiceUtils.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/drawable/ic_launcher_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/layout/activity_main.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-hdpi/ic_launcher_round.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-mdpi/ic_launcher_round.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/values/colors.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/values/strings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/app/src/main/res/values/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradle.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradle/wrapper/.gradle-wrapper.properties.swp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradlew" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/gradlew.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/push_apk.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Gdummy/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStorm/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../MStorm/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/.classpath" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/.classpath" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/build.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/build.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/deployable/mstorm_worker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/deployable/mstorm_worker.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/communication/internodes/CommunicationClientHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/communication/internodes/CommunicationClientHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/communication/internodes/MessageQueues.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/communication/internodes/MessageQueues.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/ComputingNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/ComputingNode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/MStormWorker.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/MStormWorker.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/Supervisor.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/core/Supervisor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/executor/Executor.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/executor/Executor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/executor/ExecutorManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/executor/ExecutorManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/status/StatusOfDownStreamTasks.java" beforeDir="false" afterPath="$PROJECT_DIR$/../MStormWorker/src/com/lenss/mstorm/status/StatusOfDownStreamTasks.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view />
+      </state>
+    </system>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1hbugKxFwJzAwxpjLugJ45XybHp" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="android.sdk.path" value="$USER_HOME$/Android/Sdk" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="AndroidSdkUpdater" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="55601d48-2d70-4552-9c0d-8a3904a70009" name="Default Changelist" comment="" />
+      <created>1600292223218</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1600292223218</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -12,16 +12,18 @@ public class Node {
 	private ReportToNimbus latestPhoneStatus;
 	private boolean hasUpdatedStatusReport;
 	private int publicOrPrivate;
+	private int mobileOrServer;
 	private double availability;
 	
 	private static final double RATIO = 0.37;   // 1/e
 	public static final int PUBLIC = 1;
 	public static final int PRIVATE = 0;
 	
-	public Node(String addr, int pubOrPri, double availability)
+	public Node(String addr, int pubOrPri, int mobOrSer, double availability)
 	{
 		address = addr;
 		publicOrPrivate = pubOrPri;
+		mobileOrServer = mobOrSer;
 		this.availability = availability;
 		latestPhoneStatus = null;
 		hasUpdatedStatusReport = false;
@@ -33,6 +35,10 @@ public class Node {
 	
 	public int getAddrStatus() {
 		return publicOrPrivate;
+	}
+	
+	public int getNodeType() {
+		return mobileOrServer;
 	}
 	
 	public double getNodeAvailibility() {
