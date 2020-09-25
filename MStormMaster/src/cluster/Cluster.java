@@ -40,6 +40,7 @@ public class Cluster {
 	private HashMap<Integer,Topology> topologyID2topology; 			// Get a topology from the topology ID
 	private HashMap<Integer,Assignment> topologyID2assignment; 		// Get the assignment of a topology
 	private HashMap<Integer,Boolean> topologyID2BeingRescheduled; 	// Check if a topology is being rescheduled
+	private HashMap<String, Integer> addr2nodeType;					// Added By Amran. Get node type from nodeaddr.
 
 
 	//// METHODS FOR ALL CLUSTERS
@@ -138,8 +139,9 @@ public class Cluster {
 			Map.Entry<Integer, Node> entry = it.next();
 			String addr = entry.getValue().getAddress();
 			int status = entry.getValue().getAddrStatus();
+			int type = entry.getValue().getNodeType(); //Added by Amran
 			double availability = entry.getValue().getNodeAvailibility();
-			String addrAndStatus = addr + ":" + status + ":" + availability;
+			String addrAndStatus = addr + ":" + status + ":" + type + ":" + availability;
 			int nodeId = entry.getKey();
 			if(!children.contains(addrAndStatus)){
 				it.remove();
@@ -157,11 +159,13 @@ public class Cluster {
 			String[] nodeAddrAndStatusArray = nodeAddrAndStatus.split("\\:");
 			String nodeAddr = nodeAddrAndStatusArray[0];
 			int nodeStatus = new Integer(nodeAddrAndStatusArray[1]);
-			double availability = new Double(nodeAddrAndStatusArray[2]);
+			int nodeType = new Integer (nodeAddrAndStatusArray[2]); //added by Amran.
+			double availability = new Double(nodeAddrAndStatusArray[3]); //Changed by Amran from [2] to [3]
+			logger.info("AMRAN - Node " + nodeAddr +"is of Type -" + nodeType + "- [1 means 'Server', 0 means 'Mobile']");
 			if(!previousNodeAddr.contains(nodeAddrAndStatus)){
 				int nodeId = getNextNodeId();
 				if(nodeId!=0){
-					Node newNode = new Node(nodeAddr, nodeStatus, availability);
+					Node newNode = new Node(nodeAddr, nodeStatus, nodeType, availability);
 					nodeAddr2Avail.put(newNode.getAddress(), true);
 					addr2nodeID.put(newNode.getAddress(), nodeId);
 					nodeID2node.put(nodeId, newNode);
@@ -211,7 +215,12 @@ public class Cluster {
 		for(String nodeAddr: computingNodes){
 			int nodeID = addr2nodeID.get(nodeAddr);
 			nodeID2TopologyID.put(nodeID, topologyID);
-			//setCompNodeAsUsed(nodeAddr);
+			if(getNodeByNodeId(nodeID).getNodeType()==0) { // Condition added by amran.
+				setCompNodeAsUsed(nodeAddr);
+				logger.info("AMRAN - Node Type APK is added as ASSIGNED");
+			}
+			else
+				logger.info("AMRAN - Node Type WORKER is not added as ASSIGNED");
 		}
 	}
 
@@ -240,7 +249,13 @@ public class Cluster {
 		for(String nodeAddr: computingNodes){
 			int nodeID = addr2nodeID.get(nodeAddr);
 			nodeID2TopologyID.put(nodeID, topologyID);
-			setCompNodeAsUsed(nodeAddr);
+			if(getNodeByNodeId(nodeID).getNodeType()==0) { // Condition added by Amran
+				setCompNodeAsUsed(nodeAddr);
+				logger.info("Node Type APK is added as ASSIGNED");
+			}
+			else
+				logger.info("Node Type WORKER is not added as ASSIGNED");
+			
 		}
 
 		// update the state of the status report 
@@ -257,7 +272,7 @@ public class Cluster {
 		// remove old computing nodes
 		HashSet<String> oldcomputingNodes = new HashSet<String>(oldAssignment.getTask2Node().values());
 		for(String nodeAddr: oldcomputingNodes){
-			setCompNodeAsUnUsed(nodeAddr);
+			setCompNodeAsUnUsed(nodeAddr); //Commented out by Amran
 		}
 
 		// remove old nodeID2TopologyID pairs

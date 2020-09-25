@@ -1,14 +1,15 @@
 package com.lenss.mstorm.core;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
+import javax.annotation.processing.SupportedSourceVersion;
+import javax.imageio.spi.RegisterableService;
+
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-import java.io.IOException;
-//import java.net.InetSocketAddress;
-//import javax.annotation.processing.SupportedSourceVersion;
-//import javax.imageio.spi.RegisterableService;
-//import org.apache.zookeeper.AsyncCallback.StatCallback;
-//import org.junit.validator.PublicClassValidator;
-//import sun.java2d.pipe.SpanClipRenderer;
+import org.apache.zookeeper.AsyncCallback.StatCallback;
+import org.junit.validator.PublicClassValidator;
 
 import com.google.gson.Gson;
 import com.lenss.mstorm.communication.masternode.MasterNodeClient;
@@ -16,7 +17,7 @@ import com.lenss.mstorm.communication.masternode.Request;
 import com.lenss.mstorm.zookeeper.Assignment;
 import com.lenss.mstorm.zookeeper.ZookeeperClient;
 
-
+import sun.java2d.pipe.SpanClipRenderer;
 
 public class Supervisor{
 	Logger logger = Logger.getLogger("Supervisor");
@@ -140,8 +141,7 @@ public class Supervisor{
         masterNodeClient.sendRequest(req);
     }
     
-    @SuppressWarnings("static-access")
-	public void register(String cluster_id){
+    public void register(String cluster_id){
         this.cluster_id=cluster_id;
         mZKClient.register(cluster_id);
     }

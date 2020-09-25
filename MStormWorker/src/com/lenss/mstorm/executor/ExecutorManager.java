@@ -28,8 +28,7 @@ public class ExecutorManager extends ThreadPoolExecutor {
         super.afterExecute(r, t);
         if (t == null && r instanceof Future) {
             try {
-                    @SuppressWarnings({ "unused", "rawtypes" })
-					Object result = ((Future) r).get();
+                    Object result = ((Future) r).get();
                 }
                 catch (CancellationException ce) {
                     t = ce;

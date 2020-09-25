@@ -91,6 +91,10 @@ public class MStorm extends ActionBarActivity{
     // Public or Private
     public static String isPublicOrPrivate;
 
+    /*Added by Amran*/
+    // Public or Private
+    public static String isMobileOrServer;
+
     // Availability of this node
     public static double availability = 1.0;
 
@@ -176,7 +180,7 @@ public class MStorm extends ActionBarActivity{
         /// Get own GUID
         GUID = GNSServiceHelper.getOwnGUID();
         if(GUID == null) {
-            mLog.append("\nO_GUID: Cannot get, check if EdgeKeeper is Running and Connected!");
+            mLog.append("\nO_GUID: Cannot get, check if EdgeKeeper starts!");
             onStop();
         } else {
             mLog.append("\nO_GUID: " + GUID);
@@ -223,6 +227,8 @@ public class MStorm extends ActionBarActivity{
 
         /// Get own address status
         isPublicOrPrivate = "0";    // This can be get from some configuration file later: 0 means private, 1 means public
+        /*Added by Amran*/
+        isMobileOrServer = "0";    // This can be obtained from some configuration file later: 0 means mobile device, 1 means edge server
     }
 
     @Override

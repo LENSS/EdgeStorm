@@ -1,22 +1,22 @@
 package com.lenss.mstorm.core;
 
 import java.io.File;
-//import java.io.IOException;
-//import java.net.InetSocketAddress;
-//import java.net.MalformedURLException;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-//import java.nio.file.Path;
-//import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.Iterator;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-//import java.util.Map;
-//import java.util.concurrent.BlockingQueue;
-//import java.util.concurrent.ConcurrentHashMap;
-//import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
@@ -32,15 +32,15 @@ import com.lenss.mstorm.communication.internodes.Dispatcher;
 import com.lenss.mstorm.communication.internodes.MessageQueues;
 import com.lenss.mstorm.executor.Executor;
 import com.lenss.mstorm.executor.ExecutorManager;
-//import com.lenss.mstorm.status.StatusReporter;
+import com.lenss.mstorm.status.StatusReporter;
 import com.lenss.mstorm.status.StatusReporterEKBased;
 import com.lenss.mstorm.topology.BTask;
 import com.lenss.mstorm.topology.Topology;
 import com.lenss.mstorm.utils.GNSServiceHelper;
-//import com.lenss.mstorm.utils.MyPair;
+import com.lenss.mstorm.utils.MyPair;
 import com.lenss.mstorm.utils.Serialization;
 import com.lenss.mstorm.zookeeper.Assignment;
-//import com.sun.xml.internal.ws.resources.ManagementMessages;
+import com.sun.xml.internal.ws.resources.ManagementMessages;
 
 public class ComputingNode implements Runnable {
 	/// LOGGER
@@ -129,7 +129,7 @@ public class ComputingNode implements Runnable {
 		while(allConnected==0){     // wait until all workers are connected
 			try {
 				Thread.sleep(5);
-				logger.info("Waiting for workers to connect to each other ... ");
+				logger.info("Waiting workers to connect with each other ... ");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -139,7 +139,7 @@ public class ComputingNode implements Runnable {
 			logger.error("Some connections between workers failed ... ");
 			Supervisor.mHandler.handleMessage(Supervisor.Message_LOG, "Workers cannot establish connections, please turn off and try again ...");
 		} else{
-			logger.info("All connections among workers succeeded ... ");
+			logger.info("All connections among workers succeed ... ");
 		}
 
 		// execute tasks assigned to this node

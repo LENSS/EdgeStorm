@@ -48,11 +48,10 @@ public class NimbusScheduler {
 			newAssign.setApk(req.getFileName());
 			newAssign.setAssignType(Assignment.FSTSCHE);
 			cluster.addAssignment(topologyId,newAssign);
-			MasterNode.getInstance();
-			MasterNode.mZkClient.getDM().addNewAssignment(newAssign,cluster.getClusterId());
+			MasterNode.getInstance().mZkClient.getDM().addNewAssignment(newAssign,cluster.getClusterId());
 			return newAssign;
 		} else{		// cannot be scheduled
-			logger.info("The topology from GUID " + submitterAddress + "cannot be schduled!\n" + "neAssign Value is " + newAssign);
+			logger.info("The topology from GUID " + submitterAddress + "cannot be schduled!\n");
 			return null;
 		}
 	}
