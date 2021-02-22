@@ -72,6 +72,7 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
     private static final String RAW_PIC_URL = MStormDir+"RawPic/";
     private static final String PIC_URL = MStormDir+"StreamFDPic/";
     private static final String STORAGE_PIC_URL = MStormDir+"StoragePic/";
+    private static final String MDFS_FOLDER_URL = MStormDir+"MDFSPic/";
     private static final String apkFileDirectory = MStormDir + "APK/";
     private static final String apkFileName = "GDetection.apk";
 
@@ -165,6 +166,15 @@ public class GDetectionActivity extends AppCompatActivity{ //ActionBarActivity
         // Create the folder for storing the raw pictures
         File rawPicFolder = new File(RAW_PIC_URL);
         rawPicFolder.mkdir();
+
+        File picUrlFolder = new File(PIC_URL);
+        picUrlFolder.mkdir();
+
+        File storagePicUrl = new File(STORAGE_PIC_URL);
+        storagePicUrl.mkdir();
+
+        File mdfsStoragePicUrl = new File(MDFS_FOLDER_URL);
+        mdfsStoragePicUrl.mkdir();
 
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
