@@ -2,8 +2,8 @@ package com.lenss.cmy;
 
 import android.content.Context;
 import android.os.Environment;
-import android.support.annotation.NonNull;
-import android.support.annotation.RawRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.RawRes;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;

@@ -1,33 +1,20 @@
 package com.lenss.mstorm.core;
 
-import android.Manifest;
-import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
-import android.text.format.Formatter;
-import android.text.format.Time;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.lenss.mstorm.R;
 import com.lenss.mstorm.communication.internodes.StreamSelector;
@@ -38,11 +25,10 @@ import com.lenss.mstorm.utils.Intents;
 import com.lenss.mstorm.utils.TAGs;
 
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
-import edu.tamu.cse.lenss.edgeKeeper.client.EKClient;
-
-public class MStorm extends ActionBarActivity{
+public class MStorm extends AppCompatActivity{
     // For Logs
     public static final String TAG = "MStorm";
     public static final String MStormDir = Environment.getExternalStorageDirectory().getPath() + "/distressnet/MStorm/";

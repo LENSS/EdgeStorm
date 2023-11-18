@@ -3,7 +3,7 @@ package com.lenss.cmy.gdetection;
 import android.os.Environment;
 import android.os.FileObserver;
 import android.os.SystemClock;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.lenss.mstorm.communication.internodes.InternodePacket;
 import com.lenss.mstorm.communication.internodes.MessageQueues;

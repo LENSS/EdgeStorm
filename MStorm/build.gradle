@@ -45,6 +45,7 @@ allprojects {
             maven {
                 url "https://maven.google.com" // Google's Maven repository
             }
+            google()
         }
     }
 }
@@ -68,8 +69,8 @@ ext {
     androidSupportSdkVersion = '21.0.3'
     targetSdkVersion = 21
     minSdkVersion = 21
-    androidBuildToolsVersion = '27.0.0'
-    androidCompileSdkVersion = 26
+    //androidBuildToolsVersion = '27.0.0'
+    androidCompileSdkVersion = 28
 
 }
 

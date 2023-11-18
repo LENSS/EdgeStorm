@@ -3,8 +3,8 @@ package com.tzutalin.dlib;
 import android.graphics.Bitmap;
 //import android.support.annotation.Keep;
 import android.service.media.CameraPrewarmService;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 //import android.support.annotation.WorkerThread;
 import android.util.Log;
 
